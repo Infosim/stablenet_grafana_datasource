@@ -20,7 +20,7 @@ module.exports = function(grunt) {
       src_to_dist: {
         cwd: 'src',
         expand: true,
-        src: ['**/*', '!**/*.js', '!**/*.scss'],
+        src: ['**/*', '!**/*.ts', '!**/*.scss'],
         dest: 'dist'
       },
       pluginDef: {
@@ -48,7 +48,7 @@ module.exports = function(grunt) {
         files: [{
           cwd: 'src',
           expand: true,
-          src: ['**/*.js'],
+          src: ['**/*.ts'],
           dest: 'dist',
           ext:'.js'
         }]
@@ -57,7 +57,7 @@ module.exports = function(grunt) {
         files: [{
           cwd: 'src',
           expand: true,
-          src: ['**/*.js'],
+          src: ['**/*.ts'],
           dest: 'dist/test',
           ext:'.js'
         }]
@@ -66,7 +66,7 @@ module.exports = function(grunt) {
         files: [{
           expand: true,
           cwd: 'spec',
-          src: ['**/*.js'],
+          src: ['**/*.ts'],
           dest: 'dist/test/spec',
           ext:'.js'
         }]

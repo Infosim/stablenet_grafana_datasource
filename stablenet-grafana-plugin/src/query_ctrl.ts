@@ -81,7 +81,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
    */
   onChangeInternal() {
     setTimeout(() => {
-      console.log('Refresh Later')
+      console.log('Refresh Later');
       this.panelCtrl.refresh(); // Asks the panel to refresh data.
     }, 500)
   }

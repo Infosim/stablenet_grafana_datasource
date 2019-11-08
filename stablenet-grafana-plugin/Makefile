@@ -1,4 +1,5 @@
 all: grunt build deploy
+compile: grunt build
 
 grunt:
 	grunt

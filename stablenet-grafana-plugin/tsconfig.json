@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "app/plugins/sdk": ["node_modules/@types/grafana/app/plugins/sdk"]
+    }
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}
