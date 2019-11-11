@@ -7,15 +7,13 @@ import (
 )
 
 var pluginLogger = hclog.New(&hclog.LoggerOptions{
-	Name:  "stablenet-datasource",
-	Level: hclog.LevelFromString("DEBUG"),
+	Name:  "stablenet-datasource-logger",
+	Level: hclog.Info,
 })
 
 func main() {
-	pluginLogger.Debug("StableNet data source backend datasource")
-
 	plugin.Serve(&plugin.ServeConfig{
-
+		Logger: pluginLogger,
 		HandshakeConfig: plugin.HandshakeConfig{
 			ProtocolVersion:  1,
 			MagicCookieKey:   "grafana_plugin_type",

@@ -60,12 +60,7 @@ export class GenericDatasource {
      * and
      * after "updateDevice()" when a device is PICKED
      */
-    deviceFindQuery(server, filter) {
-        //console.log("DEVICE_FIND_QUERY");
-
-        if (server == 'select server') {
-            return [{text: 'select option', value: 'select option'}];
-        }
+    queryAllDevices(server, filter) {
 
         let data = {
             from: "1555324640782",  // Optional, time range from
@@ -74,23 +69,19 @@ export class GenericDatasource {
                 {
                     datasourceId: 8,   // Required
                     refId: "A",         // Optional, default is "A"
-                    maxDataPoints: 100, // Optional, default is 100
-                    intervalMs: 1000,   // Optional, default is 1000
-
-                    myFieldFoo: "bar",  // Any other fields,
-                    myFieldBar: "baz",  // defined by user
+                    queryType: "devices"
                 }
             ]
         };
-
         return this.doRequest({
             url: '/api/tsdb/query',
             data: data,
-            method: 'POST',
+            method: 'POST'
         }).then(result => {
-            console.log(result);
-            return result
-        }).then(result => []);
+            return result.data.results.A.meta.map(device => {
+                return {text: device.name, value: device.obid};
+            })
+        });
     }
 
     /**
@@ -246,8 +237,6 @@ export class GenericDatasource {
     }
 
     doRequest(options) {
-        console.log("DO_REQUEST")
-
         options.withCredentials = this.withCredentials;
         options.headers = this.headers;
 
@@ -384,7 +373,7 @@ function isRegex(text) {
 }
 
 export function handleTsdbResponse(response) {
-    const res= [];
+    const res = [];
     _.forEach(response.data.results, r => {
         _.forEach(r.series, s => {
             res.push({target: s.name, datapoints: s.points});

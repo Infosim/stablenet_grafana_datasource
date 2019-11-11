@@ -24,11 +24,11 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
 
   getFilters() {
-    return [{text: 'Device', value: 'device'}, {text: 'Tag Filter', value: 'tag'}];
+    return [{text: 'Devices', value: 'device'}, {text: 'Tag Filters for Devices', value: 'tag'}];
   }
 
   getDevices() {
-    return this.datasource.deviceFindQuery(this.target.server, this.target.filter);       //calls /rest/devices/list or rest/tag-filters/list and parses answer
+    return this.datasource.queryAllDevices(this.target.server, this.target.filter);       //calls /rest/devices/list or rest/tag-filters/list and parses answer
   }
 
   getMeasurements() {
