@@ -53,22 +53,12 @@ export class GenericDatasource {
         });
     }
 
-    /**
-     * Uses SN's REST API to get a list of all devices.
-     *
-     * Is called when the 3rd dropdown menu is OPENED
-     * and
-     * after "updateDevice()" when a device is PICKED
-     */
     queryAllDevices(server, filter) {
-
         let data = {
-            from: "1555324640782",  // Optional, time range from
-            to: "1555328240782",    // Optional, time range to
             queries: [
                 {
+                    refId: "A",
                     datasourceId: 8,   // Required
-                    refId: "A",         // Optional, default is "A"
                     queryType: "devices"
                 }
             ]
@@ -84,29 +74,29 @@ export class GenericDatasource {
         });
     }
 
-    /**
-     * Is called when the 4th dropdown menu is OPENED
-     * and
-     * after "updateMeasurement()" when a measurement is PICKED
-     */
-    measurementFindQuery(server, filter, obid) {
-        //console.log("MEASUREMENT_FIND_QUERY");
-        //console.log("MMFQ Options: ", server, obid);
-
-        if (server == 'select server' || obid == 'select option') {
-            return [{text: 'select measurement', value: 'select measurement'}];
+    findMeasurementsForDevice(server, filter, obid) {
+        if(obid === "select option"){
+            return []
         }
-
+        let data = {
+            queries: [
+                {
+                    refId: "A",
+                    datasourceId: 8,   // Required
+                    queryType: "measurements",
+                    deviceObid: obid
+                }
+            ]
+        };
         return this.doRequest({
-            url: (filter === 'device') ? DEVICES_MSM : MSM_LIST_POST,
-            data: {server: server, obid: obid},
-            method: 'POST',
+            url: '/api/tsdb/query',
+            data: data,
+            method: 'POST'
         }).then(result => {
-            console.log("MMFQ Response: ", result)
-            return result.data;
-        }).then(ml => measurementListToJS(ml)
-            .sort((x, y) => x.text.localeCompare(y.text))
-        );
+            return result.data.results.A.meta.map(measurement => {
+                return {text: measurement.name, value: measurement.obid};
+            })
+        });
     }
 
     /**
@@ -178,10 +168,6 @@ export class GenericDatasource {
         console.log("MFQ Response: ", arr);
 
         return await this.mapToTextValue({data: arr, status: 201, statusText: "Created"});      //mTTV expects an object with a 'data' property which is an array
-    }
-
-    query(options) {
-        return this.doTsdbRequest().then(handleTsdbResponse);
     }
 
     doTsdbRequest() {

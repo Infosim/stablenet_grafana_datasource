@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend-plugin/request"
 	"backend-plugin/stablenet"
 	"encoding/json"
 	"fmt"
@@ -19,13 +20,17 @@ type JsonDatasource struct {
 }
 
 func (j *JsonDatasource) Query(ctx context.Context, tsdbReq *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
-	queryType, err := j.getQueryType(tsdbReq)
+	req := &request.Content{*tsdbReq}
+	queryType, err := req.GetCustomField("queryType")
 	if err != nil {
 		j.logger.Error("could not retrieve query type: %v", err)
 		return nil, err
 	}
 	if queryType == "devices" {
-		return j.handleDeviceQuery(tsdbReq)
+		return j.handleDeviceQuery(req)
+	}
+	if queryType == "measurements" {
+		return j.handleMeasurementQuery(req)
 	}
 	j.logger.Error("Query", "datasource", tsdbReq.Datasource.Name, "TimeRange", tsdbReq.TimeRange)
 	then := time.Now().AddDate(-1, 0, 0)
@@ -57,45 +62,61 @@ func (j *JsonDatasource) Query(ctx context.Context, tsdbReq *datasource.Datasour
 	return response, nil
 }
 
-func (j *JsonDatasource) getQueryType(tsdbReq *datasource.DatasourceRequest) (string, error) {
+func (j *JsonDatasource) getQueryType(req *request.Content) (string, error) {
 	queryType := "query"
-	if len(tsdbReq.Queries) > 0 {
-		firstQuery := tsdbReq.Queries[0]
+	if len(req.Queries) > 0 {
+		firstQuery := req.Queries[0]
 		j.logger.Info(firstQuery.ModelJson)
 		queryJson, err := simplejson.NewJson([]byte(firstQuery.ModelJson))
 		if err != nil {
 			return "", err
 		}
-		queryType = queryJson.Get("queryType").MustString("devices")
-
+		queryType = queryJson.Get("queryType").MustString("devices", "measurements")
 	}
 	return queryType, nil
 }
 
-func (j *JsonDatasource) handleDeviceQuery(tsdbReq *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
-	if len(tsdbReq.Queries) != 1 {
-		err := fmt.Errorf("client queried devices but provided more than one query")
-		j.logger.Error(err.Error())
-		return nil, err
-	}
+func (j *JsonDatasource) handleDeviceQuery(req *request.Content) (*datasource.DatasourceResponse, error) {
 	snClient := stablenet.NewClient(stablenet.ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 	devices, err := snClient.FetchAllDevices()
 	if err != nil {
-		j.logger.Error("could not retreive devices from StableNet(R)", err)
+		j.logger.Error("could not retrieve devices from StableNet(R)", err)
 		return nil, err
 	}
-	payload, err := json.Marshal(devices)
+	return j.createResponseWithCustomData(devices)
+}
+
+func (j *JsonDatasource) createResponseWithCustomData(data interface{}) (*datasource.DatasourceResponse, error) {
+	j.logger.Error(fmt.Sprintf("%v", data))
+	payload, err := json.Marshal(data)
 	if err != nil {
-		j.logger.Error("could not parse json", err)
+		j.logger.Error("could not marshal json", err)
 		return nil, err
 	}
 	result := datasource.QueryResult{
-		RefId:    tsdbReq.Queries[0].RefId,
+		RefId:    "A",
 		MetaJson: string(payload),
-		Series: []*datasource.TimeSeries{},
+		Series:   []*datasource.TimeSeries{},
 	}
 	response := datasource.DatasourceResponse{
 		Results: []*datasource.QueryResult{&result},
 	}
 	return &response, nil
+}
+
+func (j *JsonDatasource) handleMeasurementQuery(req *request.Content) (*datasource.DatasourceResponse, error) {
+	snClient := stablenet.NewClient(stablenet.ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+	deviceObid, err := req.GetCustomIntField("deviceObid")
+	if err != nil {
+		j.logger.Error(err.Error())
+		return nil, err
+	}
+	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid)
+	j.logger.Error(fmt.Sprintf("%v", measurements))
+	if err != nil {
+		j.logger.Error(err.Error())
+		return nil, err
+	}
+	return j.createResponseWithCustomData(measurements)
+
 }
