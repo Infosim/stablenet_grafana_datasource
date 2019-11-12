@@ -3,15 +3,18 @@ package stablenet
 import (
 	bytes2 "bytes"
 	"crypto/tls"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"io"
+	"time"
 )
 
 type Client interface {
 	FetchAllDevices() ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
+	FetchMetricsForMeasurement(int, time.Time, time.Time) ([]string, error)
 }
 
 type ConnectOptions struct {
@@ -82,4 +85,33 @@ func (c *ClientImpl) unmarshalMeasurements(reader io.Reader) ([]Measurement, err
 	collections := measurementCollection{}
 	err = xml.Unmarshal(bytes, &collections)
 	return collections.Measurements, err
+}
+
+func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, startTime time.Time, endTime time.Time) ([]string, error) {
+	startMillis := startTime.UnixNano() / int64(time.Millisecond)
+	endMillis := endTime.UnixNano() / int64(time.Millisecond)
+	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis)
+	resp, err := c.client.R().Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
+	}
+	data := make([]map[string]interface{}, 0, 0)
+	err = json.Unmarshal(resp.Body(), &data)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	metricNames := make(map[string]bool)
+	for _, record := range data {
+		for key, _ := range record {
+			metricNames[key] = true
+		}
+	}
+	delete(metricNames, "Time")
+	delete(metricNames, "time")
+
+	result := make([]string, 0, len(metricNames))
+	for key, _ := range metricNames {
+		result = append(result, key)
+	}
+	return result, nil
 }

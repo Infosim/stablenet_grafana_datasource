@@ -4,6 +4,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+	"time"
 )
 import testify "github.com/stretchr/testify/assert"
 
@@ -37,6 +38,14 @@ func assertMeasurementsCorrect(measurements []Measurement, assert *testify.Asser
 		assert.NotEmpty(measurement.Name, "name of measurement %d is empty", index+1)
 		assert.NotEmpty(measurement.Obid, "obid of measurement %d is empty", index+1)
 	}
+}
+
+func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
+	client := NewClient(ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+	metrics, err := client.FetchMetricsForMeasurement(6330, time.Now().Add(-48*time.Hour), time.Now())
+	require.NoError(t, err)
+	assert := testify.New(t)
+	assert.Equal(9, len(metrics))
 }
 
 func TestClientImpl_unmarshalDevices(t *testing.T) {
