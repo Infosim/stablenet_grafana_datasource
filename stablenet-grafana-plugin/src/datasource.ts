@@ -99,6 +99,35 @@ export class GenericDatasource {
         });
     }
 
+    findMetricsForMeasurement(server, filter, obid) {
+        if(obid === "select measurement"){
+            return []
+        }
+        const from = this.templateSrv.timeRange.from.valueOf().toString();
+        const to = this.templateSrv.timeRange.to.valueOf().toString();
+        let data = {
+            from: from,
+            to: to,
+            queries: [
+                {
+                    refId: "A",
+                    datasourceId: 8,   // Requiredma
+                    queryType: "metricNames",
+                    measurementObid: parseInt(obid)
+                }
+            ]
+        };
+        return this.doRequest({
+            url: '/api/tsdb/query',
+            data: data,
+            method: 'POST'
+        }).then(result => {
+            return result.data.results.A.meta.map(metric => {
+                return {text: metric, value: metric};
+            })
+        });
+    }
+
     /**
      * Is called when the 5th dropdown menu is OPENED
      * and
@@ -121,6 +150,8 @@ export class GenericDatasource {
             return this.mapToTextValue(result)
         });
     }
+
+
 
     async metricFindQuery(server, filter, dot, query) {
         //console.log("METRIC_FIND_QUERY");

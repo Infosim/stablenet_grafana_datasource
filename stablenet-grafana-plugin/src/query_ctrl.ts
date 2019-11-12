@@ -36,8 +36,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getOptions(query) {
-    //return this.datasource.deviceFindQuery(this.target.server, this.target.filter);
-    //return this.datasource.metricFindQuery(this.target.server, this.target.filter, this.target.deviceORtag, this.target.measurement);       //calls metricFindQuery ((calls StatisticServlet&id={} and parses answer)) and returns answer
+    return this.datasource.findMetricsForMeasurement(this.target.server, this.target.filter, this.target.measurement)
   }
 
 
@@ -64,8 +63,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.target = 'select metric';
   }
 
-  onMeasurementChange() {
+  onMeasurementChange(query) {
     this.target.target = 'select metric';
+    this.getOptions(query);
   }
   
   /**
