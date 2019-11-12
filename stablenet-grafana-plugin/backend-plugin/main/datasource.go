@@ -112,7 +112,6 @@ func (j *JsonDatasource) handleMeasurementQuery(req *request.Content) (*datasour
 		return nil, err
 	}
 	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid)
-	j.logger.Error(fmt.Sprintf("%v", measurements))
 	if err != nil {
 		j.logger.Error(err.Error())
 		return nil, err

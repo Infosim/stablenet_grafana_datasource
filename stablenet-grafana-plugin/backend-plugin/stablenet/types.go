@@ -11,5 +11,5 @@ type Device struct {
 type Measurement struct {
 	XMLName xml.Name
 	Name    string `xml:"name,attr" json:"name"`
-	Obid    int    `xml:"name,attr" json:"name"`
+	Obid    int    `xml:"obid,attr" json:"obid"`
 }

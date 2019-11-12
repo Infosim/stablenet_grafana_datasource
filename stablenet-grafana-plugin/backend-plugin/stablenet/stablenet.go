@@ -61,7 +61,7 @@ func (c *ClientImpl) unmarshalDevices(reader io.Reader) ([]Device, error) {
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {
 	url := fmt.Sprintf("https://%s:%d/rest/measurements/list", c.Host, c.Port)
 	tagfilter := fmt.Sprintf("<valuetagfilter filtervalue=\"%d\"><tagcategory key=\"Device ID\" id=\"61\"/></valuetagfilter>", deviceObid)
-	resp, err := c.client.R().SetBody([]byte(tagfilter)).Post(url)
+	resp, err := c.client.R().SetBody([]byte(tagfilter)).SetHeader("Content-Type", "application/xml").Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve Measurements for device %d from StableNet", deviceObid)
 	}
@@ -76,7 +76,7 @@ func (c *ClientImpl) unmarshalMeasurements(reader io.Reader) ([]Measurement, err
 	}
 	type measurementCollection struct {
 		XMLName      xml.Name
-		Measurements []Measurement
+		Measurements []Measurement `xml:",any"`
 	}
 	bytes := buff.Bytes()
 	collections := measurementCollection{}

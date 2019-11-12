@@ -17,7 +17,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.scope = $scope;
     this.target.server = this.target.server || 'select server';
     this.target.filter = this.target.filter || 'device';
-    this.target.deviceORtag = this.target.deviceORtag || 'select option';                 //obid of device or tag-filter to put in rest/devices/measurements/{obid} or rest/measurements/list 
+    this.target.deviceORtag = this.target.deviceORtag || 'select option';
     this.target.measurement = this.target.measurement || 'select measurement';
     this.target.target = this.target.target || 'select metric';
   }
@@ -28,15 +28,15 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getDevices() {
-    return this.datasource.queryAllDevices(this.target.server, this.target.filter);       //calls /rest/devices/list or rest/tag-filters/list and parses answer
+    return this.datasource.queryAllDevices(this.target.server, this.target.filter);
   }
 
   getMeasurements() {
-    return this.datasource.measurementFindQuery(this.target.server, this.target.filter, this.target.deviceORtag);      //calls proxy ((calls /rest/devices/measurements/{$device} and parses answer)) and returns answer
+    return this.datasource.findMeasurementsForDevice(this.target.server, this.target.filter, this.target.deviceORtag);
   }
 
   getOptions(query) {
-    return this.datasource.deviceFindQuery(this.target.server, this.target.filter);
+    //return this.datasource.deviceFindQuery(this.target.server, this.target.filter);
     //return this.datasource.metricFindQuery(this.target.server, this.target.filter, this.target.deviceORtag, this.target.measurement);       //calls metricFindQuery ((calls StatisticServlet&id={} and parses answer)) and returns answer
   }
 
