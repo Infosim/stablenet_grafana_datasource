@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"io"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -15,6 +17,7 @@ type Client interface {
 	FetchAllDevices() ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
 	FetchMetricsForMeasurement(int, time.Time, time.Time) ([]string, error)
+	FetchDataForMetric(int,string, time.Time, time.Time) ([]MetricData, error)
 }
 
 type ConnectOptions struct {
@@ -112,6 +115,45 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, startTime t
 	result := make([]string, 0, len(metricNames))
 	for key, _ := range metricNames {
 		result = append(result, key)
+	}
+	return result, nil
+}
+
+func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string , startTime time.Time, endTime time.Time) ([]MetricData, error){
+	startMillis := startTime.UnixNano() / int64(time.Millisecond)
+	endMillis := endTime.UnixNano() / int64(time.Millisecond)
+	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis)
+	resp, err := c.client.R().Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
+	}
+	data := make([]map[string]interface{}, 0, 0)
+	err = json.Unmarshal(resp.Body(), &data)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	result := make([]MetricData, 0, len(data))
+	timeFormat := "2006-01-02 15:04:05 -0700"
+	for _, record := range data {
+		measurementTime, err := time.Parse(timeFormat, record["Time"].(string))
+		if err != nil{
+			return nil, err
+		}
+		for key, value := range record {
+			if key != metricName {
+				continue
+			}
+			floatString := value.(string)
+			floatString = strings.Replace(floatString, ",", "",-1)
+			value, err := strconv.ParseFloat(floatString, 64)
+			if err != nil{
+				return nil, fmt.Errorf("could not format value: %v", err)
+			}
+			result = append(result, MetricData{
+				Time:  measurementTime,
+				Value: value,
+			})
+		}
 	}
 	return result, nil
 }

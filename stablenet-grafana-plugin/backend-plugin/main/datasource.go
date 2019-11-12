@@ -35,6 +35,9 @@ func (j *JsonDatasource) Query(ctx context.Context, tsdbReq *datasource.Datasour
 	if queryType == "metricNames" {
 		return j.handleMetricNameQuery(req)
 	}
+	if queryType == "metricData" {
+		return j.handleDataQuery(req)
+	}
 	j.logger.Error("Query", "datasource", tsdbReq.Datasource.Name, "TimeRange", tsdbReq.TimeRange)
 	then := time.Now().AddDate(-1, 0, 0)
 	points := make([]*datasource.Point, 0, 0)
@@ -137,4 +140,48 @@ func (j *JsonDatasource) handleMetricNameQuery(req *request.Content) (*datasourc
 		return nil, e
 	}
 	return j.createResponseWithCustomData(metrics)
+}
+
+func (j *JsonDatasource) handleDataQuery(req *request.Content) (*datasource.DatasourceResponse, error) {
+	snClient := stablenet.NewClient(stablenet.ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+	measurementObid, err := req.GetCustomIntField("measurementObid")
+	if err != nil {
+		e := fmt.Errorf("could not extract measurementObid: %v", err)
+		j.logger.Error(e.Error())
+		return nil, e
+	}
+	metricName, err := req.GetCustomField("metricName")
+	if err != nil {
+		e := fmt.Errorf("could not extract metricName: %v", err)
+		j.logger.Error(e.Error())
+		return nil, e
+	}
+	startTime := time.Unix(0, req.TimeRange.FromEpochMs*int64(time.Millisecond))
+	endTime := time.Unix(0, req.TimeRange.ToEpochMs*int64(time.Millisecond))
+	data, err := snClient.FetchDataForMetric(measurementObid, metricName, startTime, endTime)
+	if err != nil {
+		e := fmt.Errorf("could not retrieve metrics from StableNet: %v", err)
+		j.logger.Error(e.Error())
+		return nil, e
+	}
+
+	points := make([]*datasource.Point, 0, len(data))
+	for _, metricData := range data {
+		p := datasource.Point{
+			Timestamp: metricData.Time.UnixNano() / int64(1000*time.Microsecond),
+			Value:     metricData.Value,
+		}
+		points = append(points, &p)
+	}
+	timeSeries := datasource.TimeSeries{
+		Points:               points,
+	}
+	result := datasource.QueryResult{
+		RefId:    "A",
+		Series:   []*datasource.TimeSeries{&timeSeries},
+	}
+	response := datasource.DatasourceResponse{
+		Results: []*datasource.QueryResult{&result},
+	}
+	return &response, nil
 }

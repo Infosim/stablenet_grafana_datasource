@@ -75,7 +75,7 @@ export class GenericDatasource {
     }
 
     findMeasurementsForDevice(server, filter, obid) {
-        if(obid === "select option"){
+        if (obid === "select option") {
             return []
         }
         let data = {
@@ -100,7 +100,7 @@ export class GenericDatasource {
     }
 
     findMetricsForMeasurement(server, filter, obid) {
-        if(obid === "select measurement"){
+        if (obid === "select measurement") {
             return []
         }
         const from = this.templateSrv.timeRange.from.valueOf().toString();
@@ -128,6 +128,29 @@ export class GenericDatasource {
         });
     }
 
+    query(options) {
+        const from = options.range.from.valueOf().toString();
+        const to = options.range.to.valueOf().toString();
+        let data = {
+            from: from,
+            to: to,
+            queries: [
+                {
+                    refId: "A",
+                    datasourceId: 8,   // Requiredma
+                    queryType: "metricData",
+                    measurementObid: parseInt(options.targets[0].measurement),
+                    metricName: options.targets[0].metricName
+                }
+            ]
+        };
+        return this.doRequest({
+            url: '/api/tsdb/query',
+            data: data,
+            method: 'POST'
+        }).then(handleTsdbResponse);
+    }
+
     /**
      * Is called when the 5th dropdown menu is OPENED
      * and
@@ -150,7 +173,6 @@ export class GenericDatasource {
             return this.mapToTextValue(result)
         });
     }
-
 
 
     async metricFindQuery(server, filter, dot, query) {
@@ -201,28 +223,6 @@ export class GenericDatasource {
         return await this.mapToTextValue({data: arr, status: 201, statusText: "Created"});      //mTTV expects an object with a 'data' property which is an array
     }
 
-    doTsdbRequest() {
-        let data = {
-            from: "1555324640782",  // Optional, time range from
-            to: "1555328240782",    // Optional, time range to
-            queries: [
-                {
-                    datasourceId: 8,   // Required
-                    refId: "A",         // Optional, default is "A"
-                    maxDataPoints: 100, // Optional, default is 100
-                    intervalMs: 1000,   // Optional, default is 1000
-
-                    myFieldFoo: "bar",  // Any other fields,
-                    myFieldBar: "baz",  // defined by user
-                }
-            ]
-        };
-        return this.backendSrv.datasourceRequest({
-            url: '/api/tsdb/query',
-            method: 'POST',
-            data: data
-        });
-    }
 
     /**
      * No idea. Not going to delete tho.

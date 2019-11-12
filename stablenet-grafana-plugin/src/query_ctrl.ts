@@ -19,7 +19,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.filter = this.target.filter || 'device';
     this.target.deviceORtag = this.target.deviceORtag || 'select option';
     this.target.measurement = this.target.measurement || 'select measurement';
-    this.target.target = this.target.target || 'select metric';
+    this.target.metricName = this.target.metricName || 'select metric';
   }
 
 
@@ -35,10 +35,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     return this.datasource.findMeasurementsForDevice(this.target.server, this.target.filter, this.target.deviceORtag);
   }
 
-  getOptions(query) {
+  getMetrics() {
     return this.datasource.findMetricsForMeasurement(this.target.server, this.target.filter, this.target.measurement)
   }
-
 
   toggleEditorMode() {
     this.target.rawQuery = !this.target.rawQuery;
@@ -55,17 +54,19 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   onFilterChange() {
     this.target.deviceORtag = 'select option';
     this.target.measurement = 'select measurement';
-    this.target.target = 'select metric';
+    this.target.metricName = 'select metric';
   }
 
   onDeviceChange() {
     this.target.measurement = 'select measurement';
-    this.target.target = 'select metric';
+    this.target.metricName = 'select metric';
   }
 
-  onMeasurementChange(query) {
-    this.target.target = 'select metric';
-    this.getOptions(query);
+  onMeasurementChange() {
+    this.target.metricName = 'select metric';
+  }
+
+  onMetricChange(){
   }
   
   /**
