@@ -7,21 +7,8 @@
   -->
 <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true">
 
-    <!--Lets users type in a server, e.g. '10.11.11.116:443'-->
-      <div class="gf-form-inline">
-        <div class="gf-form gf-form--grow">
-          <label class="gf-form-label query-keyword width-7">
-            Server:
-            <info-popover mode="right-normal">StableNet® server. Do not forget to add the corresponding port.</info-popover>
-          </label>
-          <input type="text" class="gf-form-input" ng-model="ctrl.target.server" spellcheck='false' placeholder="StableNet server" ng-blur="ctrl.onServerChange()">
-        </div>
-      </div>
-    
-    
     <div class="gf-form-inline">
   
-      <!--Lets you choose between 'timeserie' and 'table'-->
       <label class="gf-form-label query-keyword width-7">Format as:</label>
       <div class="gf-form max-width-8">
         <select class="gf-form-input" ng-model="ctrl.target.type" ng-options="f as f for f in ['table', 'timeserie']"></select>
@@ -89,7 +76,6 @@
         </div>
       </div>
   
-      <!--Just to fill out the space till the right side of the screen-->
       <div class="gf-form gf-form--grow">
         <div class="gf-form-label gf-form-label--grow"></div>
       </div>

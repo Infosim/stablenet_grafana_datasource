@@ -15,7 +15,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.type = this.target.type || 'timeserie';
 
     this.scope = $scope;
-    this.target.server = this.target.server || 'select server';
+    this.injector = $injector;
     this.target.filter = this.target.filter || 'device';
     this.target.deviceORtag = this.target.deviceORtag || 'select option';
     this.target.measurement = this.target.measurement || 'select measurement';
@@ -28,15 +28,15 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
   }
 
   getDevices() {
-    return this.datasource.queryAllDevices(this.target.server, this.target.filter);
+    return this.datasource.queryAllDevices(this.target.filter);
   }
 
   getMeasurements() {
-    return this.datasource.findMeasurementsForDevice(this.target.server, this.target.filter, this.target.deviceORtag);
+    return this.datasource.findMeasurementsForDevice(this.target.filter, this.target.deviceORtag);
   }
 
   getMetrics() {
-    return this.datasource.findMetricsForMeasurement(this.target.server, this.target.filter, this.target.measurement)
+    return this.datasource.findMetricsForMeasurement(this.target.filter, this.target.measurement)
   }
 
   toggleEditorMode() {
@@ -81,6 +81,10 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
    * This solution is of course temporary, until an alternative is found.
    */
   onChangeInternal() {
+    console.log("Scope")
+    console.log(this.scope);
+    console.log("Injector")
+    console.log(this.target)
     setTimeout(() => {
       console.log('Refresh Later');
       this.panelCtrl.refresh(); // Asks the panel to refresh data.
