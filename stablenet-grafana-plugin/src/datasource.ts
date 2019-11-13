@@ -34,6 +34,7 @@ export class GenericDatasource {
         }
 
         console.log("CONSTRUCTOR");
+        console.log(instanceSettings)
     }
 
     /**

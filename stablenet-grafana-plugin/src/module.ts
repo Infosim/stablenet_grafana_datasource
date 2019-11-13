@@ -7,9 +7,7 @@
  */
 import {GenericDatasource} from './datasource';
 import {GenericDatasourceQueryCtrl} from './query_ctrl';
-
-class GenericConfigCtrl {}
-GenericConfigCtrl.templateUrl = 'partials/config.html';
+import {GenericConfigCtrl} from './config_ctrl'
 
 class GenericQueryOptionsCtrl {}
 GenericQueryOptionsCtrl.templateUrl = 'partials/query.options.html';

@@ -21,10 +21,10 @@ type Client interface {
 }
 
 type ConnectOptions struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
+	Host     string `json:"snip"`
+	Port     int `json:"snport"`
+	Username string `json:"snusername"`
+	Password string `json:"snpassword"`
 }
 
 func NewClient(options ConnectOptions) Client {
