@@ -34,7 +34,7 @@ type QueryHandler interface {
 	Handle(Query) *datasource.QueryResult
 }
 
-func NewHandler(logger hclog.Logger, snClient stablenet.Client, startTime time.Time, endTime time.Time) QueryHandler{
+func NewHandler(logger hclog.Logger, snClient stablenet.Client, startTime time.Time, endTime time.Time) QueryHandler {
 	return &queryHandlerImpl{
 		logger:    logger,
 		snClient:  snClient,
@@ -44,13 +44,13 @@ func NewHandler(logger hclog.Logger, snClient stablenet.Client, startTime time.T
 }
 
 type queryHandlerImpl struct {
-	logger hclog.Logger
-	snClient stablenet.Client
+	logger    hclog.Logger
+	snClient  stablenet.Client
 	startTime time.Time
-	endTime time.Time
+	endTime   time.Time
 }
 
-func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult{
+func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
 	queryType, queryTypeError := query.GetCustomField("queryType")
 	if queryTypeError != nil {
 		msg := fmt.Sprintf("could not retrieve query type: %v", queryTypeError)
@@ -70,10 +70,13 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult{
 		result, queryError = q.handleMeasurementQuery(query)
 		break
 	case "metricNames":
-		result, queryError = q.handleMetricNameQuery(query)	
+		result, queryError = q.handleMetricNameQuery(query)
 		break
 	case "metricData":
 		result, queryError = q.handleDataQuery(query)
+		break
+	case "testDatasource":
+		result, queryError = q.handleDatasourceTest(query)
 		break
 	default:
 		msg := fmt.Sprintf("query type \"%s\" not supported")
@@ -84,11 +87,11 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult{
 		}
 	}
 
-	if queryError != nil{
+	if queryError != nil {
 		return &datasource.QueryResult{
 			Error: "Internal Backend Plugin error. Please consult the Grafana logs.",
 			RefId: query.RefId,
-		}	
+		}
 	}
 	return result
 }
@@ -175,11 +178,23 @@ func (q queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult,
 		points = append(points, &p)
 	}
 	timeSeries := datasource.TimeSeries{
-		Points:               points,
+		Points: points,
 	}
 	result := datasource.QueryResult{
-		RefId:    query.RefId,
-		Series:   []*datasource.TimeSeries{&timeSeries},
+		RefId:  query.RefId,
+		Series: []*datasource.TimeSeries{&timeSeries},
 	}
 	return &result, nil
+}
+
+func (q queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryResult, error) {
+	_, err := q.snClient.FetchMeasurementsForDevice(-1)
+	if err != nil {
+		return &datasource.QueryResult{
+			Error: "Cannot login into StableNet®.",
+		}, nil
+	}
+	return &datasource.QueryResult{
+		Series: []*datasource.TimeSeries{},
+	}, nil
 }

@@ -17,12 +17,12 @@ type Client interface {
 	FetchAllDevices() ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
 	FetchMetricsForMeasurement(int, time.Time, time.Time) ([]string, error)
-	FetchDataForMetric(int,string, time.Time, time.Time) ([]MetricData, error)
+	FetchDataForMetric(int, string, time.Time, time.Time) ([]MetricData, error)
 }
 
 type ConnectOptions struct {
 	Host     string `json:"snip"`
-	Port     int `json:"snport"`
+	Port     int    `json:"snport"`
 	Username string `json:"snusername"`
 	Password string `json:"snpassword"`
 }
@@ -68,7 +68,7 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, 
 	url := fmt.Sprintf("https://%s:%d/rest/measurements/list", c.Host, c.Port)
 	tagfilter := fmt.Sprintf("<valuetagfilter filtervalue=\"%d\"><tagcategory key=\"Device ID\" id=\"61\"/></valuetagfilter>", deviceObid)
 	resp, err := c.client.R().SetBody([]byte(tagfilter)).SetHeader("Content-Type", "application/xml").Post(url)
-	if err != nil {
+	if err != nil || resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("could not retrieve Measurements for device %d from StableNet", deviceObid)
 	}
 	return c.unmarshalMeasurements(bytes2.NewReader(resp.Body()))
@@ -119,7 +119,7 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, startTime t
 	return result, nil
 }
 
-func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string , startTime time.Time, endTime time.Time) ([]MetricData, error){
+func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string, startTime time.Time, endTime time.Time) ([]MetricData, error) {
 	startMillis := startTime.UnixNano() / int64(time.Millisecond)
 	endMillis := endTime.UnixNano() / int64(time.Millisecond)
 	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis)
@@ -136,7 +136,7 @@ func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string ,
 	timeFormat := "2006-01-02 15:04:05 -0700"
 	for _, record := range data {
 		measurementTime, err := time.Parse(timeFormat, record["Time"].(string))
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		for key, value := range record {
@@ -144,9 +144,9 @@ func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string ,
 				continue
 			}
 			floatString := value.(string)
-			floatString = strings.Replace(floatString, ",", "",-1)
+			floatString = strings.Replace(floatString, ",", "", -1)
 			value, err := strconv.ParseFloat(floatString, 64)
-			if err != nil{
+			if err != nil {
 				return nil, fmt.Errorf("could not format value: %v", err)
 			}
 			result = append(result, MetricData{

@@ -24,17 +24,25 @@ export class GenericDatasource {
         this.id = instanceSettings.id;
         this.backendSrv = backendSrv;
         this.templateSrv = templateSrv;
-
-        console.log(instanceSettings)
     }
 
     testDatasource() {
-        return this.doRequest({
-            url: TEST,
-            method: 'GET'
-        }).then(response => {
-            if (response.status === 200) {
-                return {status: "success", message: "Data source is working", title: "Success"};
+        let options = {
+            headers: {'Content-Type': 'application/json'},
+            url: '/api/tsdb/query',
+            method: 'POST',
+            data: {queries: [
+                    {
+                        datasourceId: this.id,
+                        queryType: "testDatasource"
+                    }
+                ]}
+        }
+        return this.backendSrv.request(options).then(response => {
+            if (response.message !== null) {
+                return {status: "success", message: "Data source is working and can connect to StableNet®.", title: "Success"};
+            }else{
+                return {status: "error", message: "Datasource cannot connect to StableNet®.", title: "Failure"};
             }
         });
     }
@@ -105,8 +113,6 @@ export class GenericDatasource {
     query(options) {
         const from = options.range.from.valueOf().toString();
         const to = options.range.to.valueOf().toString();
-        console.log("Hello World");
-        console.log(options);
         let queries = [];
         let id = this. id;
         options.targets.forEach(function (target) {
@@ -151,6 +157,5 @@ export function handleTsdbResponse(response) {
     });
 
     response.data = res;
-    console.log(res);
     return response;
 }
