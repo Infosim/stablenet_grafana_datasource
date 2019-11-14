@@ -8,81 +8,70 @@
 <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true">
 
     <div class="gf-form-inline">
+        <div class="gf-form">
+            <label class="gf-form-label query-keyword width-9">
+                Query Mode:
+                <info-popover mode="right-normal">Select the mode in which the query should be defined.</info-popover>
+            </label>
+            <select>
+                <option>Measurements for Device</option>
+                <option>Measurements by Tag Filter</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="gf-form-inline">
+        <div class="gf-form gf-form--grow">
+            <label class="gf-form-label query-keyword width-9">
+                Device Query:
+            </label>
+            <input class="gf-form-input" type="text" ng-model="ctrl.target.deviceQuery"
+                   ng-keypress="ctrl.onDeviceQueryChange()"><input>
+        </div>
+    </div>
+
+    <div class="gf-form-inline">
+        <label class="gf-form-label query-keyword width-9">
+            Device:
+        </label>
+        <gf-form-dropdown model="ctrl.target.selectedDevice"
+                          allow-custom="true"
+                          lookup-text="true"
+                          get-options="ctrl.getDevices()"
+                          on-change="ctrl.onDeviceChange()">
+        </gf-form-dropdown>
 
         <div class="gf-form">
             <label class="gf-form-label query-keyword width-9">
-                Filter by:
-                <info-popover mode="right-normal">WARNING: tag filters work since StableNet® v8.5.0!</info-popover>
+                Measurement:
             </label>
-            <gf-form-dropdown model="ctrl.target.filter"
+            <gf-form-dropdown model="ctrl.target.measurement"
                               allow-custom="true"
                               lookup-text="true"
-                              get-options="ctrl.getFilters()"
-                              on-change="ctrl.onFilterChange()">
+                              get-options="ctrl.getMeasurements()"
+                              on-change="ctrl.onMeasurementChange()">
             </gf-form-dropdown>
         </div>
 
-        <div class="gf-form" ng-if="ctrl.target.rawQuery">
-            <textarea class="gf-form-input" rows="5" ng-model="ctrl.target.target" spellcheck="false"
-                      ng-blur="ctrl.onChangeInternal()"/>
-        </div>
-
-        <div ng-if="!ctrl.target.rawQuery">
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-9">
-                    Select:
-                    <info-popover mode="right-normal">Allows a choice from a list of devices or a list of tag filters,
-                        depending on the previous element.
-                    </info-popover>
-                </label>
-                <gf-form-dropdown model="ctrl.target.deviceORtag"
-                                  allow-custom="true"
-                                  lookup-text="true"
-                                  get-options="ctrl.getDevices()"
-                                  on-change="ctrl.onDeviceChange()">
-                </gf-form-dropdown>
-            </div>
-        </div>
-
-        <div ng-if="!ctrl.target.rawQuery">
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-9">
-                    Measurement:
-                    <info-popover mode="right-normal">Manual querying by substring and regular expression also possible.
-                        A regular expression must be enclosed in /.../.
-                    </info-popover>
-                </label>
-                <gf-form-dropdown model="ctrl.target.measurement"
-                                  allow-custom="true"
-                                  lookup-text="true"
-                                  get-options="ctrl.getMeasurements()"
-                                  on-change="ctrl.onMeasurementChange()">
-                </gf-form-dropdown>
-            </div>
-        </div>
-
-        <div ng-if="!ctrl.target.rawQuery">
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-9">
-                    Metric:
-                    <info-popover mode="right-normal">Manual querying by substring and regular expression also possible.
-                        A regular expression must be enclosed in /.../.
-                    </info-popover>
-                </label>
-                <gf-form-dropdown model="ctrl.target.metricName"
-                                  allow-custom="true"
-                                  lookup-text="true"
-                                  get-options="ctrl.getMetrics()"
-                                  on-change="ctrl.onChangeInternal()">
-                </gf-form-dropdown>
-            </div>
+        <div class="gf-form">
+            <label class="gf-form-label query-keyword width-9">
+                Metric:
+                <info-popover mode="right-normal">Manual querying by substring and regular expression also possible.
+                    A regular expression must be enclosed in /.../.
+                </info-popover>
+            </label>
+            <gf-form-dropdown model="ctrl.target.metricName"
+                              allow-custom="true"
+                              lookup-text="true"
+                              get-options="ctrl.getMetrics()"
+                              on-change="ctrl.onChangeInternal()">
+            </gf-form-dropdown>
         </div>
 
         <div class="gf-form gf-form--grow">
             <div class="gf-form-label gf-form-label--grow"></div>
         </div>
-
-
     </div>
+
 </query-editor-row>
   

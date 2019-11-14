@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"io"
+	url2 "net/url"
 	"strconv"
 	"strings"
 	"time"
 )
 
 type Client interface {
-	FetchAllDevices() ([]Device, error)
+	QueryDevices(deviceQuey string) ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
 	FetchMetricsForMeasurement(int, time.Time, time.Time) ([]string, error)
 	FetchDataForMetric(int, string, time.Time, time.Time) ([]MetricData, error)
@@ -39,29 +40,22 @@ type ClientImpl struct {
 	client *resty.Client
 }
 
-func (c *ClientImpl) FetchAllDevices() ([]Device, error) {
-	url := fmt.Sprintf("https://%s:%d/rest/devices/list", c.Host, c.Port)
+func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
+	filter := fmt.Sprintf("name ct '%s'", deviceQuery)
+	url := fmt.Sprintf("https://%s:%d/api/1/devices?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, err
 	}
-	return c.unmarshalDevices(bytes2.NewReader(resp.Body()))
-}
-
-func (c *ClientImpl) unmarshalDevices(reader io.Reader) ([]Device, error) {
-	buff := new(bytes2.Buffer)
-	_, err := buff.ReadFrom(reader)
-	if err != nil {
-		return nil, fmt.Errorf("could not read from reader: %v", err)
+	if resp.StatusCode() != 200{
+		return nil, fmt.Errorf("the statuscode was \"%d\" and the message was \"%s\"", resp.StatusCode(), resp.Status())
 	}
-	type deviceCollection struct {
-		XMLName xml.Name
-		Devices []Device `xml:"device"`
+	type serverResponse struct {
+		Devices []Device `json:"data"`
 	}
-	bytes := buff.Bytes()
-	collections := deviceCollection{}
-	err = xml.Unmarshal(bytes, &collections)
-	return collections.Devices, err
+	var collection serverResponse
+	err = json.Unmarshal(resp.Body(), &collection)
+	return collection.Devices, err
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {

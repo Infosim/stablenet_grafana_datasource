@@ -1,20 +1,14 @@
 package stablenet
 
 import (
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 )
 import testify "github.com/stretchr/testify/assert"
-
-func TestClientImpl_FetchAllDevices(t *testing.T) {
-	client := NewClient(ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-	devices, err := client.FetchAllDevices()
-	require.NoError(t, err)
-	assert := testify.New(t)
-	assertDevicesCorrect(devices, assert)
-}
 
 func assertDevicesCorrect(devices []Device, assert *testify.Assertions) {
 	assert.Equal(97, len(devices), "number of devices incorrect")
@@ -48,16 +42,6 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	assert.Equal(9, len(metrics))
 }
 
-func TestClientImpl_unmarshalDevices(t *testing.T) {
-	file, err := os.Open("./test-data/devices.xml")
-	require.NoError(t, err)
-	client := ClientImpl{}
-	devices, err := client.unmarshalDevices(file)
-	require.NoError(t, err)
-	assert := testify.New(t)
-	assertDevicesCorrect(devices, assert)
-}
-
 func TestClientImpl_unmarshalMeasurements(t *testing.T) {
 	file, err := os.Open("./test-data/measurements.xml")
 	require.NoError(t, err)
@@ -66,4 +50,23 @@ func TestClientImpl_unmarshalMeasurements(t *testing.T) {
 	require.NoError(t, err)
 	assert := testify.New(t)
 	assertMeasurementsCorrect(measurements, assert)
+}
+
+func TestClientImpl_QueryDevices(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.Deactivate()
+
+	devices, err := ioutil.ReadFile("./test-data/devices.json")
+	require.NoError(t, err)
+	httpmock.RegisterResponder("GET", "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27", httpmock.NewBytesResponder(200, devices))
+	client := NewClient(ConnectOptions{Port:5443, Host:"127.0.0.1"})
+	clientImpl := client.(*ClientImpl)
+	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+	actual, err := client.QueryDevices("lab")
+	require.NoError(t, err)
+
+	assert := testify.New(t)
+	assert.Equal(1, httpmock.GetTotalCallCount())
+	assert.Equal(10, len(actual))
+	assert.Equal("newyork.routerlab.infosim.net", actual[7].Name)
 }

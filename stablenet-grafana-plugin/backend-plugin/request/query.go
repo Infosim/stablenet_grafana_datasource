@@ -97,9 +97,15 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
 }
 
 func (q *queryHandlerImpl) handleDeviceQuery(query Query) (*datasource.QueryResult, error) {
-	devices, err := q.snClient.FetchAllDevices()
+	deviceQuery, err := query.GetCustomField("deviceQuery")
+	if err != nil{
+		return &datasource.QueryResult{
+			Error: "Could not extract the deviceQuery field",
+		}, nil
+	}
+	devices, err := q.snClient.QueryDevices(deviceQuery)
 	if err != nil {
-		q.logger.Error("could not retrieve devices from StableNet(R)", err)
+		q.logger.Error("could not retrieve devices from StableNet(R)", err.Error())
 		return nil, err
 	}
 	return q.createResponseWithCustomData(devices, query.RefId)

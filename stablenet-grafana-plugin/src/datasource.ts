@@ -31,29 +31,36 @@ export class GenericDatasource {
             headers: {'Content-Type': 'application/json'},
             url: '/api/tsdb/query',
             method: 'POST',
-            data: {queries: [
+            data: {
+                queries: [
                     {
                         datasourceId: this.id,
                         queryType: "testDatasource"
                     }
-                ]}
+                ]
+            }
         }
         return this.backendSrv.request(options).then(response => {
             if (response.message !== null) {
-                return {status: "success", message: "Data source is working and can connect to StableNet®.", title: "Success"};
-            }else{
+                return {
+                    status: "success",
+                    message: "Data source is working and can connect to StableNet®.",
+                    title: "Success"
+                };
+            } else {
                 return {status: "error", message: "Datasource cannot connect to StableNet®.", title: "Failure"};
             }
         });
     }
 
-    queryAllDevices(filter) {
+    queryDevices(queryString) {
         let data = {
             queries: [
                 {
                     refId: "A",
                     datasourceId: this.id,   // Required
-                    queryType: "devices"
+                    queryType: "devices",
+                    deviceQuery: queryString
                 }
             ]
         };
@@ -64,7 +71,7 @@ export class GenericDatasource {
         });
     }
 
-    findMeasurementsForDevice(filter, obid) {
+    findMeasurementsForDevice(obid) {
         if (obid === "select option") {
             return []
         }
@@ -85,7 +92,7 @@ export class GenericDatasource {
         });
     }
 
-    findMetricsForMeasurement(filter, obid) {
+    findMetricsForMeasurement(obid) {
         if (obid === "select measurement") {
             return []
         }
@@ -114,16 +121,22 @@ export class GenericDatasource {
         const from = options.range.from.valueOf().toString();
         const to = options.range.to.valueOf().toString();
         let queries = [];
-        let id = this. id;
+        let id = this.id;
         options.targets.forEach(function (target) {
+            if(target.metricName === "select metric"){
+                return;
+            }
             queries.push({
                 refId: target.refId,
                 datasourceId: id,
                 queryType: "metricData",
                 measurementObid: parseInt(target.measurement),
                 metricName: target.metricName
-            }) ;
+            });
         });
+        if (queries.length === 0){
+           return [];
+        }
         let data = {
             from: from,
             to: to,
