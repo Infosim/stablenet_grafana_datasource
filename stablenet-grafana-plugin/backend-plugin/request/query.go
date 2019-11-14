@@ -10,15 +10,15 @@ import (
 	"time"
 )
 
-type Query struct {
-	datasource.Query
-}
-
 func BuildErrorResult(msg string, refId string) *datasource.QueryResult {
 	return &datasource.QueryResult{
 		Error: msg,
 		RefId: refId,
 	}
+}
+
+type Query struct {
+	datasource.Query
 }
 
 func (q *Query) GetCustomField(name string) (string, error) {
@@ -83,7 +83,7 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
 		result, queryError = q.handleDatasourceTest(query)
 		break
 	default:
-		msg := fmt.Sprintf("query type \"%s\" not supported")
+		msg := fmt.Sprintf("query type \"%s\" not supported", queryType)
 		q.logger.Info(msg)
 		return BuildErrorResult(msg, query.RefId)
 	}
