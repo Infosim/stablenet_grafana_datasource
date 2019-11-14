@@ -27,13 +27,9 @@ func (j *JsonDatasource) Query(ctx context.Context, tsdbReq *datasource.Datasour
 	j.logger.Error(fmt.Sprintf("%v", dsOptions))
 	port, portErr := strconv.Atoi(dsOptions["snport"])
 	if portErr != nil {
-		err := fmt.Errorf("could not parse port \"%s\"", dsOptions["snport"])
-		j.logger.Error(portErr.Error())
+		msg := fmt.Sprintf("could not parse port \"%s\"", dsOptions["snport"])
 		return &datasource.DatasourceResponse{
-			Results: []*datasource.QueryResult{&datasource.QueryResult{
-				Error: err.Error(),
-			},
-			},
+			Results: []*datasource.QueryResult{request.BuildErrorResult(msg, "A")},
 		}, nil
 	}
 	j.snClient = stablenet.NewClient(stablenet.ConnectOptions{
