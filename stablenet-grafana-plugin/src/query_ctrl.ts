@@ -12,10 +12,15 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
     constructor($scope, $injector) {
         super($scope, $injector);
+        this.target.mode = this.target.mode || 'Device';
         this.target.deviceQuery = this.target.deviceQuery || '';
         this.target.selectedDevice = this.target.selectedDevice || 'select device';
         this.target.measurement = this.target.measurement || 'select measurement';
         this.target.metric = this.target.metric || 'select metric';
+    }
+
+    getModes(){
+        return [{value:'Device', text:'Device'}, {value:'Statistic Link', text:'Statistic Link'}];
     }
 
     onDeviceQueryChange() {

@@ -119,7 +119,17 @@ export class GenericDatasource {
         let queries = [];
         let id = this.id;
         options.targets.forEach(function (target) {
-            if(target.metric === "select metric"){
+            if (target.mode === "Statistic Link" && target.statisticLink !== "") {
+                queries.push({
+                        refId: target.refId,
+                        datasourceId: id,
+                        queryType: "statisticLink",
+                        statisticLink: target.statisticLink
+                    }
+                );
+                return
+            }
+            if (target.metric === "select metric") {
                 return;
             }
             queries.push({
@@ -130,8 +140,8 @@ export class GenericDatasource {
                 metricId: target.metric
             });
         });
-        if (queries.length === 0){
-           return [];
+        if (queries.length === 0) {
+            return [];
         }
         let data = {
             from: from,

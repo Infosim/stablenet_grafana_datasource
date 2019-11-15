@@ -15,7 +15,7 @@ type Client interface {
 	QueryDevices(deviceQuey string) ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
 	FetchMetricsForMeasurement(int) ([]Metric, error)
-	FetchDataForMetric(int, int, time.Time, time.Time) (MetricDataSeries, error)
+	FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)
 }
 
 type ConnectOptions struct {
@@ -88,10 +88,10 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, 
 	return responseData.ValueOutputs, nil
 }
 
-func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricId int, startTime time.Time, endTime time.Time) (MetricDataSeries, error) {
+func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {
 	startMillis := startTime.UnixNano() / int64(time.Millisecond)
 	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d&value=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, metricId)
+	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
@@ -101,18 +101,23 @@ func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricId int, start
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
-	result := make([]MetricData, 0, len(data))
+	resultMap := make(map[string]MetricDataSeries)
 	timeFormat := "2006-01-02 15:04:05 -0700"
 	for _, record := range data {
 		measurementTime, err := time.Parse(timeFormat, record["Time"].(string))
 		if err != nil {
 			return nil, err
 		}
-		metricData := MetricData{Time: measurementTime}
+		tmpMap := make(map[string]MetricData)
 		for key, value := range record {
 			if key == "Time" {
 				continue
 			}
+			metricName := key[4:]
+			if _, ok := tmpMap[metricName]; !ok {
+				tmpMap[metricName] = MetricData{Time: measurementTime}
+			}
+			metricData := tmpMap[metricName]
 			floatString := value.(string)
 			floatString = strings.Replace(floatString, " ", "", -1)
 			floatString = strings.Replace(floatString, ",", "", -1)
@@ -127,8 +132,22 @@ func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricId int, start
 			} else if strings.HasPrefix(key, "Avg") {
 				metricData.Avg = value
 			}
+			tmpMap[metricName] = metricData
 		}
-		result = append(result, metricData)
+		for metricName, metricData := range tmpMap {
+			if _, ok := resultMap[metricName]; !ok {
+				resultMap[metricName] = make([]MetricData, 0, len(data))
+			}
+			resultMap[metricName] = append(resultMap[metricName], metricData)
+		}
 	}
-	return result, nil
+	return resultMap, nil
+}
+
+func (c *ClientImpl) formatMetricIds(valueIds []int) string {
+	query := make([]string, 0, len(valueIds))
+	for _, valueId := range valueIds {
+		query = append(query, fmt.Sprintf("value=%d", valueId))
+	}
+	return strings.Join(query, "&")
 }

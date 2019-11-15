@@ -7,6 +7,8 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -81,6 +83,8 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
 	case "testDatasource":
 		result, queryError = q.handleDatasourceTest(query)
 		break
+	case "statisticLink":
+		result, queryError = q.handleStatisticLink(query)
 	default:
 		msg := fmt.Sprintf("query type \"%s\" not supported", queryType)
 		q.logger.Info(msg)
@@ -145,7 +149,7 @@ func (q *queryHandlerImpl) handleMetricNameQuery(query Query) (*datasource.Query
 	return q.createResponseWithCustomData(metrics, query.RefId)
 }
 
-func (q queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult, error) {
+func (q *queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult, error) {
 	measurementObid, err := query.GetCustomIntField("measurementObid")
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from request", query.RefId), nil
@@ -154,30 +158,45 @@ func (q queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult,
 	if err != nil {
 		return BuildErrorResult("could not extract metricName from request", query.RefId), nil
 	}
-	data, err := q.snClient.FetchDataForMetric(measurementObid, metricId, q.startTime, q.endTime)
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
+
+	series, err := q.fetchMetrics(measurementObid, []int{metricId})
+	if err != nil{
+		return nil, fmt.Errorf("could not fetch data from server: %v", err)
 	}
-	maxTimeSeries := &datasource.TimeSeries{
-		Points: data.MaxValues(),
-		Name:   "Max",
-	}
-	minTimeSeries := &datasource.TimeSeries{
-		Points: data.MinValues(),
-		Name:   "Min",
-	}
-	avgTimeSeries := &datasource.TimeSeries{
-		Points: data.AvgValues(),
-		Name:   "Avg",
-	}
+
 	result := datasource.QueryResult{
 		RefId:  query.RefId,
-		Series: []*datasource.TimeSeries{maxTimeSeries, minTimeSeries, avgTimeSeries},
+		Series: series,
 	}
 	return &result, nil
 }
 
-func (q queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryResult, error) {
+func (q *queryHandlerImpl) fetchMetrics(measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error){
+	data, err := q.snClient.FetchDataForMetrics(measurementObid, valueIds, q.startTime, q.endTime)
+	q.logger.Error(fmt.Sprintf("%v", data))
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
+	}
+	result := make([]*datasource.TimeSeries, 0, len(data))
+	for name, series := range data{
+		maxTimeSeries := &datasource.TimeSeries{
+			Points: series.MaxValues(),
+			Name:   "Max " + name,
+		}
+		minTimeSeries := &datasource.TimeSeries{
+			Points: series.MinValues(),
+			Name:   "Min " + name,
+		}
+		avgTimeSeries := &datasource.TimeSeries{
+			Points: series.AvgValues(),
+			Name:   "Avg " + name,
+		}
+		result = append(result, maxTimeSeries, minTimeSeries, avgTimeSeries)
+	}
+	return result, nil
+}
+
+func (q *queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryResult, error) {
 	_, err := q.snClient.FetchMeasurementsForDevice(-1)
 	if err != nil {
 		return BuildErrorResult("Cannot login into StableNet(R) with the provided credentials", query.RefId), nil
@@ -185,4 +204,35 @@ func (q queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryRe
 	return &datasource.QueryResult{
 		Series: []*datasource.TimeSeries{},
 	}, nil
+}
+
+func (q *queryHandlerImpl) handleStatisticLink(query Query) (*datasource.QueryResult, error){
+	link, err := query.GetCustomField("statisticLink")
+	if err != nil{
+		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
+	}
+	measurementRegex := regexp.MustCompile("[?&]id=(\\d+)")
+	idMatches := measurementRegex.FindAllStringSubmatch(link, 1)
+	if len(idMatches) == 0{
+		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id.", link), query.RefId), nil
+	}
+	measurementId, _ := strconv.Atoi(idMatches[0][1])
+	valueRegex := regexp.MustCompile("[?&]value\\d*=(\\d+)")
+	valueMatches := valueRegex.FindAllStringSubmatch(link, -1)
+	valueIds := make([]int, 0, len(valueMatches))
+	for _, valueMatch := range valueMatches{
+		id, _ := strconv.Atoi(valueMatch[1])
+		valueIds = append(valueIds, id)
+	}
+
+	series, err := q.fetchMetrics(measurementId, valueIds)
+	if err != nil{
+		return nil, fmt.Errorf("could not fetch data from server: %v", err)
+	}
+
+	result := datasource.QueryResult{
+		RefId:  query.RefId,
+		Series: series,
+	}
+	return &result, nil
 }
