@@ -17,6 +17,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.selectedDevice = this.target.selectedDevice || 'select device';
         this.target.measurement = this.target.measurement || 'select measurement';
         this.target.metric = this.target.metric || 'select metric';
+        this.target.includeMinStats = this.target.includeMinStats || true;
+        this.target.includeAvgStats = this.target.includeAvgStats || true;
+        this.target.includeMaxStats = this.target.includeMaxStats || true;
     }
 
     getModes(){

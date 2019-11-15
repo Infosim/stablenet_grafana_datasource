@@ -39,6 +39,33 @@ func (q *Query) GetCustomIntField(name string) (int, error) {
 	return queryJson.Get(name).Int()
 }
 
+func (q *Query) includeMinStats() bool{
+	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
+	if err != nil {
+		return false
+	}
+	result, _ := queryJson.Get("includeMinStats").Bool()
+	return result
+}
+
+func (q *Query) includeAvgStats() bool{
+	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
+	if err != nil {
+		return false
+	}
+	result, _ := queryJson.Get("includeAvgStats").Bool()
+	return result
+}
+
+func (q *Query) includeMaxStats() bool{
+	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
+	if err != nil {
+		return false
+	}
+	result, _ := queryJson.Get("includeMaxStats").Bool()
+	return result
+}
+
 type QueryHandler interface {
 	Handle(Query) *datasource.QueryResult
 }
@@ -159,7 +186,7 @@ func (q *queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult
 		return BuildErrorResult("could not extract metricName from request", query.RefId), nil
 	}
 
-	series, err := q.fetchMetrics(measurementObid, []int{metricId})
+	series, err := q.fetchMetrics(query, measurementObid, []int{metricId})
 	if err != nil{
 		return nil, fmt.Errorf("could not fetch data from server: %v", err)
 	}
@@ -171,7 +198,7 @@ func (q *queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult
 	return &result, nil
 }
 
-func (q *queryHandlerImpl) fetchMetrics(measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error){
+func (q *queryHandlerImpl) fetchMetrics(query Query, measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error){
 	data, err := q.snClient.FetchDataForMetrics(measurementObid, valueIds, q.startTime, q.endTime)
 	q.logger.Error(fmt.Sprintf("%v", data))
 	if err != nil {
@@ -191,7 +218,15 @@ func (q *queryHandlerImpl) fetchMetrics(measurementObid int, valueIds []int) ([]
 			Points: series.AvgValues(),
 			Name:   "Avg " + name,
 		}
-		result = append(result, maxTimeSeries, minTimeSeries, avgTimeSeries)
+		if query.includeMinStats(){
+			result = append(result, minTimeSeries)
+		}
+		if query.includeAvgStats(){
+			result = append(result, avgTimeSeries)
+		}
+		if query.includeMaxStats(){
+			result = append(result, maxTimeSeries)
+		}
 	}
 	return result, nil
 }
@@ -225,7 +260,7 @@ func (q *queryHandlerImpl) handleStatisticLink(query Query) (*datasource.QueryRe
 		valueIds = append(valueIds, id)
 	}
 
-	series, err := q.fetchMetrics(measurementId, valueIds)
+	series, err := q.fetchMetrics(query, measurementId, valueIds)
 	if err != nil{
 		return nil, fmt.Errorf("could not fetch data from server: %v", err)
 	}

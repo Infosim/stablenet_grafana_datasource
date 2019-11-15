@@ -89,5 +89,13 @@
         </div>
     </div>
 
+    <div class="gf-form-inline">
+        <div class="gf-form gf-form--grow">
+            <input type="checkbox" ng-model="ctrl.target.includeMinStats" ng-change="ctrl.onChangeInternal()">Include Min Statistics
+            <input type="checkbox" ng-model="ctrl.target.includeAvgStats" ng-change="ctrl.onChangeInternal()">Include Avg Statistics
+            <input type="checkbox" ng-model="ctrl.target.includeMaxStats" ng-change="ctrl.onChangeInternal()">Include Max Statistics
+        </div>
+    </div>
+
 </query-editor-row>
   

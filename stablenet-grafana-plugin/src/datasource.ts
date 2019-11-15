@@ -124,7 +124,10 @@ export class GenericDatasource {
                         refId: target.refId,
                         datasourceId: id,
                         queryType: "statisticLink",
-                        statisticLink: target.statisticLink
+                        statisticLink: target.statisticLink,
+                        includeMinStats: target.includeMinStats,
+                        includeAvgStats: target.includeAvgStats,
+                        includeMaxStats: target.includeMaxStats
                     }
                 );
                 return
@@ -137,7 +140,10 @@ export class GenericDatasource {
                 datasourceId: id,
                 queryType: "metricData",
                 measurementObid: parseInt(target.measurement),
-                metricId: target.metric
+                metricId: target.metric,
+                includeMinStats: target.includeMinStats,
+                includeAvgStats: target.includeAvgStats,
+                includeMaxStats: target.includeMaxStats
             });
         });
         if (queries.length === 0) {
