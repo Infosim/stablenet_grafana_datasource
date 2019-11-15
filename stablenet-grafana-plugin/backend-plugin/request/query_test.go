@@ -75,3 +75,11 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 		require.EqualError(t, err, "unexpected EOF")
 	})
 }
+
+func Test_queryHandlerImpl_HandleWithNoQueryType(t *testing.T) {
+	handler := queryHandlerImpl{}
+	result := handler.Handle(Query{datasource.Query{}})
+	assert := testify.New(t)
+	assert.Equal("could not retrieve query type: EOF", result.Error)
+	assert.Nil(result.Series)
+}

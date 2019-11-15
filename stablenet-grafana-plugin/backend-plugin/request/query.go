@@ -61,7 +61,6 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
 	queryType, queryTypeError := query.GetCustomField("queryType")
 	if queryTypeError != nil {
 		msg := fmt.Sprintf("could not retrieve query type: %v", queryTypeError)
-		q.logger.Error(msg)
 		return BuildErrorResult(msg, query.RefId)
 	}
 	var result *datasource.QueryResult
@@ -139,7 +138,7 @@ func (q *queryHandlerImpl) handleMetricNameQuery(query Query) (*datasource.Query
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from request", query.RefId), nil
 	}
-	metrics, err := q.snClient.FetchMetricsForMeasurement(measurementObid, q.startTime, q.endTime)
+	metrics, err := q.snClient.FetchMetricsForMeasurement(measurementObid)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metric names from StableNet(R): %v", err)
 	}
@@ -151,29 +150,29 @@ func (q queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult,
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from request", query.RefId), nil
 	}
-	metricName, err := query.GetCustomField("metricName")
+	metricId, err := query.GetCustomIntField("metricId")
 	if err != nil {
 		return BuildErrorResult("could not extract metricName from request", query.RefId), nil
 	}
-	data, err := q.snClient.FetchDataForMetric(measurementObid, metricName, q.startTime, q.endTime)
+	data, err := q.snClient.FetchDataForMetric(measurementObid, metricId, q.startTime, q.endTime)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
-
-	points := make([]*datasource.Point, 0, len(data))
-	for _, metricData := range data {
-		p := datasource.Point{
-			Timestamp: metricData.Time.UnixNano() / int64(1000*time.Microsecond),
-			Value:     metricData.Value,
-		}
-		points = append(points, &p)
+	maxTimeSeries := &datasource.TimeSeries{
+		Points: data.MaxValues(),
+		Name:   "Max",
 	}
-	timeSeries := datasource.TimeSeries{
-		Points: points,
+	minTimeSeries := &datasource.TimeSeries{
+		Points: data.MinValues(),
+		Name:   "Min",
+	}
+	avgTimeSeries := &datasource.TimeSeries{
+		Points: data.AvgValues(),
+		Name:   "Avg",
 	}
 	result := datasource.QueryResult{
 		RefId:  query.RefId,
-		Series: []*datasource.TimeSeries{&timeSeries},
+		Series: []*datasource.TimeSeries{maxTimeSeries, minTimeSeries, avgTimeSeries},
 	}
 	return &result, nil
 }

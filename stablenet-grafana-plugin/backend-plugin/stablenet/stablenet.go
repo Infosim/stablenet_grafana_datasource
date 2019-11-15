@@ -17,8 +17,8 @@ import (
 type Client interface {
 	QueryDevices(deviceQuey string) ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
-	FetchMetricsForMeasurement(int, time.Time, time.Time) ([]string, error)
-	FetchDataForMetric(int, string, time.Time, time.Time) ([]MetricData, error)
+	FetchMetricsForMeasurement(int) ([]Metric, error)
+	FetchDataForMetric(int, int, time.Time, time.Time) (MetricDataSeries, error)
 }
 
 type ConnectOptions struct {
@@ -47,7 +47,7 @@ func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode() != 200{
+	if resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("the statuscode was \"%d\" and the message was \"%s\"", resp.StatusCode(), resp.Status())
 	}
 	type serverResponse struct {
@@ -84,39 +84,26 @@ func (c *ClientImpl) unmarshalMeasurements(reader io.Reader) ([]Measurement, err
 	return collections.Measurements, err
 }
 
-func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, startTime time.Time, endTime time.Time) ([]string, error) {
-	startMillis := startTime.UnixNano() / int64(time.Millisecond)
-	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis)
+func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
+	url := fmt.Sprintf("https://%s:%d/api/1/measurements/%d/metrics", c.Host, c.Port, measurementObid)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
+		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet(R)", measurementObid)
 	}
-	data := make([]map[string]interface{}, 0, 0)
-	err = json.Unmarshal(resp.Body(), &data)
+	responseData := struct {
+		ValueOutputs []Metric `json:"valueOutputs"`
+	}{}
+	err = json.Unmarshal(resp.Body(), &responseData)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
-	metricNames := make(map[string]bool)
-	for _, record := range data {
-		for key, _ := range record {
-			metricNames[key] = true
-		}
-	}
-	delete(metricNames, "Time")
-	delete(metricNames, "time")
-
-	result := make([]string, 0, len(metricNames))
-	for key, _ := range metricNames {
-		result = append(result, key)
-	}
-	return result, nil
+	return responseData.ValueOutputs, nil
 }
 
-func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string, startTime time.Time, endTime time.Time) ([]MetricData, error) {
+func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricId int, startTime time.Time, endTime time.Time) (MetricDataSeries, error) {
 	startMillis := startTime.UnixNano() / int64(time.Millisecond)
 	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis)
+	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d&value=%d", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, metricId)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
@@ -133,21 +120,27 @@ func (c *ClientImpl) FetchDataForMetric(measurementObid int, metricName string, 
 		if err != nil {
 			return nil, err
 		}
+		metricData := MetricData{Time: measurementTime}
 		for key, value := range record {
-			if key != metricName {
+			if key == "Time" {
 				continue
 			}
 			floatString := value.(string)
+			floatString = strings.Replace(floatString, " ", "", -1)
 			floatString = strings.Replace(floatString, ",", "", -1)
 			value, err := strconv.ParseFloat(floatString, 64)
 			if err != nil {
 				return nil, fmt.Errorf("could not format value: %v", err)
 			}
-			result = append(result, MetricData{
-				Time:  measurementTime,
-				Value: value,
-			})
+			if strings.HasPrefix(key, "Min") {
+				metricData.Min = value
+			} else if strings.HasPrefix(key, "Max") {
+				metricData.Max = value
+			} else if strings.HasPrefix(key, "Avg") {
+				metricData.Avg = value
+			}
 		}
+		result = append(result, metricData)
 	}
 	return result, nil
 }
