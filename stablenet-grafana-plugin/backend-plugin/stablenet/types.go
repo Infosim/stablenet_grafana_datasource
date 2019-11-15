@@ -1,7 +1,6 @@
 package stablenet
 
 import (
-	"encoding/xml"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"time"
 )
@@ -12,9 +11,8 @@ type Device struct {
 }
 
 type Measurement struct {
-	XMLName xml.Name
-	Name    string `xml:"name,attr" json:"name"`
-	Obid    int    `xml:"obid,attr" json:"obid"`
+	Name string `json:"name"`
+	Obid int    `json:"obid"`
 }
 
 type Metric struct {

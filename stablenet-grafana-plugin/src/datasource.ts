@@ -96,15 +96,11 @@ export class GenericDatasource {
         if (obid === "select measurement") {
             return []
         }
-        const from = this.templateSrv.timeRange.from.valueOf().toString();
-        const to = this.templateSrv.timeRange.to.valueOf().toString();
         let data = {
-            from: from,
-            to: to,
             queries: [
                 {
                     refId: "A",
-                    datasourceId: this.id,   // Requiredma
+                    datasourceId: this.id,
                     queryType: "metricNames",
                     measurementObid: parseInt(obid)
                 }
@@ -112,7 +108,7 @@ export class GenericDatasource {
         };
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
-                return {text: metric, value: metric};
+                return {text: metric.name, value: metric.id};
             })
         });
     }
@@ -123,7 +119,7 @@ export class GenericDatasource {
         let queries = [];
         let id = this.id;
         options.targets.forEach(function (target) {
-            if(target.metricName === "select metric"){
+            if(target.metric === "select metric"){
                 return;
             }
             queries.push({
@@ -131,7 +127,7 @@ export class GenericDatasource {
                 datasourceId: id,
                 queryType: "metricData",
                 measurementObid: parseInt(target.measurement),
-                metricName: target.metricName
+                metricId: target.metric
             });
         });
         if (queries.length === 0){

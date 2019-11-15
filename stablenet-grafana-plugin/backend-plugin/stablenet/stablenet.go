@@ -1,13 +1,10 @@
 package stablenet
 
 import (
-	bytes2 "bytes"
 	"crypto/tls"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"io"
 	url2 "net/url"
 	"strconv"
 	"strings"
@@ -59,29 +56,20 @@ func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {
-	url := fmt.Sprintf("https://%s:%d/rest/measurements/list", c.Host, c.Port)
-	tagfilter := fmt.Sprintf("<valuetagfilter filtervalue=\"%d\"><tagcategory key=\"Device ID\" id=\"61\"/></valuetagfilter>", deviceObid)
-	resp, err := c.client.R().SetBody([]byte(tagfilter)).SetHeader("Content-Type", "application/xml").Post(url)
-	if err != nil || resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("could not retrieve Measurements for device %d from StableNet", deviceObid)
-	}
-	return c.unmarshalMeasurements(bytes2.NewReader(resp.Body()))
-}
-
-func (c *ClientImpl) unmarshalMeasurements(reader io.Reader) ([]Measurement, error) {
-	buff := new(bytes2.Buffer)
-	_, err := buff.ReadFrom(reader)
+	filter := fmt.Sprintf("destDeviceId eq '%d'", deviceObid)
+	url := fmt.Sprintf("https://%s:%d/api/1/measurements?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
+	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not read from reader: %v", err)
+		return nil, fmt.Errorf("could not retrieve measurements for device %d from StableNet: %v", deviceObid, err)
 	}
-	type measurementCollection struct {
-		XMLName      xml.Name
-		Measurements []Measurement `xml:",any"`
+	if resp.StatusCode() != 200 {
+		return nil, fmt.Errorf("could not retrieve measurements for device %d, the error code was %d with message \"%s\"; %s", deviceObid, resp.StatusCode(), resp.Status(), url)
 	}
-	bytes := buff.Bytes()
-	collections := measurementCollection{}
-	err = xml.Unmarshal(bytes, &collections)
-	return collections.Measurements, err
+	collection := struct {
+		Measurements []Measurement `json:"data"`
+	}{}
+	err = json.Unmarshal(resp.Body(), &collection)
+	return collection.Measurements, err
 }
 
 func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {

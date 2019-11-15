@@ -15,7 +15,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.deviceQuery = this.target.deviceQuery || '';
         this.target.selectedDevice = this.target.selectedDevice || 'select device';
         this.target.measurement = this.target.measurement || 'select measurement';
-        this.target.metricName = this.target.metricName || 'select metric';
+        this.target.metric = this.target.metric || 'select metric';
     }
 
     onDeviceQueryChange() {
@@ -28,8 +28,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onDeviceChange() {
-        this.target.measurement = 'select measurement';
         this.target.measurements = this.datasource.findMeasurementsForDevice(this.target.selectedDevice);
+        this.target.measurement = 'select measurement';
     }
 
     getMeasurements() {
@@ -37,8 +37,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onMeasurementChange() {
-        this.target.metricName = 'select metric';
         this.target.metrics = this.datasource.findMetricsForMeasurement(this.target.measurement) || [];
+        this.target.metric = 'select metric';
     }
 
     getMetrics() {
