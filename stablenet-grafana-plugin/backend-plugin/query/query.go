@@ -1,4 +1,4 @@
-package request
+package query
 
 import (
 	"backend-plugin/stablenet"
@@ -39,7 +39,7 @@ func (q *Query) GetCustomIntField(name string) (int, error) {
 	return queryJson.Get(name).Int()
 }
 
-func (q *Query) includeMinStats() bool{
+func (q *Query) includeMinStats() bool {
 	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
 	if err != nil {
 		return false
@@ -48,7 +48,7 @@ func (q *Query) includeMinStats() bool{
 	return result
 }
 
-func (q *Query) includeAvgStats() bool{
+func (q *Query) includeAvgStats() bool {
 	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
 	if err != nil {
 		return false
@@ -57,7 +57,7 @@ func (q *Query) includeAvgStats() bool{
 	return result
 }
 
-func (q *Query) includeMaxStats() bool{
+func (q *Query) includeMaxStats() bool {
 	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
 	if err != nil {
 		return false
@@ -128,7 +128,7 @@ func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
 func (q *queryHandlerImpl) handleDeviceQuery(query Query) (*datasource.QueryResult, error) {
 	deviceQuery, err := query.GetCustomField("deviceQuery")
 	if err != nil {
-		return BuildErrorResult("could not extraxt the deviceQuery from the request", query.RefId), nil
+		return BuildErrorResult("could not extraxt the deviceQuery from the query", query.RefId), nil
 	}
 	devices, err := q.snClient.QueryDevices(deviceQuery)
 	if err != nil {
@@ -155,7 +155,7 @@ func (q *queryHandlerImpl) createResponseWithCustomData(data interface{}, refId 
 func (q *queryHandlerImpl) handleMeasurementQuery(query Query) (*datasource.QueryResult, error) {
 	deviceObid, err := query.GetCustomIntField("deviceObid")
 	if err != nil {
-		return BuildErrorResult("could not extract deviceObid from the request", query.RefId), nil
+		return BuildErrorResult("could not extract deviceObid from the query", query.RefId), nil
 	}
 	measurements, err := q.snClient.FetchMeasurementsForDevice(deviceObid)
 	if err != nil {
@@ -167,7 +167,7 @@ func (q *queryHandlerImpl) handleMeasurementQuery(query Query) (*datasource.Quer
 func (q *queryHandlerImpl) handleMetricNameQuery(query Query) (*datasource.QueryResult, error) {
 	measurementObid, err := query.GetCustomIntField("measurementObid")
 	if err != nil {
-		return BuildErrorResult("could not extract measurementObid from request", query.RefId), nil
+		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
 	}
 	metrics, err := q.snClient.FetchMetricsForMeasurement(measurementObid)
 	if err != nil {
@@ -179,15 +179,15 @@ func (q *queryHandlerImpl) handleMetricNameQuery(query Query) (*datasource.Query
 func (q *queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult, error) {
 	measurementObid, err := query.GetCustomIntField("measurementObid")
 	if err != nil {
-		return BuildErrorResult("could not extract measurementObid from request", query.RefId), nil
+		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
 	}
 	metricId, err := query.GetCustomIntField("metricId")
 	if err != nil {
-		return BuildErrorResult("could not extract metricName from request", query.RefId), nil
+		return BuildErrorResult("could not extract metricName from query", query.RefId), nil
 	}
 
 	series, err := q.fetchMetrics(query, measurementObid, []int{metricId})
-	if err != nil{
+	if err != nil {
 		return nil, fmt.Errorf("could not fetch data from server: %v", err)
 	}
 
@@ -198,14 +198,14 @@ func (q *queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult
 	return &result, nil
 }
 
-func (q *queryHandlerImpl) fetchMetrics(query Query, measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error){
+func (q *queryHandlerImpl) fetchMetrics(query Query, measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error) {
 	data, err := q.snClient.FetchDataForMetrics(measurementObid, valueIds, q.startTime, q.endTime)
 	q.logger.Error(fmt.Sprintf("%v", data))
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
 	result := make([]*datasource.TimeSeries, 0, len(data))
-	for name, series := range data{
+	for name, series := range data {
 		maxTimeSeries := &datasource.TimeSeries{
 			Points: series.MaxValues(),
 			Name:   "Max " + name,
@@ -218,13 +218,13 @@ func (q *queryHandlerImpl) fetchMetrics(query Query, measurementObid int, valueI
 			Points: series.AvgValues(),
 			Name:   "Avg " + name,
 		}
-		if query.includeMinStats(){
+		if query.includeMinStats() {
 			result = append(result, minTimeSeries)
 		}
-		if query.includeAvgStats(){
+		if query.includeAvgStats() {
 			result = append(result, avgTimeSeries)
 		}
-		if query.includeMaxStats(){
+		if query.includeMaxStats() {
 			result = append(result, maxTimeSeries)
 		}
 	}
@@ -241,27 +241,27 @@ func (q *queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryR
 	}, nil
 }
 
-func (q *queryHandlerImpl) handleStatisticLink(query Query) (*datasource.QueryResult, error){
+func (q *queryHandlerImpl) handleStatisticLink(query Query) (*datasource.QueryResult, error) {
 	link, err := query.GetCustomField("statisticLink")
-	if err != nil{
+	if err != nil {
 		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
 	}
 	measurementRegex := regexp.MustCompile("[?&]id=(\\d+)")
 	idMatches := measurementRegex.FindAllStringSubmatch(link, 1)
-	if len(idMatches) == 0{
+	if len(idMatches) == 0 {
 		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id.", link), query.RefId), nil
 	}
 	measurementId, _ := strconv.Atoi(idMatches[0][1])
 	valueRegex := regexp.MustCompile("[?&]value\\d*=(\\d+)")
 	valueMatches := valueRegex.FindAllStringSubmatch(link, -1)
 	valueIds := make([]int, 0, len(valueMatches))
-	for _, valueMatch := range valueMatches{
+	for _, valueMatch := range valueMatches {
 		id, _ := strconv.Atoi(valueMatch[1])
 		valueIds = append(valueIds, id)
 	}
 
 	series, err := q.fetchMetrics(query, measurementId, valueIds)
-	if err != nil{
+	if err != nil {
 		return nil, fmt.Errorf("could not fetch data from server: %v", err)
 	}
 

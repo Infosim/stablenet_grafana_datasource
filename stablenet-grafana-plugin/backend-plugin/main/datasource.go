@@ -1,7 +1,7 @@
 package main
 
 import (
-	"backend-plugin/request"
+	"backend-plugin/query"
 	"backend-plugin/stablenet"
 	"encoding/json"
 	"fmt"
@@ -21,29 +21,17 @@ type JsonDatasource struct {
 }
 
 func (j *JsonDatasource) Query(ctx context.Context, tsdbReq *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
-	dsOptions := make(map[string]string)
-	_ = json.Unmarshal([]byte(tsdbReq.Datasource.JsonData), &dsOptions)
-	j.logger.Error(fmt.Sprintf("%v", tsdbReq.Datasource.DecryptedSecureJsonData))
-	j.logger.Error(fmt.Sprintf("%v", dsOptions))
-	port, portErr := strconv.Atoi(dsOptions["snport"])
-	if portErr != nil {
-		msg := fmt.Sprintf("could not parse port \"%s\"", dsOptions["snport"])
-		return &datasource.DatasourceResponse{
-			Results: []*datasource.QueryResult{request.BuildErrorResult(msg, "A")},
-		}, nil
+	request := request{tsdbReq}
+	connectOptions, err := request.stableNetOptions()
+	if err != nil {
+		j.logger.Error(fmt.Sprintf("could not extract StableNet(R) connect options: %v", err))
 	}
-	j.snClient = stablenet.NewClient(stablenet.ConnectOptions{
-		Host:     dsOptions["snip"],
-		Port:     port,
-		Username: dsOptions["snusername"],
-		Password: tsdbReq.Datasource.DecryptedSecureJsonData["snpassword"],
-	})
-	startTime := time.Unix(0, tsdbReq.TimeRange.FromEpochMs*int64(time.Millisecond))
-	endTime := time.Unix(0, tsdbReq.TimeRange.ToEpochMs*int64(time.Millisecond))
-	handler := request.NewHandler(j.logger, j.snClient, startTime, endTime)
+	j.snClient = stablenet.NewClient(connectOptions)
+	startTime, endTime := request.timeRange()
+	handler := query.NewHandler(j.logger, j.snClient, startTime, endTime)
 	results := make([]*datasource.QueryResult, 0, len(tsdbReq.Queries))
 	for _, tsdbReq := range tsdbReq.Queries {
-		query := request.Query{Query: *tsdbReq}
+		query := query.Query{Query: *tsdbReq}
 		result := handler.Handle(query)
 		results = append(results, result)
 	}
@@ -51,4 +39,45 @@ func (j *JsonDatasource) Query(ctx context.Context, tsdbReq *datasource.Datasour
 		Results: results,
 	}
 	return response, nil
+}
+
+type request struct {
+	*datasource.DatasourceRequest
+}
+
+func (r *request) stableNetOptions() (*stablenet.ConnectOptions, error) {
+	info := r.Datasource
+	options := make(map[string]string)
+	err := json.Unmarshal([]byte(info.JsonData), &options)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal jsonData of the datasource: %v", err)
+	}
+	if _, ok := options["snip"]; !ok {
+		return nil, fmt.Errorf("the snip is missing in the jsonData of the datasource")
+	}
+	if _, ok := options["snport"]; !ok {
+		return nil, fmt.Errorf("the snport is missing in the jsonData of the datasource")
+	}
+	if _, ok := options["snusername"]; !ok {
+		return nil, fmt.Errorf("the snusername is missing in the jsonData of the datasource")
+	}
+	if _, ok := info.DecryptedSecureJsonData["snpassword"]; !ok {
+		return nil, fmt.Errorf("the snpassword is missing in the encryptedJsonData of the datasource")
+	}
+	port, portErr := strconv.Atoi(options["snport"])
+	if portErr != nil {
+		return nil, fmt.Errorf("could not parse snport into number: %v", portErr)
+	}
+	return &stablenet.ConnectOptions{
+		Host:     options["snip"],
+		Port:     port,
+		Username: options["snusername"],
+		Password: info.DecryptedSecureJsonData["snpassword"],
+	}, nil
+}
+
+func (r *request) timeRange() (startTime time.Time, endTime time.Time) {
+	startTime = time.Unix(0, r.TimeRange.FromEpochMs*int64(time.Millisecond))
+	endTime = time.Unix(0, r.TimeRange.ToEpochMs*int64(time.Millisecond))
+	return
 }

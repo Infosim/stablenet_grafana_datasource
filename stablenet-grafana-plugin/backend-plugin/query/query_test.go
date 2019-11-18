@@ -1,4 +1,4 @@
-package request
+package query
 
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"

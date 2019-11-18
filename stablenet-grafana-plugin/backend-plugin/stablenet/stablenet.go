@@ -25,8 +25,8 @@ type ConnectOptions struct {
 	Password string `json:"snpassword"`
 }
 
-func NewClient(options ConnectOptions) Client {
-	client := ClientImpl{ConnectOptions: options, client: resty.New()}
+func NewClient(options *ConnectOptions) Client {
+	client := ClientImpl{ConnectOptions: *options, client: resty.New()}
 	client.client.SetBasicAuth(options.Username, options.Password)
 	client.client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	return &client
