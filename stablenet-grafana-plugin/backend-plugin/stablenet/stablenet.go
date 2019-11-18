@@ -12,7 +12,7 @@ import (
 )
 
 type Client interface {
-	QueryDevices(deviceQuey string) ([]Device, error)
+	QueryDevices(string) ([]Device, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
 	FetchMetricsForMeasurement(int) ([]Metric, error)
 	FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)

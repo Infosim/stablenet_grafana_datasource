@@ -1,4 +1,4 @@
-package main
+package query
 
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
@@ -24,7 +24,7 @@ func Test_request_stableNetOptionsErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &request{
+			r := &Request{
 				DatasourceRequest: &datasource.DatasourceRequest{
 					Datasource: &datasource.DatasourceInfo{
 						JsonData:                tt.jsonData,
@@ -43,7 +43,7 @@ func Test_request_stableNetOptionsErrors(t *testing.T) {
 func Test_request_stableNetOptions(t *testing.T) {
 	json := "{\"snip\":\"127.0.0.1\", \"snport\": \"443\", \"snusername\":\"infosim\"}"
 	decryptedData := map[string]string{"snpassword": "stablenet"}
-	request := &request{
+	request := &Request{
 		DatasourceRequest: &datasource.DatasourceRequest{
 			Datasource: &datasource.DatasourceInfo{
 				JsonData:                json,
@@ -66,8 +66,8 @@ func Test_request_timeRange(t *testing.T) {
 	then := now.Add(3 * time.Hour)
 	nowRaw := now.UnixNano() / int64(time.Millisecond)
 	thenRaw := then.UnixNano() / int64(time.Millisecond)
-	request := &request{DatasourceRequest: &datasource.DatasourceRequest{TimeRange: &datasource.TimeRange{FromEpochMs: nowRaw, ToEpochMs: thenRaw}}}
-	actualNow, actualThen := request.timeRange()
+	request := &Request{DatasourceRequest: &datasource.DatasourceRequest{TimeRange: &datasource.TimeRange{FromEpochMs: nowRaw, ToEpochMs: thenRaw}}}
+	actualNow, actualThen := request.ToTimeRange()
 	assert.Equal(t, now.Second(), actualNow.Second(), "now differs")
 	assert.Equal(t, then.Second(), actualThen.Second(), "then differs")
 }

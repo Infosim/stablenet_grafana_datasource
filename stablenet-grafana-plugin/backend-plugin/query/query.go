@@ -21,6 +21,8 @@ func BuildErrorResult(msg string, refId string) *datasource.QueryResult {
 
 type Query struct {
 	datasource.Query
+	StartTime time.Time
+	EndTime   time.Time
 }
 
 func (q *Query) GetCustomField(name string) (string, error) {
@@ -66,141 +68,13 @@ func (q *Query) includeMaxStats() bool {
 	return result
 }
 
-type QueryHandler interface {
-	Handle(Query) *datasource.QueryResult
+type StableNetHandler struct {
+	SnClient stablenet.Client
+	Logger   hclog.Logger
 }
 
-func NewHandler(logger hclog.Logger, snClient stablenet.Client, startTime time.Time, endTime time.Time) QueryHandler {
-	return &queryHandlerImpl{
-		logger:    logger,
-		snClient:  snClient,
-		startTime: startTime,
-		endTime:   endTime,
-	}
-}
-
-type queryHandlerImpl struct {
-	logger    hclog.Logger
-	snClient  stablenet.Client
-	startTime time.Time
-	endTime   time.Time
-}
-
-func (q *queryHandlerImpl) Handle(query Query) *datasource.QueryResult {
-	queryType, queryTypeError := query.GetCustomField("queryType")
-	if queryTypeError != nil {
-		msg := fmt.Sprintf("could not retrieve query type: %v", queryTypeError)
-		return BuildErrorResult(msg, query.RefId)
-	}
-	var result *datasource.QueryResult
-	var queryError error
-	switch queryType {
-	case "devices":
-		result, queryError = q.handleDeviceQuery(query)
-		break
-	case "measurements":
-		result, queryError = q.handleMeasurementQuery(query)
-		break
-	case "metricNames":
-		result, queryError = q.handleMetricNameQuery(query)
-		break
-	case "metricData":
-		result, queryError = q.handleDataQuery(query)
-		break
-	case "testDatasource":
-		result, queryError = q.handleDatasourceTest(query)
-		break
-	case "statisticLink":
-		result, queryError = q.handleStatisticLink(query)
-	default:
-		msg := fmt.Sprintf("query type \"%s\" not supported", queryType)
-		q.logger.Info(msg)
-		return BuildErrorResult(msg, query.RefId)
-	}
-
-	if queryError != nil {
-		q.logger.Error(queryError.Error())
-		return BuildErrorResult("Internal Backend Plugin error. Please consult the Grafana logs.", query.RefId)
-	}
-	return result
-}
-
-func (q *queryHandlerImpl) handleDeviceQuery(query Query) (*datasource.QueryResult, error) {
-	deviceQuery, err := query.GetCustomField("deviceQuery")
-	if err != nil {
-		return BuildErrorResult("could not extraxt the deviceQuery from the query", query.RefId), nil
-	}
-	devices, err := q.snClient.QueryDevices(deviceQuery)
-	if err != nil {
-		e := fmt.Errorf("could not retrieve devices from StableNet(R): %v", err)
-		q.logger.Error("could not retrieve devices from StableNet(R)", e)
-		return nil, e
-	}
-	return q.createResponseWithCustomData(devices, query.RefId)
-}
-
-func (q *queryHandlerImpl) createResponseWithCustomData(data interface{}, refId string) (*datasource.QueryResult, error) {
-	payload, err := json.Marshal(data)
-	if err != nil {
-		return nil, fmt.Errorf("could not marshal json: %v", err)
-	}
-	result := datasource.QueryResult{
-		RefId:    refId,
-		MetaJson: string(payload),
-		Series:   []*datasource.TimeSeries{},
-	}
-	return &result, nil
-}
-
-func (q *queryHandlerImpl) handleMeasurementQuery(query Query) (*datasource.QueryResult, error) {
-	deviceObid, err := query.GetCustomIntField("deviceObid")
-	if err != nil {
-		return BuildErrorResult("could not extract deviceObid from the query", query.RefId), nil
-	}
-	measurements, err := q.snClient.FetchMeasurementsForDevice(deviceObid)
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch measurements: %v", err)
-	}
-	return q.createResponseWithCustomData(measurements, query.RefId)
-}
-
-func (q *queryHandlerImpl) handleMetricNameQuery(query Query) (*datasource.QueryResult, error) {
-	measurementObid, err := query.GetCustomIntField("measurementObid")
-	if err != nil {
-		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
-	}
-	metrics, err := q.snClient.FetchMetricsForMeasurement(measurementObid)
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metric names from StableNet(R): %v", err)
-	}
-	return q.createResponseWithCustomData(metrics, query.RefId)
-}
-
-func (q *queryHandlerImpl) handleDataQuery(query Query) (*datasource.QueryResult, error) {
-	measurementObid, err := query.GetCustomIntField("measurementObid")
-	if err != nil {
-		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
-	}
-	metricId, err := query.GetCustomIntField("metricId")
-	if err != nil {
-		return BuildErrorResult("could not extract metricName from query", query.RefId), nil
-	}
-
-	series, err := q.fetchMetrics(query, measurementObid, []int{metricId})
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch data from server: %v", err)
-	}
-
-	result := datasource.QueryResult{
-		RefId:  query.RefId,
-		Series: series,
-	}
-	return &result, nil
-}
-
-func (q *queryHandlerImpl) fetchMetrics(query Query, measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error) {
-	data, err := q.snClient.FetchDataForMetrics(measurementObid, valueIds, q.startTime, q.endTime)
-	q.logger.Error(fmt.Sprintf("%v", data))
+func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error) {
+	data, err := s.SnClient.FetchDataForMetrics(measurementObid, valueIds, query.StartTime, query.EndTime)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
@@ -231,8 +105,98 @@ func (q *queryHandlerImpl) fetchMetrics(query Query, measurementObid int, valueI
 	return result, nil
 }
 
-func (q *queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryResult, error) {
-	_, err := q.snClient.FetchMeasurementsForDevice(-1)
+type Handler interface {
+	Process(Query) (*datasource.QueryResult, error)
+}
+
+type DeviceHandler struct {
+	*StableNetHandler
+}
+
+func (d DeviceHandler) Process(q Query) (*datasource.QueryResult, error) {
+	deviceQuery, err := q.GetCustomField("deviceQuery")
+	if err != nil {
+		return BuildErrorResult("could not extract the deviceQuery from the query", q.RefId), nil
+	}
+	devices, err := d.SnClient.QueryDevices(deviceQuery)
+	if err != nil {
+		e := fmt.Errorf("could not retrieve devices from StableNet(R): %v", err)
+		d.Logger.Error(e.Error())
+		return nil, e
+	}
+	return createResponseWithCustomData(devices, q.RefId)
+}
+
+type MeasurementHandler struct {
+	*StableNetHandler
+}
+
+func (m MeasurementHandler) Process(query Query) (*datasource.QueryResult, error) {
+	deviceObid, err := query.GetCustomIntField("deviceObid")
+	if err != nil {
+		return BuildErrorResult("could not extract deviceObid from the query", query.RefId), nil
+	}
+	measurements, err := m.SnClient.FetchMeasurementsForDevice(deviceObid)
+	if err != nil {
+		e := fmt.Errorf("could not fetch measurements from StableNet(R): %v", err)
+		m.Logger.Error(e.Error())
+		return nil, e
+	}
+	return createResponseWithCustomData(measurements, query.RefId)
+}
+
+type MetricNameHandler struct {
+	*StableNetHandler
+}
+
+func (m MetricNameHandler) Process(query Query) (*datasource.QueryResult, error) {
+	measurementObid, err := query.GetCustomIntField("measurementObid")
+	if err != nil {
+		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
+	}
+	metrics, err := m.SnClient.FetchMetricsForMeasurement(measurementObid)
+	if err != nil {
+		e := fmt.Errorf("could not retrieve metric names from StableNet(R): %v", err)
+		m.Logger.Error(e.Error())
+		return nil, e
+	}
+	return createResponseWithCustomData(metrics, query.RefId)
+}
+
+type MetricDataHandler struct {
+	*StableNetHandler
+}
+
+func (m MetricDataHandler) Process(query Query) (*datasource.QueryResult, error) {
+	measurementObid, err := query.GetCustomIntField("measurementObid")
+	if err != nil {
+		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
+	}
+	metricId, err := query.GetCustomIntField("metricId")
+	if err != nil {
+		return BuildErrorResult("could not extract metricName from query", query.RefId), nil
+	}
+
+	series, err := m.fetchMetrics(query, measurementObid, []int{metricId})
+	if err != nil {
+		e := fmt.Errorf("could not fetch data from server: %v", err)
+		m.Logger.Error(e.Error())
+		return nil, e
+	}
+
+	result := datasource.QueryResult{
+		RefId:  query.RefId,
+		Series: series,
+	}
+	return &result, nil
+}
+
+type DatasourceTestHandler struct {
+	*StableNetHandler
+}
+
+func (d DatasourceTestHandler) Process(query Query) (*datasource.QueryResult, error) {
+	_, err := d.SnClient.FetchMeasurementsForDevice(-1)
 	if err != nil {
 		return BuildErrorResult("Cannot login into StableNet(R) with the provided credentials", query.RefId), nil
 	}
@@ -241,7 +205,11 @@ func (q *queryHandlerImpl) handleDatasourceTest(query Query) (*datasource.QueryR
 	}, nil
 }
 
-func (q *queryHandlerImpl) handleStatisticLink(query Query) (*datasource.QueryResult, error) {
+type StatisticLinkHandler struct {
+	*StableNetHandler
+}
+
+func (s StatisticLinkHandler) Process(query Query) (*datasource.QueryResult, error) {
 	link, err := query.GetCustomField("statisticLink")
 	if err != nil {
 		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
@@ -260,14 +228,29 @@ func (q *queryHandlerImpl) handleStatisticLink(query Query) (*datasource.QueryRe
 		valueIds = append(valueIds, id)
 	}
 
-	series, err := q.fetchMetrics(query, measurementId, valueIds)
+	series, err := s.fetchMetrics(query, measurementId, valueIds)
 	if err != nil {
-		return nil, fmt.Errorf("could not fetch data from server: %v", err)
+		e := fmt.Errorf("could not fetch data from server: %v", err)
+		s.Logger.Error(e.Error())
+		return nil, e
 	}
 
 	result := datasource.QueryResult{
 		RefId:  query.RefId,
 		Series: series,
+	}
+	return &result, nil
+}
+
+func createResponseWithCustomData(data interface{}, refId string) (*datasource.QueryResult, error) {
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal json: %v", err)
+	}
+	result := datasource.QueryResult{
+		RefId:    refId,
+		MetaJson: string(payload),
+		Series:   []*datasource.TimeSeries{},
 	}
 	return &result, nil
 }
