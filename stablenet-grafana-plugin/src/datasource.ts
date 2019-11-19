@@ -72,7 +72,7 @@ export class GenericDatasource {
     }
 
     findMeasurementsForDevice(obid) {
-        if (obid === "select option") {
+        if (obid === "select device") {
             return []
         }
         let data = {

@@ -5,45 +5,57 @@
   ~                  97074 Wuerzburg, Germany
   ~                  www.infosim.net
   -->
-<query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true">
+<query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true"> <!--maybe we don't want text edit mode?...-->
 
+    <!--Creates a Device/StatLink switch.-->
     <div class="gf-form-inline">
         <div class="gf-form">
             <label class="gf-form-label query-keyword width-9">
                 Query Mode:
-                <info-popover mode="right-normal">Select the mode in which the query should be defined.</info-popover>
+                <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.</info-popover>
             </label>
+            <!--<select class="gf-form-input width-13" ng-model="ctrl.target.mode" ng-options="f as f for f in ['Device', 'Statistic Link']"></select>-->
             <gf-form-dropdown model="ctrl.target.mode"
                               allow-custom="true"
                               lookup-text="true"
                               get-options="ctrl.getModes()"
-                              on-change="ctrl.onModeChange()">
+                              class="width-13">
             </gf-form-dropdown>
         </div>
     </div>
 
-    <div ng-if="ctrl.target.mode === 'Device'">
+    <div ng-if="ctrl.target.mode==='Device'">
+        
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
                 <label class="gf-form-label query-keyword width-9">
                     Device Query:
+                    <info-popover mode="right-normal">The first dropdown menu below will only show devices containing the input of that field. Case sensitive.</info-popover>
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.deviceQuery"
-                       ng-keypress="ctrl.onDeviceQueryChange()">
+                       ng-blur="ctrl.onDeviceQueryChange()">
             </div>
         </div>
 
         <div class="gf-form-inline">
-            <label class="gf-form-label query-keyword width-9">
-                Device:
-            </label>
-            <gf-form-dropdown model="ctrl.target.selectedDevice"
-                              allow-custom="true"
-                              lookup-text="true"
-                              get-options="ctrl.getDevices()"
-                              on-change="ctrl.onDeviceChange()">
-            </gf-form-dropdown>
+            <div class="gf-form">
+                <label class="gf-form-label query-keyword width-9">
+                    Device:
+                </label>
+                <gf-form-dropdown model="ctrl.target.selectedDevice"
+                                  allow-custom="true"
+                                  lookup-text="true"
+                                  get-options="ctrl.getDevices()"
+                                  on-change="ctrl.onDeviceChange()"
+                                  class="min-width-13">
+                </gf-form-dropdown>
+            </div>
+            <div class="gf-form gf-form--grow">
+                <div class="gf-form-label gf-form-label--grow"></div>
+            </div>
+         </div>   
 
+         <div class="gf-form-inline">
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-9">
                     Measurement:
@@ -52,10 +64,16 @@
                                   allow-custom="true"
                                   lookup-text="true"
                                   get-options="ctrl.getMeasurements()"
-                                  on-change="ctrl.onMeasurementChange()">
+                                  on-change="ctrl.onMeasurementChange()"
+                                  class="min-width-13">
                 </gf-form-dropdown>
             </div>
+            <div class="gf-form gf-form--grow">
+                <div class="gf-form-label gf-form-label--grow"></div>
+            </div>
+        </div>
 
+        <div class="gf-form-inline">
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-9">
                     Metric:
@@ -67,16 +85,18 @@
                                   allow-custom="true"
                                   lookup-text="true"
                                   get-options="ctrl.getMetrics()"
-                                  on-change="ctrl.onChangeInternal()">
+                                  on-change="ctrl.onChangeInternal()"
+                                  class="min-width-13">
                 </gf-form-dropdown>
             </div>
-
             <div class="gf-form gf-form--grow">
                 <div class="gf-form-label gf-form-label--grow"></div>
             </div>
         </div>
+
     </div>
 
+    <!--If in StatisticLink mode, creates an input field for a link. Clicking outside of the field is sufficient to trigger a change.-->
     <div ng-if="ctrl.target.mode==='Statistic Link'">
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
@@ -84,11 +104,12 @@
                     Link:
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.statisticLink"
-                       ng-keypress="ctrl.onChangeInternal()"><input>
+                    spellcheck="false" ng-blur="ctrl.onChangeInternal()">
             </div>
         </div>
     </div>
 
+    <!--Creates 3 checkboxes for including Min, Avg and/or Max stats.-->
     <div class="gf-form-group">
 		<div class="gf-form-inline">
             <div class="gf-form">

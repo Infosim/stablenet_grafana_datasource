@@ -17,6 +17,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.selectedDevice = this.target.selectedDevice || 'select device';
         this.target.measurement = this.target.measurement || 'select measurement';
         this.target.metric = this.target.metric || 'select metric';
+        this.target.statisticLink = this.target.statisticLink || '';
         this.target.includeMinStats = this.target.includeMinStats || true;
         this.target.includeAvgStats = this.target.includeAvgStats || true;
         this.target.includeMaxStats = this.target.includeMaxStats || true;
@@ -27,30 +28,33 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onDeviceQueryChange() {
-        this.target.devices = this.datasource.queryDevices(this.target.deviceQuery);
         this.target.selectedDevice = "select device";
+        this.target.measurement = 'select measurement';
+        this.target.metric = 'select metric';
+        this.onChangeInternal();
     }
 
     getDevices() {
-        return this.target.devices || [];
+        return this.datasource.queryDevices(this.target.deviceQuery);
     }
 
     onDeviceChange() {
-        this.target.measurements = this.datasource.findMeasurementsForDevice(this.target.selectedDevice);
         this.target.measurement = 'select measurement';
+        this.target.metric = 'select metric';
+        this.onChangeInternal();
     }
 
     getMeasurements() {
-        return this.target.measurements || [];
+        return this.datasource.findMeasurementsForDevice(this.target.selectedDevice);
     }
 
     onMeasurementChange() {
-        this.target.metrics = this.datasource.findMetricsForMeasurement(this.target.measurement) || [];
         this.target.metric = 'select metric';
+        this.onChangeInternal();
     }
 
     getMetrics() {
-        return this.target.metrics;
+        return this.datasource.findMetricsForMeasurement(this.target.measurement);
     }
 
     /**
@@ -65,9 +69,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
      * This solution is of course temporary, until an alternative is found.
      */
     onChangeInternal() {
-        setTimeout(() => {
-            this.panelCtrl.refresh(); // Asks the panel to refresh data.
-        }, 500)
+        this.panelCtrl.refresh(); // Asks the panel to refresh data.
     }
 }
 
