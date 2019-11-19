@@ -10,81 +10,65 @@ import './css/query-editor.css!'
 
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
-  constructor($scope, $injector)  {
-    super($scope, $injector);
-    this.target.type = this.target.type || 'timeserie';
+    constructor($scope, $injector) {
+        super($scope, $injector);
+        this.target.mode = this.target.mode || 'Device';
+        this.target.deviceQuery = this.target.deviceQuery || '';
+        this.target.selectedDevice = this.target.selectedDevice || 'select device';
+        this.target.measurement = this.target.measurement || 'select measurement';
+        this.target.metric = this.target.metric || 'select metric';
+        this.target.includeMinStats = this.target.includeMinStats || true;
+        this.target.includeAvgStats = this.target.includeAvgStats || true;
+        this.target.includeMaxStats = this.target.includeMaxStats || true;
+    }
 
-    this.scope = $scope;
-    this.target.server = this.target.server || 'select server';
-    this.target.filter = this.target.filter || 'device';
-    this.target.deviceORtag = this.target.deviceORtag || 'select option';
-    this.target.measurement = this.target.measurement || 'select measurement';
-    this.target.target = this.target.target || 'select metric';
-  }
+    getModes(){
+        return [{value:'Device', text:'Device'}, {value:'Statistic Link', text:'Statistic Link'}];
+    }
 
+    onDeviceQueryChange() {
+        this.target.devices = this.datasource.queryDevices(this.target.deviceQuery);
+        this.target.selectedDevice = "select device";
+    }
 
-  getFilters() {
-    return [{text: 'Devices', value: 'device'}, {text: 'Tag Filters for Devices', value: 'tag'}];
-  }
+    getDevices() {
+        return this.target.devices || [];
+    }
 
-  getDevices() {
-    return this.datasource.queryAllDevices(this.target.server, this.target.filter);
-  }
+    onDeviceChange() {
+        this.target.measurements = this.datasource.findMeasurementsForDevice(this.target.selectedDevice);
+        this.target.measurement = 'select measurement';
+    }
 
-  getMeasurements() {
-    return this.datasource.findMeasurementsForDevice(this.target.server, this.target.filter, this.target.deviceORtag);
-  }
+    getMeasurements() {
+        return this.target.measurements || [];
+    }
 
-  getOptions(query) {
-    //return this.datasource.deviceFindQuery(this.target.server, this.target.filter);
-    //return this.datasource.metricFindQuery(this.target.server, this.target.filter, this.target.deviceORtag, this.target.measurement);       //calls metricFindQuery ((calls StatisticServlet&id={} and parses answer)) and returns answer
-  }
+    onMeasurementChange() {
+        this.target.metrics = this.datasource.findMetricsForMeasurement(this.target.measurement) || [];
+        this.target.metric = 'select metric';
+    }
 
+    getMetrics() {
+        return this.target.metrics;
+    }
 
-  toggleEditorMode() {
-    this.target.rawQuery = !this.target.rawQuery;
-  }
-
-
-  onServerChange() {
-    this.target.filter = 'device';
-    this.target.deviceORtag = 'select option';
-    this.target.measurement = 'select measurement';
-    this.target.target = 'select metric';
-  }
-
-  onFilterChange() {
-    this.target.deviceORtag = 'select option';
-    this.target.measurement = 'select measurement';
-    this.target.target = 'select metric';
-  }
-
-  onDeviceChange() {
-    this.target.measurement = 'select measurement';
-    this.target.target = 'select metric';
-  }
-
-  onMeasurementChange() {
-    this.target.target = 'select metric';
-  }
-  
-  /**
-   * Following bug:
-   * 
-   * When using the migrated metricFindQuery(), once a metric is chosen, the native 'this.panelCtrl.refresh()' function
-   * sets the value of the dropdown menu text (not the menu items!!) to something internal before this internal thing is
-   * updated. Such an update happens once metricFindQuery() returns. Therefore the shown text is always one choice 'behind'
-   * the current one, although datapoints are correctly represented.
-   * 
-   * To tackle this, the refresh() function is called with a 0.5s delay, so that metricFindQuery() has time to terminate.
-   * This solution is of course temporary, until an alternative is found.
-   */
-  onChangeInternal() {
-    setTimeout(() => {
-      console.log('Refresh Later');
-      this.panelCtrl.refresh(); // Asks the panel to refresh data.
-    }, 500)
-  }
+    /**
+     * Following bug:
+     *
+     * When using the migrated metricFindQuery(), once a metric is chosen, the native 'this.panelCtrl.refresh()' function
+     * sets the value of the dropdown menu text (not the menu items!!) to something internal before this internal thing is
+     * updated. Such an update happens once metricFindQuery() returns. Therefore the shown text is always one choice 'behind'
+     * the current one, although datapoints are correctly represented.
+     *
+     * To tackle this, the refresh() function is called with a 0.5s delay, so that metricFindQuery() has time to terminate.
+     * This solution is of course temporary, until an alternative is found.
+     */
+    onChangeInternal() {
+        setTimeout(() => {
+            this.panelCtrl.refresh(); // Asks the panel to refresh data.
+        }, 500)
+    }
 }
 
 GenericDatasourceQueryCtrl.templateUrl = 'partials/query.editor.html';
