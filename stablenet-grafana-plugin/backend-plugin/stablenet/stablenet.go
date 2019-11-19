@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	url2 "net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -91,54 +90,27 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, 
 func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {
 	startMillis := startTime.UnixNano() / int64(time.Millisecond)
 	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
+	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1010&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
+		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet: %v", measurementObid, err)
 	}
-	data := make([]map[string]interface{}, 0, 0)
+	data := make([]map[string]string, 0, 0)
 	err = json.Unmarshal(resp.Body(), &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
 	resultMap := make(map[string]MetricDataSeries)
-	timeFormat := "2006-01-02 15:04:05 -0700"
 	for _, record := range data {
-		measurementTime, err := time.Parse(timeFormat, record["Time"].(string))
+		converted, err := parseSingleTimestamp(record)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parsing an entry from RawStatisticServlet failed: %v", err)
 		}
-		tmpMap := make(map[string]MetricData)
-		for key, value := range record {
-			if key == "Time" {
-				continue
+		for key, measurementData := range converted {
+			if _, ok := resultMap[key]; !ok {
+				resultMap[key] = make([]MetricData, 0, 0)
 			}
-			metricName := key[4:]
-			if _, ok := tmpMap[metricName]; !ok {
-				tmpMap[metricName] = MetricData{Time: measurementTime}
-			}
-			metricData := tmpMap[metricName]
-			floatString := value.(string)
-			floatString = strings.Replace(floatString, " ", "", -1)
-			floatString = strings.Replace(floatString, ",", "", -1)
-			value, err := strconv.ParseFloat(floatString, 64)
-			if err != nil {
-				return nil, fmt.Errorf("could not format value: %v", err)
-			}
-			if strings.HasPrefix(key, "Min") {
-				metricData.Min = value
-			} else if strings.HasPrefix(key, "Max") {
-				metricData.Max = value
-			} else if strings.HasPrefix(key, "Avg") {
-				metricData.Avg = value
-			}
-			tmpMap[metricName] = metricData
-		}
-		for metricName, metricData := range tmpMap {
-			if _, ok := resultMap[metricName]; !ok {
-				resultMap[metricName] = make([]MetricData, 0, len(data))
-			}
-			resultMap[metricName] = append(resultMap[metricName], metricData)
+			resultMap[key] = append(resultMap[key], measurementData)
 		}
 	}
 	return resultMap, nil

@@ -1,9 +1,9 @@
 package query
 
 import (
-	"backend-plugin/stablenet"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	testify "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -78,18 +78,8 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 }
 
 type mockSnClient struct {
+	mock.Mock
 }
-
-func (m *mockSnClient) QueryDevices(query string) ([]stablenet.Device, error){
-
-}
-
-func (m *mockSnClient) FetchMeasurementsForDevice(deviceObid int) ([]stablenet.Measurement, error){
-
-}
-
-func (m *mockSnClient) FetchMetricsForMeasurement(int) ([]Metric, error)
-FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)
 
 func TestDeviceHandler_Process(t *testing.T) {
 

@@ -179,7 +179,7 @@ func (m MetricDataHandler) Process(query Query) (*datasource.QueryResult, error)
 
 	series, err := m.fetchMetrics(query, measurementObid, []int{metricId})
 	if err != nil {
-		e := fmt.Errorf("could not fetch data from server: %v", err)
+		e := fmt.Errorf("could not fetch metric data from server: %v", err)
 		m.Logger.Error(e.Error())
 		return nil, e
 	}
@@ -230,7 +230,7 @@ func (s StatisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 
 	series, err := s.fetchMetrics(query, measurementId, valueIds)
 	if err != nil {
-		e := fmt.Errorf("could not fetch data from server: %v", err)
+		e := fmt.Errorf("could not fetch data for statistic link from server: %v", err)
 		s.Logger.Error(e.Error())
 		return nil, e
 	}

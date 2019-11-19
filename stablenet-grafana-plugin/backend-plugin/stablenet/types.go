@@ -21,10 +21,11 @@ type Metric struct {
 }
 
 type MetricData struct {
-	Time time.Time
-	Min  float64
-	Max  float64
-	Avg  float64
+	Interval time.Duration
+	Time     time.Time
+	Min      float64
+	Max      float64
+	Avg      float64
 }
 
 type MetricDataSeries []MetricData
