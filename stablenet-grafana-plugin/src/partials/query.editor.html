@@ -29,7 +29,7 @@
                     Device Query:
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.deviceQuery"
-                       ng-keypress="ctrl.onDeviceQueryChange()"><input>
+                       ng-keypress="ctrl.onDeviceQueryChange()">
             </div>
         </div>
 
@@ -91,12 +91,21 @@
 
     <div class="gf-form-group">
 		<div class="gf-form-inline">
-			<gf-form-checkbox class="gf-form" label="Include Min Statistics" label-class="width-10"
-				checked="ctrl.target.includeMinStats" switch-class="max-width-6" on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
-            <gf-form-checkbox class="gf-form" label="Include Avg Statistics" label-class="width-10"
-                checked="ctrl.target.includeAvgStats" switch-class="max-width-6" on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
-            <gf-form-checkbox class="gf-form" label="Include Max Statistics" label-class="width-10"
-				checked="ctrl.target.includeMaxStats" switch-class="max-width-6" on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+            <div class="gf-form">
+                <label class="gf-form-label query-keyword width-11">Include Min Statistics:</label>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeMinStats" switch-class="max-width-6" 
+                    on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+            </div>
+			<div class="gf-form">
+                <label class="gf-form-label query-keyword width-11">Include Avg Statistics:</label>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeAvgStats" switch-class="max-width-6" 
+                    on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+            </div>
+            <div class="gf-form">
+                <label class="gf-form-label query-keyword width-11">Include Max Statistics:</label>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeMaxStats" switch-class="max-width-6" 
+                    on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+            </div>
 		</div>
 	</div>
 
