@@ -24,7 +24,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     getModes(){
-        return [{value:'Device', text:'Device'}, {value:'Statistic Link', text:'Statistic Link'}];
+        return [{text: 'Device', value:'Device'}, {text:'Statistic Link', value:'Statistic Link'}];
     }
 
     onDeviceQueryChange() {
@@ -56,18 +56,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     getMetrics() {
         return this.datasource.findMetricsForMeasurement(this.target.measurement);
     }
-
-    /**
-     * Following bug:
-     *
-     * When using the migrated metricFindQuery(), once a metric is chosen, the native 'this.panelCtrl.refresh()' function
-     * sets the value of the dropdown menu text (not the menu items!!) to something internal before this internal thing is
-     * updated. Such an update happens once metricFindQuery() returns. Therefore the shown text is always one choice 'behind'
-     * the current one, although datapoints are correctly represented.
-     *
-     * To tackle this, the refresh() function is called with a 0.5s delay, so that metricFindQuery() has time to terminate.
-     * This solution is of course temporary, until an alternative is found.
-     */
+    
     onChangeInternal() {
         this.panelCtrl.refresh(); // Asks the panel to refresh data.
     }

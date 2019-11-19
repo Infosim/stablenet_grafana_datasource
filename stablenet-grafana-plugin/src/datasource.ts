@@ -7,16 +7,8 @@
  */
 import _ from "lodash";
 
-const PROXY = 'http://localhost:3001';
-const TEST = PROXY + '/';
-const DEVICES_LIST = PROXY + '/devicesList';
-const TAGS_LIST = PROXY + '/tagsList';
-const DEVICES_MSM = PROXY + '/devicesMsm';
-const MSM_LIST_GET = PROXY + '/msmListGet';
-const MSM_LIST_POST = PROXY + '/msmListPost';
-const SERVLET = PROXY + '/servlet';
-
-const ANNOT_QUERY = PROXY + '/annotations';
+const BACKEND = '/api/tsdb/query';
+const DEFAULT_REFID = 'A';
 
 export class GenericDatasource {
 
@@ -29,7 +21,7 @@ export class GenericDatasource {
     testDatasource() {
         let options = {
             headers: {'Content-Type': 'application/json'},
-            url: '/api/tsdb/query',
+            url: BACKEND,
             method: 'POST',
             data: {
                 queries: [
@@ -40,15 +32,20 @@ export class GenericDatasource {
                 ]
             }
         }
-        return this.backendSrv.request(options).then(response => {
-            if (response.message !== null) {
-                return {
-                    status: "success",
-                    message: "Data source is working and can connect to StableNet®.",
-                    title: "Success"
-                };
+
+        return this.backendSrv.request(options)
+            .then(response => {
+                    if (response.message !== null) {
+                        return {
+                            status: "success",
+                            message: "Data source is working and can connect to StableNet®.",
+                            title: "Success"
+                        };
             } else {
-                return {status: "error", message: "Datasource cannot connect to StableNet®.", title: "Failure"};
+                return {
+                    status: "error", 
+                    message: "Datasource cannot connect to StableNet®.", 
+                    title: "Failure"};
             }
         });
     }
@@ -57,24 +54,27 @@ export class GenericDatasource {
         let data = {
             queries: [
                 {
-                    refId: "A",
+                    refId: DEFAULT_REFID,
                     datasourceId: this.id,   // Required
                     queryType: "devices",
                     deviceQuery: queryString
                 }
             ]
         };
-        return this.doRequest(data).then(result => {
-            return result.data.results.A.meta.map(device => {
-                return {text: device.name, value: device.obid};
-            })
+
+        return this.doRequest(data)
+            .then(result => {
+                return result.data.results.A.meta.map(device => {
+                    return {text: device.name, value: device.obid};
+                })
         });
     }
 
     findMeasurementsForDevice(obid) {
         if (obid === "select device") {
-            return []
+            return [];
         }
+
         let data = {
             queries: [
                 {
@@ -85,6 +85,7 @@ export class GenericDatasource {
                 }
             ]
         };
+
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(measurement => {
                 return {text: measurement.name, value: measurement.obid};
@@ -94,8 +95,9 @@ export class GenericDatasource {
 
     findMetricsForMeasurement(obid) {
         if (obid === "select measurement") {
-            return []
+            return [];
         }
+
         let data = {
             queries: [
                 {
@@ -106,6 +108,7 @@ export class GenericDatasource {
                 }
             ]
         };
+
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
                 return {text: metric.name, value: metric.id};
@@ -114,11 +117,12 @@ export class GenericDatasource {
     }
 
     query(options) {
-        const from = options.range.from.valueOf().toString();
-        const to = options.range.to.valueOf().toString();
+        const from = new Date(options.range.from).getTime().toString();
+        const to = new Date(options.range.to).getTime().toString();
         let queries = [];
         let id = this.id;
-        options.targets.forEach(function (target) {
+
+        options.targets.forEach(function(target) {
             if (target.mode === "Statistic Link" && target.statisticLink !== "") {
                 queries.push({
                         refId: target.refId,
@@ -128,13 +132,14 @@ export class GenericDatasource {
                         includeMinStats: target.includeMinStats,
                         includeAvgStats: target.includeAvgStats,
                         includeMaxStats: target.includeMaxStats
-                    }
-                );
-                return
-            }
-            if (target.metric === "select metric") {
+                    });
                 return;
             }
+
+            if (!target.metric || target.metric === "select metric") {
+                return;
+            }
+
             queries.push({
                 refId: target.refId,
                 datasourceId: id,
@@ -146,24 +151,29 @@ export class GenericDatasource {
                 includeMaxStats: target.includeMaxStats
             });
         });
+
         if (queries.length === 0) {
             return [];
         }
+
         let data = {
             from: from,
             to: to,
             queries: queries
         };
-        return this.doRequest(data).then(handleTsdbResponse);
+
+        return this.doRequest(data)
+                    .then(handleTsdbResponse);
     }
 
     doRequest(data) {
         let options = {
             headers: {'Content-Type': 'application/json'},
-            url: '/api/tsdb/query',
+            url: BACKEND,
             method: 'POST',
             data: data
         }
+
         return this.backendSrv.datasourceRequest(options);
     }
 }
