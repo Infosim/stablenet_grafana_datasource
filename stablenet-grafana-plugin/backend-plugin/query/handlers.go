@@ -23,11 +23,11 @@ func GetHandlersForRequest(request Request) map[string]Handler {
 	}
 	handlers := make(map[string]Handler)
 	handlers["devices"] = deviceHandler{StableNetHandler: &baseHandler}
-	handlers["measurements"] = MeasurementHandler{StableNetHandler: &baseHandler}
-	handlers["metricNames"] = MetricNameHandler{StableNetHandler: &baseHandler}
+	handlers["measurements"] = measurementHandler{StableNetHandler: &baseHandler}
+	handlers["metricNames"] = metricNameHandler{StableNetHandler: &baseHandler}
 	handlers["testDatasource"] = datasourceTestHandler{StableNetHandler: &baseHandler}
-	handlers["metricData"] = MetricDataHandler{StableNetHandler: &baseHandler}
-	handlers["statisticLink"] = StatisticLinkHandler{StableNetHandler: &baseHandler}
+	handlers["metricData"] = metricDataHandler{StableNetHandler: &baseHandler}
+	handlers["statisticLink"] = statisticLinkHandler{StableNetHandler: &baseHandler}
 	return handlers
 }
 
@@ -95,11 +95,11 @@ func (d deviceHandler) Process(q Query) (*datasource.QueryResult, error) {
 	return createResponseWithCustomData(devices, q.RefId)
 }
 
-type MeasurementHandler struct {
+type measurementHandler struct {
 	*StableNetHandler
 }
 
-func (m MeasurementHandler) Process(query Query) (*datasource.QueryResult, error) {
+func (m measurementHandler) Process(query Query) (*datasource.QueryResult, error) {
 	deviceObid, err := query.GetCustomIntField("deviceObid")
 	if err != nil {
 		return BuildErrorResult("could not extract deviceObid from the query", query.RefId), nil
@@ -113,11 +113,11 @@ func (m MeasurementHandler) Process(query Query) (*datasource.QueryResult, error
 	return createResponseWithCustomData(measurements, query.RefId)
 }
 
-type MetricNameHandler struct {
+type metricNameHandler struct {
 	*StableNetHandler
 }
 
-func (m MetricNameHandler) Process(query Query) (*datasource.QueryResult, error) {
+func (m metricNameHandler) Process(query Query) (*datasource.QueryResult, error) {
 	measurementObid, err := query.GetCustomIntField("measurementObid")
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
@@ -131,18 +131,18 @@ func (m MetricNameHandler) Process(query Query) (*datasource.QueryResult, error)
 	return createResponseWithCustomData(metrics, query.RefId)
 }
 
-type MetricDataHandler struct {
+type metricDataHandler struct {
 	*StableNetHandler
 }
 
-func (m MetricDataHandler) Process(query Query) (*datasource.QueryResult, error) {
+func (m metricDataHandler) Process(query Query) (*datasource.QueryResult, error) {
 	measurementObid, err := query.GetCustomIntField("measurementObid")
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
 	}
 	metricId, err := query.GetCustomIntField("metricId")
 	if err != nil {
-		return BuildErrorResult("could not extract metricName from query", query.RefId), nil
+		return BuildErrorResult("could not extract metricId from query", query.RefId), nil
 	}
 
 	series, err := m.fetchMetrics(query, measurementObid, []int{metricId})
@@ -173,11 +173,11 @@ func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, er
 	}, nil
 }
 
-type StatisticLinkHandler struct {
+type statisticLinkHandler struct {
 	*StableNetHandler
 }
 
-func (s StatisticLinkHandler) Process(query Query) (*datasource.QueryResult, error) {
+func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, error) {
 	link, err := query.GetCustomField("statisticLink")
 	if err != nil {
 		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
@@ -185,7 +185,7 @@ func (s StatisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 	measurementRegex := regexp.MustCompile("[?&]id=(\\d+)")
 	idMatches := measurementRegex.FindAllStringSubmatch(link, 1)
 	if len(idMatches) == 0 {
-		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id.", link), query.RefId), nil
+		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id", link), query.RefId), nil
 	}
 	measurementId, _ := strconv.Atoi(idMatches[0][1])
 	valueRegex := regexp.MustCompile("[?&]value\\d*=(\\d+)")

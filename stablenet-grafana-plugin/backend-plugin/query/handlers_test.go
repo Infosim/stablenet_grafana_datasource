@@ -79,19 +79,14 @@ func Test_request_timeRange(t *testing.T) {
 }
 
 func TestDeviceHandler_Process(t *testing.T) {
-	logReceiver := bufio.ReadWriter{}
-	logger := hclog.New(&hclog.LoggerOptions{Output: logReceiver})
-	client := mockSnClient{}
+	rawHandler, _ := setUpHandlerAndLogReceiver()
 	devices := []stablenet.Device{
 		{Name: "RoGat", Obid: 1024},
 		{Name: "localhost", Obid: 1003},
 	}
+	client := rawHandler.SnClient.(*mockSnClient)
 	client.On("QueryDevices", "lab").Return(devices, nil)
-	client.On("QueryDevices", "local").Return(nil, errors.New("internal server error"))
-	handler := deviceHandler{StableNetHandler: &StableNetHandler{
-		SnClient: &client,
-		Logger:   logger,
-	}}
+	handler := deviceHandler{StableNetHandler: rawHandler}
 	result, err := handler.Process(Query{
 		Query: datasource.Query{ModelJson: "{\"deviceQuery\":\"lab\"}"},
 	})
@@ -101,15 +96,9 @@ func TestDeviceHandler_Process(t *testing.T) {
 }
 
 func TestDeviceHandler_Process_ServerError(t *testing.T) {
-	var loggedBytes = bytes.Buffer{}
-	logReceiver := bufio.NewWriter(&loggedBytes)
-	logger := hclog.New(&hclog.LoggerOptions{Output: logReceiver, TimeFormat: "no time"})
-	client := mockSnClient{}
-	client.On("QueryDevices", "local").Return(nil, errors.New("internal server error"))
-	handler := deviceHandler{StableNetHandler: &StableNetHandler{
-		SnClient: &client,
-		Logger:   logger,
-	}}
+	rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
+	rawHandler.SnClient.(*mockSnClient).On("QueryDevices", "local").Return(nil, errors.New("internal server error"))
+	handler := deviceHandler{StableNetHandler: rawHandler}
 	actual, err := handler.Process(Query{
 		Query: datasource.Query{ModelJson: "{\"deviceQuery\":\"local\"}"},
 	})
@@ -118,32 +107,65 @@ func TestDeviceHandler_Process_ServerError(t *testing.T) {
 	assert.Equal(t, "no time [ERROR] could not retrieve devices from StableNet(R): internal server error\n", loggedBytes.String())
 }
 
-func TestDeviceHandler_Process_QueryMissing(t *testing.T) {
-	var loggedBytes = bytes.Buffer{}
-	logReceiver := bufio.NewWriter(&loggedBytes)
-	logger := hclog.New(&hclog.LoggerOptions{Output: logReceiver, TimeFormat: "no time"})
-	client := mockSnClient{}
-	handler := deviceHandler{StableNetHandler: &StableNetHandler{
-		SnClient: &client,
-		Logger:   logger,
-	}}
-	actual, err := handler.Process(Query{
-		Query: datasource.Query{ModelJson: "{}"},
+func TestHandlersClientErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		handler Handler
+		json    string
+		wantErr string
+	}{
+		{name: "device query", handler: deviceHandler{}, json: "{}", wantErr: "could not extract the deviceQuery from the query"},
+		{name: "measurements for device", handler: measurementHandler{}, json: "{}", wantErr: "could not extract deviceObid from the query"},
+		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
+		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
+		{name: "metric data no metricId", handler: metricDataHandler{}, json: "{\"measurementObid\": 1626}", wantErr: "could not extract metricId from query"},
+		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
+		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			query := datasource.Query{ModelJson: tt.json}
+			result, err := tt.handler.Process(Query{Query: query})
+			assert.NoError(t, err, "on client fails, no error should be returned")
+			require.NotNil(t, result, "result should not be nil")
+			assert.Equal(t, tt.wantErr, result.Error, "error message contained in result is wrong")
+		})
+	}
+}
+
+func TestMeasurementHandler_Process(t *testing.T) {
+	rawHandler, _ := setUpHandlerAndLogReceiver()
+	measurements := []stablenet.Measurement{
+		{Name: "Host", Obid: 1124},
+		{Name: "CPU", Obid: 1004},
+	}
+	client := rawHandler.SnClient.(*mockSnClient)
+	client.On("FetchMeasurementsForDevice", 1024).Return(measurements, nil)
+	handler := measurementHandler{StableNetHandler: rawHandler}
+	result, err := handler.Process(Query{
+		Query: datasource.Query{ModelJson: "{\"deviceObid\":1024}"},
 	})
-	assert.Nil(t, err, "error should be nil on client error")
-	require.NotNil(t, actual, "result should not be nil")
-	assert.Equal(t, "could not extract the deviceQuery from the query", actual.Error)
+	assert.NoError(t, err, "no error is expected to be thrown")
+	require.NotNil(t, result, "the result must not be nil")
+	assert.Equal(t, "[{\"name\":\"Host\",\"obid\":1124},{\"name\":\"CPU\",\"obid\":1004}]", result.MetaJson)
+}
+
+func TestMeasurementHandler_Process_ServerError(t *testing.T) {
+	rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
+	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", 1024).Return(nil, errors.New("internal server error"))
+	handler := measurementHandler{StableNetHandler: rawHandler}
+	actual, err := handler.Process(Query{
+		Query: datasource.Query{ModelJson: "{\"deviceObid\":1024}"},
+	})
+	assert.Nil(t, actual, "result should be nil")
+	assert.EqualError(t, err, "could not fetch measurements from StableNet(R): internal server error")
+	assert.Equal(t, "no time [ERROR] could not fetch measurements from StableNet(R): internal server error\n", loggedBytes.String())
 }
 
 func TestDatasourceTestHandler_Process(t *testing.T) {
-	logReceiver := bufio.ReadWriter{}
-	logger := hclog.New(&hclog.LoggerOptions{Output: logReceiver})
-	client := mockSnClient{}
-	client.On("FetchMeasurementsForDevice", -1).Return([]stablenet.Measurement{}, nil)
-	handler := datasourceTestHandler{StableNetHandler: &StableNetHandler{
-		SnClient: &client,
-		Logger:   logger,
-	}}
+	rawHandler, _ := setUpHandlerAndLogReceiver()
+	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", -1).Return([]stablenet.Measurement{}, nil)
+	handler := datasourceTestHandler{StableNetHandler: rawHandler}
 	result, err := handler.Process(Query{})
 	assert.NoError(t, err, "no error is expected to be thrown")
 	require.NotNil(t, result, "the result must not be nil")
@@ -151,18 +173,23 @@ func TestDatasourceTestHandler_Process(t *testing.T) {
 }
 
 func TestDatasourceTestHandler_Process_Error(t *testing.T) {
-	logReceiver := bufio.ReadWriter{}
-	logger := hclog.New(&hclog.LoggerOptions{Output: logReceiver})
-	client := mockSnClient{}
-	client.On("FetchMeasurementsForDevice", -1).Return(nil, errors.New("login not possible"))
-	handler := datasourceTestHandler{StableNetHandler: &StableNetHandler{
-		SnClient: &client,
-		Logger:   logger,
-	}}
+	rawHandler, _ := setUpHandlerAndLogReceiver()
+	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", -1).Return(nil, errors.New("login not possible"))
+	handler := datasourceTestHandler{StableNetHandler: rawHandler}
 	result, err := handler.Process(Query{})
 	assert.NoError(t, err, "no error is expected to be thrown")
 	require.NotNil(t, result, "the result must not be nil")
 	assert.Equal(t, "Cannot login into StableNet(R) with the provided credentials", result.Error)
+}
+
+func setUpHandlerAndLogReceiver() (*StableNetHandler, *bytes.Buffer) {
+	logData := bytes.Buffer{}
+	logReceiver := bufio.NewWriter(&logData)
+	logger := hclog.New(&hclog.LoggerOptions{Output: logReceiver, TimeFormat: "no time"})
+	return &StableNetHandler{
+		SnClient: &mockSnClient{},
+		Logger:   logger,
+	}, &logData
 }
 
 type mockSnClient struct {
