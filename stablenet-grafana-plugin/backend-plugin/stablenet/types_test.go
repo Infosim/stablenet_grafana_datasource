@@ -48,3 +48,9 @@ func TestMetricDataSeries_ExpandWithMissingValues(t *testing.T) {
 	expanded := uptimeStatistic.ExpandWithMissingValues()
 	assert.Equal(t, 247, len(expanded))
 }
+
+func TestMetricDataSeries_ExpandWithMissingValues2(t *testing.T) {
+	statistic := MetricDataSeries{MetricData{}}
+	expanded := statistic.ExpandWithMissingValues()
+	assert.Equal(t, 1, len(expanded))
+}

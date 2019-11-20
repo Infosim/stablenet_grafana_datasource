@@ -36,22 +36,29 @@ type ClientImpl struct {
 	client *resty.Client
 }
 
+func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {
+	return fmt.Errorf("%s: status code: %d, response: %s", msg, resp.StatusCode(), string(resp.Body()))
+}
+
 func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
 	filter := fmt.Sprintf("name ct '%s'", deviceQuery)
 	url := fmt.Sprintf("https://%s:%d/api/1/devices?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", deviceQuery, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("the statuscode was \"%d\" and the message was \"%s\"", resp.StatusCode(), resp.Status())
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", deviceQuery), resp)
 	}
 	type serverResponse struct {
 		Devices []Device `json:"data"`
 	}
 	var collection serverResponse
 	err = json.Unmarshal(resp.Body(), &collection)
-	return collection.Devices, err
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	return collection.Devices, nil
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {
@@ -59,23 +66,29 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, 
 	url := fmt.Sprintf("https://%s:%d/api/1/measurements?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve measurements for device %d from StableNet: %v", deviceObid, err)
+		return nil, fmt.Errorf("retrieving measurements for device %d failed: %v", deviceObid, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("could not retrieve measurements for device %d, the error code was %d with message \"%s\"; %s", deviceObid, resp.StatusCode(), resp.Status(), url)
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device %d failed", deviceObid), resp)
 	}
 	collection := struct {
 		Measurements []Measurement `json:"data"`
 	}{}
 	err = json.Unmarshal(resp.Body(), &collection)
-	return collection.Measurements, err
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	return collection.Measurements, nil
 }
 
 func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
 	url := fmt.Sprintf("https://%s:%d/api/1/measurements/%d/metrics", c.Host, c.Port, measurementObid)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet(R)", measurementObid)
+		return nil, fmt.Errorf("retrieving metrics for measurement %d failed: %v", measurementObid, err)
+	}
+	if resp.StatusCode() != 200 {
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving metrics for measurement %d failed", measurementObid), resp)
 	}
 	responseData := struct {
 		ValueOutputs []Metric `json:"valueOutputs"`
@@ -93,7 +106,10 @@ func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, s
 	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1010&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet: %v", measurementObid, err)
+		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", measurementObid, err)
+	}
+	if resp.StatusCode() != 200 {
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", measurementObid), resp)
 	}
 	return parseStatisticByteSlice(resp.Body())
 }
