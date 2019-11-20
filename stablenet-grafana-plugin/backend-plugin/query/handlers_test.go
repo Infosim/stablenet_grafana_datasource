@@ -4,6 +4,7 @@ import (
 	"backend-plugin/stablenet"
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
@@ -95,16 +96,47 @@ func TestDeviceHandler_Process(t *testing.T) {
 	assert.Equal(t, "[{\"name\":\"RoGat\",\"obid\":1024},{\"name\":\"localhost\",\"obid\":1003}]", result.MetaJson)
 }
 
-func TestDeviceHandler_Process_ServerError(t *testing.T) {
-	rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
-	rawHandler.SnClient.(*mockSnClient).On("QueryDevices", "local").Return(nil, errors.New("internal server error"))
-	handler := deviceHandler{StableNetHandler: rawHandler}
-	actual, err := handler.Process(Query{
-		Query: datasource.Query{ModelJson: "{\"deviceQuery\":\"local\"}"},
-	})
-	assert.Nil(t, actual, "result should be nil")
-	assert.EqualError(t, err, "could not retrieve devices from StableNet(R): internal server error")
-	assert.Equal(t, "no time [ERROR] could not retrieve devices from StableNet(R): internal server error\n", loggedBytes.String())
+func TestHandlersServerErrors(t *testing.T) {
+	deviceHandlerFactory := func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} }
+	measurementHandlerFactory := func(h *StableNetHandler) Handler { return measurementHandler{StableNetHandler: h} }
+	metricNameHandlerFactory := func(h *StableNetHandler) Handler { return metricNameHandler{StableNetHandler: h} }
+	metricDataHandlerFactory := func(h *StableNetHandler) Handler { return metricDataHandler{StableNetHandler: h} }
+	type arg struct {
+		name  string
+		value interface{}
+	}
+	tests := []struct {
+		name    string
+		handler func(*StableNetHandler) Handler
+		method  string
+		args    []arg
+		wantErr string
+	}{
+		{name: "device query", handler: deviceHandlerFactory, method: "QueryDevices", args: []arg{{name: "deviceQuery", value: "lab"}}, wantErr: "could not retrieve devices from StableNet(R)"},
+		{name: "measurement query", handler: measurementHandlerFactory, method: "FetchMeasurementsForDevice", args: []arg{{name: "deviceObid", value: 1024}}, wantErr: "could not fetch measurements from StableNet(R)"},
+		{name: "metric query", handler: metricNameHandlerFactory, method: "FetchMetricsForMeasurement", args: []arg{{name: "measurementObid", value: 1111}}, wantErr: "could not retrieve metric names from StableNet(R)"},
+		{name: "metric data", handler: metricDataHandlerFactory, method: "FetchDataForMetrics", args: []arg{{name: "measurementObid", value: 1111}, {name: "metricIds", value: []int{123}}, {name: "start", value: time.Time{}}, {name: "end", value: time.Time{}}}, wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
+			arguments := make([]interface{}, 0, len(tt.args))
+			jsonStructure := make(map[string]interface{})
+			for _, argument := range tt.args {
+				arguments = append(arguments, argument.value)
+				jsonStructure[argument.name] = argument.value
+			}
+			rawHandler.SnClient.(*mockSnClient).On(tt.method, arguments...).Return(nil, errors.New("internal server error"))
+			handler := tt.handler(rawHandler)
+			queryData, _ := json.Marshal(jsonStructure)
+			actual, err := handler.Process(Query{
+				Query: datasource.Query{ModelJson: string(queryData)},
+			})
+			assert.Nil(t, actual, "result should be nil")
+			assert.EqualError(t, err, tt.wantErr+": internal server error")
+			assert.Equal(t, "no time [ERROR] "+tt.wantErr+": internal server error\n", loggedBytes.String())
+		})
+	}
 }
 
 func TestHandlersClientErrors(t *testing.T) {
@@ -118,7 +150,7 @@ func TestHandlersClientErrors(t *testing.T) {
 		{name: "measurements for device", handler: measurementHandler{}, json: "{}", wantErr: "could not extract deviceObid from the query"},
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
 		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
-		{name: "metric data no metricId", handler: metricDataHandler{}, json: "{\"measurementObid\": 1626}", wantErr: "could not extract metricId from query"},
+		{name: "metric data no metricId", handler: metricDataHandler{}, json: "{\"measurementObid\": 1626}", wantErr: "could not extract metricIds from query"},
 		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
 		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id"},
 	}
@@ -148,18 +180,6 @@ func TestMeasurementHandler_Process(t *testing.T) {
 	assert.NoError(t, err, "no error is expected to be thrown")
 	require.NotNil(t, result, "the result must not be nil")
 	assert.Equal(t, "[{\"name\":\"Host\",\"obid\":1124},{\"name\":\"CPU\",\"obid\":1004}]", result.MetaJson)
-}
-
-func TestMeasurementHandler_Process_ServerError(t *testing.T) {
-	rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
-	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", 1024).Return(nil, errors.New("internal server error"))
-	handler := measurementHandler{StableNetHandler: rawHandler}
-	actual, err := handler.Process(Query{
-		Query: datasource.Query{ModelJson: "{\"deviceObid\":1024}"},
-	})
-	assert.Nil(t, actual, "result should be nil")
-	assert.EqualError(t, err, "could not fetch measurements from StableNet(R): internal server error")
-	assert.Equal(t, "no time [ERROR] could not fetch measurements from StableNet(R): internal server error\n", loggedBytes.String())
 }
 
 func TestDatasourceTestHandler_Process(t *testing.T) {
@@ -214,10 +234,16 @@ func (m *mockSnClient) FetchMeasurementsForDevice(deviceObid int) ([]stablenet.M
 
 func (m *mockSnClient) FetchMetricsForMeasurement(measurementObid int) ([]stablenet.Metric, error) {
 	args := m.Called(measurementObid)
-	return args.Get(0).([]stablenet.Metric), args.Error(1)
+	if args.Get(0) != nil {
+		return args.Get(0).([]stablenet.Metric), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *mockSnClient) FetchDataForMetrics(measurementObid int, metrics []int, start time.Time, end time.Time) (map[string]stablenet.MetricDataSeries, error) {
 	args := m.Called(measurementObid, metrics, start, end)
-	return args.Get(0).(map[string]stablenet.MetricDataSeries), args.Error(1)
+	if args.Get(0) != nil {
+		return args.Get(0).(map[string]stablenet.MetricDataSeries), args.Error(1)
+	}
+	return nil, args.Error(1)
 }

@@ -2,6 +2,7 @@ package query
 
 import (
 	"backend-plugin/stablenet"
+	"encoding/json"
 	"fmt"
 	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
@@ -36,6 +37,27 @@ func (q *Query) GetCustomIntField(name string) (int, error) {
 		return 0, err
 	}
 	return queryJson.Get(name).Int()
+}
+
+func (q *Query) GetCustomIntArray(name string) ([]int, error) {
+	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
+	if err != nil {
+		return nil, err
+	}
+	array, err := queryJson.Get(name).Array()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]int, 0, len(array))
+	for _, value := range array {
+		intVal, ok := value.(json.Number)
+		if !ok {
+			return nil, fmt.Errorf("the value %v is not an integer", value)
+		}
+		realInt, _ := intVal.Int64()
+		result = append(result, int(realInt))
+	}
+	return result, nil
 }
 
 func (q *Query) includeMinStats() bool {

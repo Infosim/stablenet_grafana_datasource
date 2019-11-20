@@ -140,12 +140,12 @@ func (m metricDataHandler) Process(query Query) (*datasource.QueryResult, error)
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
 	}
-	metricId, err := query.GetCustomIntField("metricId")
+	metricIds, err := query.GetCustomIntArray("metricIds")
 	if err != nil {
-		return BuildErrorResult("could not extract metricId from query", query.RefId), nil
+		return BuildErrorResult("could not extract metricIds from query", query.RefId), nil
 	}
 
-	series, err := m.fetchMetrics(query, measurementObid, []int{metricId})
+	series, err := m.fetchMetrics(query, measurementObid, metricIds)
 	if err != nil {
 		e := fmt.Errorf("could not fetch metric data from server: %v", err)
 		m.Logger.Error(e.Error())
