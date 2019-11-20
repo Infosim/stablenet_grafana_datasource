@@ -80,6 +80,7 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, valueI
 	}
 	result := make([]*datasource.TimeSeries, 0, len(data))
 	for name, series := range data {
+		series = series.ExpandWithMissingValues()
 		maxTimeSeries := &datasource.TimeSeries{
 			Points: series.MaxValues(),
 			Name:   "Max " + name,

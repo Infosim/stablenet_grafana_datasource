@@ -51,10 +51,10 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	oneDrive := actual["OneDrive Time"]
 	script := actual["Script Execution Success"]
 	totalTime := actual["Total Time"]
-	time, _ := time.Parse(timeFormat, "2019-11-15 11:56:42 +0100")
+	testTime, _ := time.Parse(timeFormat, "2019-11-15 11:56:42 +0100")
 	expectedOneDrive := MetricData{
 		Interval: 0,
-		Time:     time,
+		Time:     testTime,
 		Min:      1200,
 		Max:      1300,
 		Avg:      1277,
@@ -62,7 +62,7 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	assertMetricDataCorrect(test, expectedOneDrive, oneDrive, "One Drive")
 	expectedScript := MetricData{
 		Interval: 0,
-		Time:     time,
+		Time:     testTime,
 		Min:      0,
 		Max:      0,
 		Avg:      0,
@@ -70,7 +70,7 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	assertMetricDataCorrect(test, expectedScript, script, "Script Execution Success")
 	expectedTotalTime := MetricData{
 		Interval: 0,
-		Time:     time,
+		Time:     testTime,
 		Min:      1800,
 		Max:      2000,
 		Avg:      1949,

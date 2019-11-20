@@ -36,3 +36,16 @@ func TestMetricDataSeries(t *testing.T) {
 	test.Equal(wantedAvg, dataSeries.AvgValues(), "avg Values differ")
 	test.Equal(wantedMax, dataSeries.MaxValues(), "max Values differ")
 }
+
+func TestMetricDataSeries_ExpandWithMissingValues(t *testing.T) {
+	startTime,_ := time.Parse(timeFormat, "2019-11-15 12:00:00 +0100")
+	data := []MetricData{
+		{Time: startTime, Avg: 42},
+		{Time: startTime.Add(1 * time.Hour), Interval: 1 * time.Hour, Avg: 42},
+		{Time: startTime.Add(1*time.Hour + 55*time.Minute), Interval: 55 * time.Minute, Avg: 42},
+		{Time: startTime.Add(8 * time.Hour), Interval: 1 * time.Hour, Avg: 42},
+		{Time: startTime.Add(9 * time.Hour), Interval: 1 * time.Hour, Avg: 42},
+	}
+	actual := MetricDataSeries(data).ExpandWithMissingValues()
+	assert.Equal(t, 11, len(actual))
+}
