@@ -2,6 +2,7 @@ package stablenet
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -27,7 +28,7 @@ func parseSingleTimestamp(data map[string]string) (map[string]MetricData, error)
 	if timeErr != nil {
 		return nil, fmt.Errorf("invalid timestamp format: %v", timeErr)
 	}
-	_, intervalErr := time.Parse(intervalFormat, data[intervalKey])
+	interval, intervalErr := parseInterval(data[intervalKey])
 	if intervalErr != nil {
 		return nil, fmt.Errorf("invalid interval format: %v", intervalErr)
 	}
@@ -43,7 +44,8 @@ func parseSingleTimestamp(data map[string]string) (map[string]MetricData, error)
 		name, consumer := getTypeAndKey(key)
 		if _, ok := result[name]; !ok {
 			result[name] = MetricData{
-				Time: measurementTime,
+				Time:     measurementTime,
+				Interval: interval,
 			}
 		}
 		measurementData := result[name]
@@ -67,6 +69,19 @@ func getTypeAndKey(key string) (string, func(*MetricData, float64)) {
 	return key, func(data *MetricData, f float64) {
 		data.Avg = f
 	}
+}
+
+var durationRegex = regexp.MustCompile("(\\d+):(\\d\\d):(\\d\\d)")
+
+func parseInterval(value string) (time.Duration, error) {
+	matches := durationRegex.FindAllStringSubmatch(value, 1)
+	if len(matches) != 1 {
+		return 0 * time.Second, fmt.Errorf("the interval \"%s\" did not match the interval regex \"%s\"", value, durationRegex.String())
+	}
+	hours, _ := strconv.Atoi(matches[0][1])
+	minutes, _ := strconv.Atoi(matches[0][2])
+	seconds, _ := strconv.Atoi(matches[0][3])
+	return time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second, nil
 }
 
 func parseMeasurementData(value string) (float64, error) {

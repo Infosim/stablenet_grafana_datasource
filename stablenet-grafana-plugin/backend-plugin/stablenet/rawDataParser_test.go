@@ -53,7 +53,7 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	totalTime := actual["Total Time"]
 	testTime, _ := time.Parse(timeFormat, "2019-11-15 11:56:42 +0100")
 	expectedOneDrive := MetricData{
-		Interval: 0,
+		Interval: 1 * time.Minute,
 		Time:     testTime,
 		Min:      1200,
 		Max:      1300,
@@ -61,7 +61,7 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	}
 	assertMetricDataCorrect(test, expectedOneDrive, oneDrive, "One Drive")
 	expectedScript := MetricData{
-		Interval: 0,
+		Interval: 1 * time.Minute,
 		Time:     testTime,
 		Min:      0,
 		Max:      0,
@@ -69,7 +69,7 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	}
 	assertMetricDataCorrect(test, expectedScript, script, "Script Execution Success")
 	expectedTotalTime := MetricData{
-		Interval: 0,
+		Interval: 1 * time.Minute,
 		Time:     testTime,
 		Min:      1800,
 		Max:      2000,
@@ -136,6 +136,24 @@ func Test_parseMeasurementData(t *testing.T) {
 			got, err := parseMeasurementData(tt.arg)
 			require.NoError(t, err, "no error is expected")
 			assert.Equal(t, tt.want, got, "parsed number is incorrect")
+		})
+	}
+}
+
+func Test_parseInterval(t *testing.T) {
+	tests := []struct {
+		arg  string
+		want time.Duration
+	}{
+		{arg: "00:05:00", want: 5 * time.Minute},
+		{arg: "12:42:13", want: 12*time.Hour + 42*time.Minute + 13*time.Second},
+		{arg: "8544:09:01", want: 8544*time.Hour + 9*time.Minute + 1*time.Second},
+	}
+	for _, tt := range tests {
+		t.Run("Test "+tt.arg, func(t *testing.T) {
+			got, err := parseInterval(tt.arg)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

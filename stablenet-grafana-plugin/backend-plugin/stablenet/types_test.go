@@ -3,6 +3,8 @@ package stablenet
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"testing"
 	"time"
 )
@@ -38,14 +40,11 @@ func TestMetricDataSeries(t *testing.T) {
 }
 
 func TestMetricDataSeries_ExpandWithMissingValues(t *testing.T) {
-	startTime,_ := time.Parse(timeFormat, "2019-11-15 12:00:00 +0100")
-	data := []MetricData{
-		{Time: startTime, Avg: 42},
-		{Time: startTime.Add(1 * time.Hour), Interval: 1 * time.Hour, Avg: 42},
-		{Time: startTime.Add(1*time.Hour + 55*time.Minute), Interval: 55 * time.Minute, Avg: 42},
-		{Time: startTime.Add(8 * time.Hour), Interval: 1 * time.Hour, Avg: 42},
-		{Time: startTime.Add(9 * time.Hour), Interval: 1 * time.Hour, Avg: 42},
-	}
-	actual := MetricDataSeries(data).ExpandWithMissingValues()
-	assert.Equal(t, 11, len(actual))
+	uptimes, err := ioutil.ReadFile("./test-data/uptimes.json")
+	require.NoError(t, err)
+	statisticData, err := parseStatisticByteSlice(uptimes)
+	require.NoError(t, err)
+	uptimeStatistic := statisticData["System Uptime"]
+	expanded := uptimeStatistic.ExpandWithMissingValues()
+	assert.Equal(t, 247, len(expanded))
 }

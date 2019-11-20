@@ -95,8 +95,12 @@ func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, s
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet: %v", measurementObid, err)
 	}
+	return parseStatisticByteSlice(resp.Body())
+}
+
+func parseStatisticByteSlice(bytes []byte) (map[string]MetricDataSeries, error) {
 	data := make([]map[string]string, 0, 0)
-	err = json.Unmarshal(resp.Body(), &data)
+	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}

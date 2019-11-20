@@ -61,21 +61,24 @@ func (s MetricDataSeries) AvgValues() []*datasource.Point {
 	})
 }
 
-func (s MetricDataSeries) ExpandWithMissingValues() []MetricData{
+func (s MetricDataSeries) ExpandWithMissingValues() []MetricData {
 	if len(s) < 2 {
 		return s
 	}
 	result := make([]MetricData, 0, len(s))
 	s.sortAscAfterTimestamp()
-	currentIndex := len(s) -1
+	currentIndex := len(s) - 1
 	for currentIndex >= 0 {
 		currentInterval := s[currentIndex].Interval
 		result = append(result, s[currentIndex])
-		threshold := s[currentIndex].Time.Add(- currentInterval)
+		threshold := s[currentIndex].Time.Add(-currentInterval)
 		currentIndex = currentIndex - 1
-		for currentIndex >= 0 && s[currentIndex].Time.Before(threshold) {
+		if currentIndex >= 0 && s[currentIndex].Time.Before(threshold) {
 			result = append(result, MetricData{Time: threshold})
-			threshold = threshold.Add(-currentInterval)
+			for currentIndex >= 0 && s[currentIndex].Time.Before(threshold) {
+				threshold = threshold.Add(-currentInterval)
+			}
+			result = append(result, MetricData{Time: threshold.Add(currentInterval)})
 		}
 	}
 	for left, right := 0, len(result)-1; left < right; left, right = left+1, right-1 {
@@ -84,8 +87,8 @@ func (s MetricDataSeries) ExpandWithMissingValues() []MetricData{
 	return result
 }
 
-func (s MetricDataSeries) sortAscAfterTimestamp(){
-	sort.Slice(s, func(i, j int) bool{
+func (s MetricDataSeries) sortAscAfterTimestamp() {
+	sort.Slice(s, func(i, j int) bool {
 		return s[i].Time.Before(s[j].Time)
 	})
 }
