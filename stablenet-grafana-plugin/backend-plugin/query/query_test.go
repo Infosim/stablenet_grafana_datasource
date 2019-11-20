@@ -3,7 +3,6 @@ package query
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	testify "github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -75,12 +74,4 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 		_, err := query.GetCustomIntField("favouriteDish")
 		require.EqualError(t, err, "unexpected EOF")
 	})
-}
-
-type mockSnClient struct {
-	mock.Mock
-}
-
-func TestDeviceHandler_Process(t *testing.T) {
-
 }
