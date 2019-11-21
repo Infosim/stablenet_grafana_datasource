@@ -154,22 +154,26 @@ func TestHandlersSuccessfulResponse(t *testing.T) {
 			}
 			assert.Equal(t, "the cake is a lie", actual.RefId, "the refId is wrong")
 			if tt.successResult.Series != nil {
-				require.NotNil(t, actual.Series, "time series were expected, but not delivered")
-				require.Equal(t, len(tt.successResult.Series), len(actual.Series), "length of time series differes")
-				for index, series := range tt.successResult.Series {
-					actualSeries := actual.Series[index]
-					assert.Equal(t, series.Name, actualSeries.Name, "name of %dth timeseries differ", index+1)
-					sameLength := assert.Equal(t, len(series.Points), len(actualSeries.Points), "number of points in %dth timeseries differ", index+1)
-					if sameLength {
-						for pIndex, point := range series.Points {
-							assert.Equal(t, point, actualSeries.Points[pIndex], "point %d of %dth time series differs", pIndex+1, index+1)
-						}
-					}
-				}
+				compareTimeSeries(t, tt.successResult.Series, actual.Series)
 			}
 			assert.Equal(t, tt.successResult.Tables, actual.Tables, "tables differ")
 			assert.Empty(t, actual.Error, "no error expected, this is checked in another testcase")
 		})
+	}
+}
+
+func compareTimeSeries(t *testing.T, want []*datasource.TimeSeries, actual []*datasource.TimeSeries) {
+	require.NotNil(t, actual, "time series were expected, but not delivered")
+	require.Equal(t, len(want), len(actual), "length of time series differes")
+	for index, series := range want {
+		actualSeries := actual[index]
+		assert.Equal(t, series.Name, actualSeries.Name, "name of %dth timeseries differ", index+1)
+		sameLength := assert.Equal(t, len(series.Points), len(actualSeries.Points), "number of points in %dth timeseries differ", index+1)
+		if sameLength {
+			for pIndex, point := range series.Points {
+				assert.Equal(t, point, actualSeries.Points[pIndex], "point %d of %dth time series differs", pIndex+1, index+1)
+			}
+		}
 	}
 }
 
@@ -314,7 +318,7 @@ func metricDataHandlerTest() *handlerServerTestCase {
 		clientMethod:  "FetchDataForMetrics",
 		clientArgs:    clientArgs,
 		clientReturn:  clientReturn,
-		successResult: &datasource.QueryResult{Series: timeSeries},
+		successResult: &datasource.QueryResult{Series: timeSeries[0:2]},
 	}
 }
 
@@ -326,12 +330,14 @@ func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource
 		Time:     now,
 		Min:      5,
 		Max:      10,
+		Avg:      7.5,
 	}
 	md2 := stablenet.MetricData{
 		Interval: 6 * time.Minute,
 		Time:     then,
 		Min:      20,
 		Max:      30,
+		Avg:      25,
 	}
 	dataSeries := map[string]stablenet.MetricDataSeries{"System Uptime": {md1, md2}}
 	maxSeries := &datasource.TimeSeries{
@@ -342,7 +348,11 @@ func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource
 		Name:   "Min System Uptime",
 		Points: []*datasource.Point{{Timestamp: now.UnixNano() / int64(time.Millisecond), Value: 5}, {Timestamp: then.UnixNano() / int64(time.Millisecond), Value: 20}},
 	}
-	return dataSeries, []*datasource.TimeSeries{minSeries, maxSeries}
+	avgSeries := &datasource.TimeSeries{
+		Name:   "Avg System Uptime",
+		Points: []*datasource.Point{{Timestamp: now.UnixNano() / int64(time.Millisecond), Value: 7.5}, {Timestamp: then.UnixNano() / int64(time.Millisecond), Value: 25}},
+	}
+	return dataSeries, []*datasource.TimeSeries{minSeries, maxSeries, avgSeries}
 }
 
 func statisticLinkHandlerTest() *handlerServerTestCase {
@@ -355,7 +365,7 @@ func statisticLinkHandlerTest() *handlerServerTestCase {
 		clientMethod:  "FetchDataForMetrics",
 		clientArgs:    clientArgs,
 		clientReturn:  clientReturn,
-		successResult: &datasource.QueryResult{Series: timeSeries},
+		successResult: &datasource.QueryResult{Series: timeSeries[0:2]},
 	}
 }
 

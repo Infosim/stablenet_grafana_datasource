@@ -115,11 +115,11 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, valueI
 		if query.includeMinStats() {
 			result = append(result, minTimeSeries)
 		}
-		if query.includeAvgStats() {
-			result = append(result, avgTimeSeries)
-		}
 		if query.includeMaxStats() {
 			result = append(result, maxTimeSeries)
+		}
+		if query.includeAvgStats() {
+			result = append(result, avgTimeSeries)
 		}
 	}
 	return result, nil
