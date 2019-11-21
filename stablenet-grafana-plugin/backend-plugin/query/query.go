@@ -7,6 +7,7 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
+	"sort"
 	"time"
 )
 
@@ -97,9 +98,14 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, valueI
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
+	keys := make([]string, 0, len(data))
+	for key, _ := range data {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
 	result := make([]*datasource.TimeSeries, 0, len(data))
-	for name, series := range data {
-		series = series.ExpandWithMissingValues()
+	for _, name := range keys {
+		series := data[name].ExpandWithMissingValues()
 		maxTimeSeries := &datasource.TimeSeries{
 			Points: series.MaxValues(),
 			Name:   "Max " + name,

@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/jarcoal/httpmock"
-	"github.com/stretchr/testify/assert"
+	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
 	"time"
 )
-import testify "github.com/stretchr/testify/assert"
 
 func TestClientImpl_QueryDevices(t *testing.T) {
 	httpmock.Activate()
@@ -55,7 +54,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 	actual, err := client.FetchMeasurementsForDevice(1024)
 	require.NoError(t, err)
 	require.Equal(t, 10, len(actual), "number of queried measurements wrong")
-	test := assert.New(t)
+	test := testify.New(t)
 	test.Equal(1587, actual[4].Obid, "obid of fifth measurement wrong")
 	test.Equal("Atomcore Processor: 1 ", actual[4].Name, "name of fifth measurement wrong")
 }
@@ -84,7 +83,7 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	actual, err := client.FetchMetricsForMeasurement(1643)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(actual), "number of queried metrics wrong")
-	test := assert.New(t)
+	test := testify.New(t)
 	test.Equal(1000, actual[0].Id, "id of first metric wrong")
 	test.Equal("System Users", actual[0].Name, "name of first metric wrong")
 	test.Equal(1001, actual[1].Id, "id of first second wrong")
@@ -106,7 +105,7 @@ func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
 func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
-	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value=1&value=2&value=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
+	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value0=1&value1=2&value2=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
 	httpmock.Activate()
 	defer httpmock.Deactivate()
 
@@ -141,7 +140,7 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
-	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value=1&value=2&value=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
+	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value0=1&value1=2&value2=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
 	shouldReturnError := func(client Client) (i interface{}, e error) {
 		return client.FetchDataForMetrics(5555, []int{1, 2, 3}, start, end)
 	}
@@ -191,5 +190,23 @@ func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error)
 		_, err := shouldReturnError(client)
 		wantErr := fmt.Sprintf("retrieving %s failed: status code: 404, response: entity not found", msg)
 		require.EqualError(t, err, wantErr, "error message wrong")
+	}
+}
+
+func TestClientImpl_formatMetricIds(t *testing.T) {
+	tests := []struct {
+		name string
+		args []int
+		want string
+	}{
+		{name: "single value", args: []int{123}, want: "value=123"},
+		{name: "three values", args: []int{1, 2, 3}, want: "value0=1&value1=2&value2=3"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := ClientImpl{}
+			got := client.formatMetricIds(tt.args)
+			testify.Equal(t, tt.want, got)
+		})
 	}
 }

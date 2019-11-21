@@ -16,12 +16,12 @@ import (
 )
 
 func TestGetHandlersForRequest(t *testing.T) {
-	json := "{\"snip\":\"127.0.0.1\", \"snport\": \"443\", \"snusername\":\"infosim\"}"
+	modelJson := "{\"snip\":\"127.0.0.1\", \"snport\": \"443\", \"snusername\":\"infosim\"}"
 	decryptedData := map[string]string{"snpassword": "stablenet"}
 	request := Request{
 		DatasourceRequest: &datasource.DatasourceRequest{
 			Datasource: &datasource.DatasourceInfo{
-				JsonData:                json,
+				JsonData:                modelJson,
 				DecryptedSecureJsonData: decryptedData,
 			},
 		},
@@ -79,12 +79,12 @@ func Test_request_stableNetOptionsErrors(t *testing.T) {
 }
 
 func Test_request_stableNetOptions(t *testing.T) {
-	json := "{\"snip\":\"127.0.0.1\", \"snport\": \"443\", \"snusername\":\"infosim\"}"
+	modelJson := "{\"snip\":\"127.0.0.1\", \"snport\": \"443\", \"snusername\":\"infosim\"}"
 	decryptedData := map[string]string{"snpassword": "stablenet"}
 	request := &Request{
 		DatasourceRequest: &datasource.DatasourceRequest{
 			Datasource: &datasource.DatasourceInfo{
-				JsonData:                json,
+				JsonData:                modelJson,
 				DecryptedSecureJsonData: decryptedData,
 			},
 		},

@@ -4,8 +4,8 @@ import (
 	"backend-plugin/query"
 	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
-	hclog "github.com/hashicorp/go-hclog"
-	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin"
 	"golang.org/x/net/context"
 )
 
@@ -14,9 +14,9 @@ type BackendPlugin interface {
 }
 
 func NewBackendPlugin(logger hclog.Logger) BackendPlugin {
-	plugin := jsonDatasource{logger: logger}
-	plugin.handlerFactory = query.GetHandlersForRequest
-	return &plugin
+	snPlugin := jsonDatasource{logger: logger}
+	snPlugin.handlerFactory = query.GetHandlersForRequest
+	return &snPlugin
 }
 
 type jsonDatasource struct {
@@ -25,16 +25,16 @@ type jsonDatasource struct {
 	handlerFactory func(query.Request) (map[string]query.Handler, error)
 }
 
-func (j *jsonDatasource) Query(ctx context.Context, tsdbReq *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
-	request := query.Request{DatasourceRequest: tsdbReq, Logger: j.logger}
+func (j *jsonDatasource) Query(ctx context.Context, datasourceRequest *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
+	request := query.Request{DatasourceRequest: datasourceRequest, Logger: j.logger}
 	handlers, err := j.handlerFactory(request)
 	if err != nil {
 		return &datasource.DatasourceResponse{Results: []*datasource.QueryResult{query.BuildErrorResult(err.Error(), "")}}, nil
 	}
-	results := make([]*datasource.QueryResult, 0, len(tsdbReq.Queries))
-	for _, tsdbReq := range tsdbReq.Queries {
+	results := make([]*datasource.QueryResult, 0, len(datasourceRequest.Queries))
+	for _, datasourceQuery := range datasourceRequest.Queries {
 		startTime, endTime := request.ToTimeRange()
-		q := query.Query{Query: *tsdbReq, StartTime: startTime, EndTime: endTime}
+		q := query.Query{Query: *datasourceQuery, StartTime: startTime, EndTime: endTime}
 		var result *datasource.QueryResult
 		queryType, queryTypeError := q.GetCustomField("queryType")
 		if queryTypeError != nil {

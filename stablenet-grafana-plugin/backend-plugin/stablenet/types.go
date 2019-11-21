@@ -61,7 +61,7 @@ func (s MetricDataSeries) AvgValues() []*datasource.Point {
 	})
 }
 
-func (s MetricDataSeries) ExpandWithMissingValues() []MetricData {
+func (s MetricDataSeries) ExpandWithMissingValues() MetricDataSeries {
 	if len(s) < 2 {
 		return s
 	}

@@ -137,9 +137,12 @@ func parseStatisticByteSlice(bytes []byte) (map[string]MetricDataSeries, error) 
 }
 
 func (c *ClientImpl) formatMetricIds(valueIds []int) string {
+	if len(valueIds) == 1 {
+		return fmt.Sprintf("value=%d", valueIds[0])
+	}
 	query := make([]string, 0, len(valueIds))
-	for _, valueId := range valueIds {
-		query = append(query, fmt.Sprintf("value=%d", valueId))
+	for index, valueId := range valueIds {
+		query = append(query, fmt.Sprintf("value%d=%d", index, valueId))
 	}
 	return strings.Join(query, "&")
 }

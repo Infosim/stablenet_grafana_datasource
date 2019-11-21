@@ -8,14 +8,9 @@ import (
 	"time"
 )
 
-func parseRawData(data []map[string]string) (map[string]MetricDataSeries, error) {
-	return nil, nil
-}
-
 const timestampKey = "TIMESTAMP"
 const intervalKey = "INTERVAL"
 const timeFormat = "2006-01-02 15:04:05 -0700"
-const intervalFormat = "15:04:05"
 
 func parseSingleTimestamp(data map[string]string) (map[string]MetricData, error) {
 	if _, ok := data[timestampKey]; !ok {
@@ -56,12 +51,12 @@ func parseSingleTimestamp(data map[string]string) (map[string]MetricData, error)
 }
 
 func getTypeAndKey(key string) (string, func(*MetricData, float64)) {
-	lowerkey := strings.ToLower(key)
-	if strings.HasPrefix(lowerkey, "min") {
+	lowerKey := strings.ToLower(key)
+	if strings.HasPrefix(lowerKey, "min") {
 		return key[4:], func(data *MetricData, f float64) {
 			data.Min = f
 		}
-	} else if strings.HasPrefix(lowerkey, "max") {
+	} else if strings.HasPrefix(lowerKey, "max") {
 		return key[4:], func(data *MetricData, f float64) {
 			data.Max = f
 		}
