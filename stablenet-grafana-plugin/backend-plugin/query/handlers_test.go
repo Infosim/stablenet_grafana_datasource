@@ -79,59 +79,83 @@ func Test_request_timeRange(t *testing.T) {
 	assert.Equal(t, then.Second(), actualThen.Second(), "then differs")
 }
 
-func TestDeviceHandler_Process(t *testing.T) {
-	rawHandler, _ := setUpHandlerAndLogReceiver()
-	devices := []stablenet.Device{
-		{Name: "RoGat", Obid: 1024},
-		{Name: "localhost", Obid: 1003},
-	}
-	client := rawHandler.SnClient.(*mockSnClient)
-	client.On("QueryDevices", "lab").Return(devices, nil)
-	handler := deviceHandler{StableNetHandler: rawHandler}
-	result, err := handler.Process(Query{
-		Query: datasource.Query{ModelJson: "{\"deviceQuery\":\"lab\"}"},
-	})
-	assert.NoError(t, err, "no error is expected to be thrown")
-	require.NotNil(t, result, "the result must not be nil")
-	assert.Equal(t, "[{\"name\":\"RoGat\",\"obid\":1024},{\"name\":\"localhost\",\"obid\":1003}]", result.MetaJson)
-}
-
-func TestHandlersServerErrors(t *testing.T) {
-	type arg struct {
-		name  string
-		value interface{}
-	}
-	deviceHandlerFactory := func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} }
-	deviceHandlerArgs := []arg{{name: "deviceQuery", value: "lab"}}
-	measurementHandlerFactory := func(h *StableNetHandler) Handler { return measurementHandler{StableNetHandler: h} }
-	measurementHandlerArgs := []arg{{name: "deviceObid", value: 1024}}
-	metricNameHandlerFactory := func(h *StableNetHandler) Handler { return metricNameHandler{StableNetHandler: h} }
-	metricNameHandlerArgs := []arg{{name: "measurementObid", value: 111}}
-	metricDataHandlerFactory := func(h *StableNetHandler) Handler { return metricDataHandler{StableNetHandler: h} }
-	metricDataQueryArgs := []arg{{name: "measurementObid", value: 1111}, {name: "metricIds", value: []int{123}}}
-	metricDataClientArgs := append(metricDataQueryArgs, arg{value: time.Time{}}, arg{value: time.Time{}})
-	statisticLinkHandlerFactory := func(h *StableNetHandler) Handler { return statisticLinkHandler{StableNetHandler: h} }
-	statisticLinkQueryArgs := []arg{{name: "statisticLink", value: "stable.net/rest?id=1234&value0=1&value1=2"}}
-	statisticLinkClientArgs := []arg{{value: 1234}, {value: []int{1, 2}}, {value: time.Time{}}, {value: time.Time{}}}
-	tests := []struct {
-		name         string
-		handler      func(*StableNetHandler) Handler
-		queryArgs    []arg
-		clientMethod string
-		clientArgs   []arg
-		wantErr      string
+func TestHandlersSuccessfulResponse(t *testing.T) {
+	var tests = []struct {
+		*handlerServerTestCase
+		name string
 	}{
-		{name: "device query", handler: deviceHandlerFactory, queryArgs: deviceHandlerArgs, clientMethod: "QueryDevices", wantErr: "could not retrieve devices from StableNet(R)"},
-		{name: "measurement query", handler: measurementHandlerFactory, queryArgs: measurementHandlerArgs, clientMethod: "FetchMeasurementsForDevice", wantErr: "could not fetch measurements from StableNet(R)"},
-		{name: "metric query", handler: metricNameHandlerFactory, queryArgs: metricNameHandlerArgs, clientMethod: "FetchMetricsForMeasurement", wantErr: "could not retrieve metric names from StableNet(R)"},
-		{name: "metric data", handler: metricDataHandlerFactory, queryArgs: metricDataQueryArgs, clientMethod: "FetchDataForMetrics", clientArgs: metricDataClientArgs, wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
-		{name: "statistic link", handler: statisticLinkHandlerFactory, queryArgs: statisticLinkQueryArgs, clientMethod: "FetchDataForMetrics", clientArgs: statisticLinkClientArgs, wantErr: "could not fetch data for statistic link from server: could not retrieve metrics from StableNet(R)"},
+		{name: "device query", handlerServerTestCase: deviceHandlerTest()},
+		{name: "measurement query", handlerServerTestCase: measurementHandlerTest()},
+		{name: "metric query", handlerServerTestCase: metricNameHandlerTest()},
+		{name: "metric data", handlerServerTestCase: metricDataHandlerTest()},
+		{name: "statistic link", handlerServerTestCase: statisticLinkHandlerTest()},
+		{name: "datasource test", handlerServerTestCase: datasourceTestHandlerTest()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.clientArgs == nil {
 				tt.clientArgs = tt.queryArgs
 			}
+			rawHandler, _ := setUpHandlerAndLogReceiver()
+			clientArgs := make([]interface{}, 0, len(tt.clientArgs))
+			for _, argument := range tt.clientArgs {
+				clientArgs = append(clientArgs, argument.value)
+			}
+			rawHandler.SnClient.(*mockSnClient).On(tt.clientMethod, clientArgs...).Return(tt.clientReturn, nil)
+			handler := tt.handler(rawHandler)
+			jsonStructure := make(map[string]interface{})
+			for _, argument := range tt.queryArgs {
+				jsonStructure[argument.name] = argument.value
+			}
+			queryData, _ := json.Marshal(jsonStructure)
+			actual, err := handler.Process(Query{
+				Query: datasource.Query{ModelJson: string(queryData), RefId: "the cake is a lie"},
+			})
+			assert.NoError(t, err, "no error is expected")
+			require.NotNil(t, actual, "actual must not be nil")
+			if tt.successResult.MetaJson != "" {
+				require.NotEmpty(t, actual.MetaJson, "metaJsonExpected, but got none")
+				var actualMetaData map[string]interface{}
+				_ = json.Unmarshal([]byte(actual.MetaJson), &actualMetaData)
+				var wantMetaData map[string]interface{}
+				_ = json.Unmarshal([]byte(tt.successResult.MetaJson), &wantMetaData)
+				assert.Equal(t, wantMetaData, actualMetaData, "metaJson does differ")
+			}
+			assert.Equal(t, "the cake is a lie", actual.RefId, "the refId is wrong")
+			if tt.successResult.Series != nil {
+				require.NotNil(t, actual.Series, "time series were expected, but not delivered")
+				require.Equal(t, len(tt.successResult.Series), len(actual.Series), "length of time series differes")
+				for index, series := range tt.successResult.Series {
+					actualSeries := actual.Series[index]
+					assert.Equal(t, series.Name, actualSeries.Name, "name of %dth timeseries differ", index+1)
+					sameLength := assert.Equal(t, len(series.Points), len(actualSeries.Points), "number of points in %dth timeseries differ", index+1)
+					if sameLength {
+						for pIndex, point := range series.Points {
+							assert.Equal(t, point, actualSeries.Points[pIndex], "point %d of %dth time series differs", pIndex+1, index+1)
+						}
+					}
+				}
+			}
+			assert.Equal(t, tt.successResult.Tables, actual.Tables, "tables differ")
+			assert.Empty(t, actual.Error, "no error expected, this is checked in another testcase")
+		})
+	}
+}
+
+func TestHandlersServerErrors(t *testing.T) {
+	var tests = []struct {
+		*handlerServerTestCase
+		name    string
+		wantErr string
+	}{
+		{name: "device query", handlerServerTestCase: deviceHandlerTest(), wantErr: "could not retrieve devices from StableNet(R)"},
+		{name: "measurement query", handlerServerTestCase: measurementHandlerTest(), wantErr: "could not fetch measurements from StableNet(R)"},
+		{name: "metric query", handlerServerTestCase: metricNameHandlerTest(), wantErr: "could not retrieve metric names from StableNet(R)"},
+		{name: "metric data", handlerServerTestCase: metricDataHandlerTest(), wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
+		{name: "statistic link", handlerServerTestCase: statisticLinkHandlerTest(), wantErr: "could not fetch data for statistic link from server: could not retrieve metrics from StableNet(R)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
 			clientArgs := make([]interface{}, 0, len(tt.clientArgs))
 			for _, argument := range tt.clientArgs {
@@ -145,7 +169,7 @@ func TestHandlersServerErrors(t *testing.T) {
 			}
 			queryData, _ := json.Marshal(jsonStructure)
 			actual, err := handler.Process(Query{
-				Query: datasource.Query{ModelJson: string(queryData)},
+				Query: datasource.Query{ModelJson: string(queryData), RefId: "The cake is a lie"},
 			})
 			assert.Nil(t, actual, "result should be nil")
 			assert.EqualError(t, err, tt.wantErr+": internal server error")
@@ -171,40 +195,137 @@ func TestHandlersClientErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			query := datasource.Query{ModelJson: tt.json}
+			query := datasource.Query{ModelJson: tt.json, RefId: "the cake is a lie"}
 			result, err := tt.handler.Process(Query{Query: query})
 			assert.NoError(t, err, "on client fails, no error should be returned")
 			require.NotNil(t, result, "result should not be nil")
+			assert.Equal(t, "the cake is a lie", result.RefId, "the refId is wrong")
 			assert.Equal(t, tt.wantErr, result.Error, "error message contained in result is wrong")
 		})
 	}
 }
 
-func TestMeasurementHandler_Process(t *testing.T) {
-	rawHandler, _ := setUpHandlerAndLogReceiver()
-	measurements := []stablenet.Measurement{
-		{Name: "Host", Obid: 1124},
-		{Name: "CPU", Obid: 1004},
-	}
-	client := rawHandler.SnClient.(*mockSnClient)
-	client.On("FetchMeasurementsForDevice", 1024).Return(measurements, nil)
-	handler := measurementHandler{StableNetHandler: rawHandler}
-	result, err := handler.Process(Query{
-		Query: datasource.Query{ModelJson: "{\"deviceObid\":1024}"},
-	})
-	assert.NoError(t, err, "no error is expected to be thrown")
-	require.NotNil(t, result, "the result must not be nil")
-	assert.Equal(t, "[{\"name\":\"Host\",\"obid\":1124},{\"name\":\"CPU\",\"obid\":1004}]", result.MetaJson)
+type arg struct {
+	name  string
+	value interface{}
 }
 
-func TestDatasourceTestHandler_Process(t *testing.T) {
-	rawHandler, _ := setUpHandlerAndLogReceiver()
-	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", -1).Return([]stablenet.Measurement{}, nil)
-	handler := datasourceTestHandler{StableNetHandler: rawHandler}
-	result, err := handler.Process(Query{})
-	assert.NoError(t, err, "no error is expected to be thrown")
-	require.NotNil(t, result, "the result must not be nil")
-	assert.NotNil(t, result.Series, "the result must contain series")
+type handlerServerTestCase struct {
+	handler       func(*StableNetHandler) Handler
+	queryArgs     []arg
+	clientMethod  string
+	clientArgs    []arg
+	clientReturn  interface{}
+	successResult *datasource.QueryResult
+}
+
+func datasourceTestHandlerTest() *handlerServerTestCase {
+	clientReturn := []stablenet.Measurement{{}}
+	return &handlerServerTestCase{
+		handler:       func(h *StableNetHandler) Handler { return datasourceTestHandler{StableNetHandler: h} },
+		queryArgs:     []arg{},
+		clientMethod:  "FetchMeasurementsForDevice",
+		clientArgs:    []arg{{value: -1}},
+		clientReturn:  clientReturn,
+		successResult: &datasource.QueryResult{},
+	}
+}
+
+func deviceHandlerTest() *handlerServerTestCase {
+	args := []arg{{name: "deviceQuery", value: "lab"}}
+	clientReturn := []stablenet.Device{{Name: "london.routerlab", Obid: 1024}, {Name: "berlin.routerlab", Obid: 5055}}
+	metaJson, _ := json.Marshal(clientReturn)
+	return &handlerServerTestCase{
+		handler:       func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} },
+		queryArgs:     args,
+		clientMethod:  "QueryDevices",
+		clientArgs:    args,
+		clientReturn:  clientReturn,
+		successResult: &datasource.QueryResult{MetaJson: string(metaJson), Series: []*datasource.TimeSeries{}},
+	}
+}
+
+func measurementHandlerTest() *handlerServerTestCase {
+	args := []arg{{name: "deviceObid", value: 1024}}
+	clientReturn := []stablenet.Measurement{{Name: "london.routerlab Host", Obid: 4362}, {Name: "londen.routerlab Processor", Obid: 2623}}
+	metaJson, _ := json.Marshal(clientReturn)
+	return &handlerServerTestCase{
+		handler:       func(h *StableNetHandler) Handler { return measurementHandler{StableNetHandler: h} },
+		queryArgs:     args,
+		clientMethod:  "FetchMeasurementsForDevice",
+		clientArgs:    args,
+		clientReturn:  clientReturn,
+		successResult: &datasource.QueryResult{MetaJson: string(metaJson), Series: []*datasource.TimeSeries{}},
+	}
+}
+
+func metricNameHandlerTest() *handlerServerTestCase {
+	args := []arg{{name: "measurementObid", value: 111}}
+	clientReturn := []stablenet.Metric{{Name: "Uptime", Id: 4002}, {Name: "Processes", Id: 2003}}
+	metaJson, _ := json.Marshal(clientReturn)
+	return &handlerServerTestCase{
+		handler:       func(h *StableNetHandler) Handler { return metricNameHandler{StableNetHandler: h} },
+		queryArgs:     args,
+		clientMethod:  "FetchMetricsForMeasurement",
+		clientArgs:    args,
+		clientReturn:  clientReturn,
+		successResult: &datasource.QueryResult{MetaJson: string(metaJson), Series: []*datasource.TimeSeries{}},
+	}
+}
+
+func metricDataHandlerTest() *handlerServerTestCase {
+	queryArgs := []arg{{name: "measurementObid", value: 1111}, {name: "metricIds", value: []int{123}}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
+	clientArgs := []arg{{value: 1111}, {value: []int{123}}, {value: time.Time{}}, {value: time.Time{}}}
+	clientReturn, timeSeries := sampleStatisticData()
+	return &handlerServerTestCase{
+		handler:       func(h *StableNetHandler) Handler { return metricDataHandler{StableNetHandler: h} },
+		queryArgs:     queryArgs,
+		clientMethod:  "FetchDataForMetrics",
+		clientArgs:    clientArgs,
+		clientReturn:  clientReturn,
+		successResult: &datasource.QueryResult{Series: timeSeries},
+	}
+}
+
+func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource.TimeSeries) {
+	now := time.Now()
+	then := time.Now().Add(5 * time.Minute)
+	md1 := stablenet.MetricData{
+		Interval: 5 * time.Minute,
+		Time:     now,
+		Min:      5,
+		Max:      10,
+	}
+	md2 := stablenet.MetricData{
+		Interval: 6 * time.Minute,
+		Time:     then,
+		Min:      20,
+		Max:      30,
+	}
+	dataSeries := map[string]stablenet.MetricDataSeries{"System Uptime": {md1, md2}}
+	maxSeries := &datasource.TimeSeries{
+		Name:   "Max System Uptime",
+		Points: []*datasource.Point{{Timestamp: now.UnixNano() / int64(time.Millisecond), Value: 10}, {Timestamp: then.UnixNano() / int64(time.Millisecond), Value: 30}},
+	}
+	minSeries := &datasource.TimeSeries{
+		Name:   "Min System Uptime",
+		Points: []*datasource.Point{{Timestamp: now.UnixNano() / int64(time.Millisecond), Value: 5}, {Timestamp: then.UnixNano() / int64(time.Millisecond), Value: 20}},
+	}
+	return dataSeries, []*datasource.TimeSeries{minSeries, maxSeries}
+}
+
+func statisticLinkHandlerTest() *handlerServerTestCase {
+	queryArgs := []arg{{name: "statisticLink", value: "stable.net/rest?id=1234&value0=1&value1=2"}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
+	clientArgs := []arg{{value: 1234}, {value: []int{1, 2}}, {value: time.Time{}}, {value: time.Time{}}}
+	clientReturn, timeSeries := sampleStatisticData()
+	return &handlerServerTestCase{
+		handler:       func(h *StableNetHandler) Handler { return statisticLinkHandler{StableNetHandler: h} },
+		queryArgs:     queryArgs,
+		clientMethod:  "FetchDataForMetrics",
+		clientArgs:    clientArgs,
+		clientReturn:  clientReturn,
+		successResult: &datasource.QueryResult{Series: timeSeries},
+	}
 }
 
 func TestDatasourceTestHandler_Process_Error(t *testing.T) {

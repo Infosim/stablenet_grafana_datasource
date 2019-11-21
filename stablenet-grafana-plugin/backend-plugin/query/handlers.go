@@ -92,7 +92,7 @@ func (d deviceHandler) Process(q Query) (*datasource.QueryResult, error) {
 		d.Logger.Error(e.Error())
 		return nil, e
 	}
-	return createResponseWithCustomData(devices, q.RefId)
+	return createResponseWithCustomData(devices, q.RefId), nil
 }
 
 type measurementHandler struct {
@@ -110,7 +110,7 @@ func (m measurementHandler) Process(query Query) (*datasource.QueryResult, error
 		m.Logger.Error(e.Error())
 		return nil, e
 	}
-	return createResponseWithCustomData(measurements, query.RefId)
+	return createResponseWithCustomData(measurements, query.RefId), nil
 }
 
 type metricNameHandler struct {
@@ -128,7 +128,7 @@ func (m metricNameHandler) Process(query Query) (*datasource.QueryResult, error)
 		m.Logger.Error(e.Error())
 		return nil, e
 	}
-	return createResponseWithCustomData(metrics, query.RefId)
+	return createResponseWithCustomData(metrics, query.RefId), nil
 }
 
 type metricDataHandler struct {
@@ -170,6 +170,7 @@ func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, er
 	}
 	return &datasource.QueryResult{
 		Series: []*datasource.TimeSeries{},
+		RefId:  query.RefId,
 	}, nil
 }
 
@@ -210,15 +211,17 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 	return &result, nil
 }
 
-func createResponseWithCustomData(data interface{}, refId string) (*datasource.QueryResult, error) {
+func createResponseWithCustomData(data interface{}, refId string) *datasource.QueryResult {
 	payload, err := json.Marshal(data)
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal json: %v", err)
+		//json.Marshal returns a non-nil error if the data contains an invalid type such as channels or math.Inf(1)
+		//since these types are programming errors, the program should panic in that case.
+		panic(fmt.Sprintf("marshalling failed: %v", err))
 	}
 	result := datasource.QueryResult{
 		RefId:    refId,
 		MetaJson: string(payload),
 		Series:   []*datasource.TimeSeries{},
 	}
-	return &result, nil
+	return &result
 }
