@@ -97,37 +97,52 @@ func TestDeviceHandler_Process(t *testing.T) {
 }
 
 func TestHandlersServerErrors(t *testing.T) {
-	deviceHandlerFactory := func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} }
-	measurementHandlerFactory := func(h *StableNetHandler) Handler { return measurementHandler{StableNetHandler: h} }
-	metricNameHandlerFactory := func(h *StableNetHandler) Handler { return metricNameHandler{StableNetHandler: h} }
-	metricDataHandlerFactory := func(h *StableNetHandler) Handler { return metricDataHandler{StableNetHandler: h} }
 	type arg struct {
 		name  string
 		value interface{}
 	}
+	deviceHandlerFactory := func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} }
+	deviceHandlerArgs := []arg{{name: "deviceQuery", value: "lab"}}
+	measurementHandlerFactory := func(h *StableNetHandler) Handler { return measurementHandler{StableNetHandler: h} }
+	measurementHandlerArgs := []arg{{name: "deviceObid", value: 1024}}
+	metricNameHandlerFactory := func(h *StableNetHandler) Handler { return metricNameHandler{StableNetHandler: h} }
+	metricNameHandlerArgs := []arg{{name: "measurementObid", value: 111}}
+	metricDataHandlerFactory := func(h *StableNetHandler) Handler { return metricDataHandler{StableNetHandler: h} }
+	metricDataQueryArgs := []arg{{name: "measurementObid", value: 1111}, {name: "metricIds", value: []int{123}}}
+	metricDataClientArgs := append(metricDataQueryArgs, arg{value: time.Time{}}, arg{value: time.Time{}})
+	statisticLinkHandlerFactory := func(h *StableNetHandler) Handler { return statisticLinkHandler{StableNetHandler: h} }
+	statisticLinkQueryArgs := []arg{{name: "statisticLink", value: "stable.net/rest?id=1234&value0=1&value1=2"}}
+	statisticLinkClientArgs := []arg{{value: 1234}, {value: []int{1, 2}}, {value: time.Time{}}, {value: time.Time{}}}
 	tests := []struct {
-		name    string
-		handler func(*StableNetHandler) Handler
-		method  string
-		args    []arg
-		wantErr string
+		name         string
+		handler      func(*StableNetHandler) Handler
+		queryArgs    []arg
+		clientMethod string
+		clientArgs   []arg
+		wantErr      string
 	}{
-		{name: "device query", handler: deviceHandlerFactory, method: "QueryDevices", args: []arg{{name: "deviceQuery", value: "lab"}}, wantErr: "could not retrieve devices from StableNet(R)"},
-		{name: "measurement query", handler: measurementHandlerFactory, method: "FetchMeasurementsForDevice", args: []arg{{name: "deviceObid", value: 1024}}, wantErr: "could not fetch measurements from StableNet(R)"},
-		{name: "metric query", handler: metricNameHandlerFactory, method: "FetchMetricsForMeasurement", args: []arg{{name: "measurementObid", value: 1111}}, wantErr: "could not retrieve metric names from StableNet(R)"},
-		{name: "metric data", handler: metricDataHandlerFactory, method: "FetchDataForMetrics", args: []arg{{name: "measurementObid", value: 1111}, {name: "metricIds", value: []int{123}}, {name: "start", value: time.Time{}}, {name: "end", value: time.Time{}}}, wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
+		{name: "device query", handler: deviceHandlerFactory, queryArgs: deviceHandlerArgs, clientMethod: "QueryDevices", wantErr: "could not retrieve devices from StableNet(R)"},
+		{name: "measurement query", handler: measurementHandlerFactory, queryArgs: measurementHandlerArgs, clientMethod: "FetchMeasurementsForDevice", wantErr: "could not fetch measurements from StableNet(R)"},
+		{name: "metric query", handler: metricNameHandlerFactory, queryArgs: metricNameHandlerArgs, clientMethod: "FetchMetricsForMeasurement", wantErr: "could not retrieve metric names from StableNet(R)"},
+		{name: "metric data", handler: metricDataHandlerFactory, queryArgs: metricDataQueryArgs, clientMethod: "FetchDataForMetrics", clientArgs: metricDataClientArgs, wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
+		{name: "statistic link", handler: statisticLinkHandlerFactory, queryArgs: statisticLinkQueryArgs, clientMethod: "FetchDataForMetrics", clientArgs: statisticLinkClientArgs, wantErr: "could not fetch data for statistic link from server: could not retrieve metrics from StableNet(R)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.clientArgs == nil {
+				tt.clientArgs = tt.queryArgs
+			}
 			rawHandler, loggedBytes := setUpHandlerAndLogReceiver()
-			arguments := make([]interface{}, 0, len(tt.args))
+			clientArgs := make([]interface{}, 0, len(tt.clientArgs))
+			for _, argument := range tt.clientArgs {
+				clientArgs = append(clientArgs, argument.value)
+			}
+			rawHandler.SnClient.(*mockSnClient).On(tt.clientMethod, clientArgs...).Return(nil, errors.New("internal server error"))
+			handler := tt.handler(rawHandler)
 			jsonStructure := make(map[string]interface{})
-			for _, argument := range tt.args {
-				arguments = append(arguments, argument.value)
+			for _, argument := range tt.queryArgs {
 				jsonStructure[argument.name] = argument.value
 			}
-			rawHandler.SnClient.(*mockSnClient).On(tt.method, arguments...).Return(nil, errors.New("internal server error"))
-			handler := tt.handler(rawHandler)
 			queryData, _ := json.Marshal(jsonStructure)
 			actual, err := handler.Process(Query{
 				Query: datasource.Query{ModelJson: string(queryData)},
