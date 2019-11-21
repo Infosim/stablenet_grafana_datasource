@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-func GetHandlersForRequest(request Request) map[string]Handler {
+func GetHandlersForRequest(request Request) (map[string]Handler, error) {
 	connectOptions, err := request.stableNetOptions()
 	if err != nil {
-		request.Logger.Error(fmt.Sprintf("could not extract StableNet(R) connect options: %v", err))
+		return nil, fmt.Errorf("could not extract StableNet(R) connect options: %v", err)
 	}
 	snClient := stablenet.NewClient(connectOptions)
 	baseHandler := StableNetHandler{
@@ -28,7 +28,7 @@ func GetHandlersForRequest(request Request) map[string]Handler {
 	handlers["testDatasource"] = datasourceTestHandler{StableNetHandler: &baseHandler}
 	handlers["metricData"] = metricDataHandler{StableNetHandler: &baseHandler}
 	handlers["statisticLink"] = statisticLinkHandler{StableNetHandler: &baseHandler}
-	return handlers
+	return handlers, nil
 }
 
 type Request struct {
@@ -39,6 +39,9 @@ type Request struct {
 func (r *Request) stableNetOptions() (*stablenet.ConnectOptions, error) {
 	info := r.Datasource
 	options := make(map[string]string)
+	if info == nil {
+		return nil, fmt.Errorf("datasource info is nil")
+	}
 	err := json.Unmarshal([]byte(info.JsonData), &options)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal jsonData of the datasource: %v", err)

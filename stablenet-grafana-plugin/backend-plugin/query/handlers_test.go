@@ -15,6 +15,37 @@ import (
 	"time"
 )
 
+func TestGetHandlersForRequest(t *testing.T) {
+	json := "{\"snip\":\"127.0.0.1\", \"snport\": \"443\", \"snusername\":\"infosim\"}"
+	decryptedData := map[string]string{"snpassword": "stablenet"}
+	request := Request{
+		DatasourceRequest: &datasource.DatasourceRequest{
+			Datasource: &datasource.DatasourceInfo{
+				JsonData:                json,
+				DecryptedSecureJsonData: decryptedData,
+			},
+		},
+	}
+	handlers, err := GetHandlersForRequest(request)
+	require.NoError(t, err, "no error expected")
+	assert.Equal(t, 6, len(handlers), "expected six handlers")
+	assert.IsType(t, deviceHandler{}, handlers["devices"], "deviceQuery handler hast not correct type")
+	assert.IsType(t, measurementHandler{}, handlers["measurements"], "measurement handler hast not correct type")
+	assert.IsType(t, metricNameHandler{}, handlers["metricNames"], "metric name handler hast not correct type")
+	assert.IsType(t, metricDataHandler{}, handlers["metricData"], "metric data handler hast not correct type")
+	assert.IsType(t, statisticLinkHandler{}, handlers["statisticLink"], "statistic link handler hast not correct type")
+	assert.IsType(t, datasourceTestHandler{}, handlers["testDatasource"], "datasource test handler hast not correct type")
+}
+
+func TestGetHandlersForRequest_Error(t *testing.T) {
+	request := Request{
+		DatasourceRequest: &datasource.DatasourceRequest{},
+	}
+	handlers, err := GetHandlersForRequest(request)
+	require.EqualError(t, err, "could not extract StableNet(R) connect options: datasource info is nil", "error message not correct")
+	require.Nil(t, handlers, "handlers should be nil")
+}
+
 func Test_request_stableNetOptionsErrors(t *testing.T) {
 	tests := []struct {
 		name              string

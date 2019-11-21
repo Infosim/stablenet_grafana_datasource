@@ -22,12 +22,15 @@ func NewBackendPlugin(logger hclog.Logger) BackendPlugin {
 type jsonDatasource struct {
 	plugin.NetRPCUnsupportedPlugin
 	logger         hclog.Logger
-	handlerFactory func(query.Request) map[string]query.Handler
+	handlerFactory func(query.Request) (map[string]query.Handler, error)
 }
 
 func (j *jsonDatasource) Query(ctx context.Context, tsdbReq *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
 	request := query.Request{DatasourceRequest: tsdbReq, Logger: j.logger}
-	handlers := j.handlerFactory(request)
+	handlers, err := j.handlerFactory(request)
+	if err != nil {
+		return &datasource.DatasourceResponse{Results: []*datasource.QueryResult{query.BuildErrorResult(err.Error(), "")}}, nil
+	}
 	results := make([]*datasource.QueryResult, 0, len(tsdbReq.Queries))
 	for _, tsdbReq := range tsdbReq.Queries {
 		startTime, endTime := request.ToTimeRange()
