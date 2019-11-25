@@ -10,7 +10,7 @@
   "metrics": true,
   "annotations": false,
   "backend": true,
-  "executable": "simple-json-plugin",
+  "executable": "stablenet_backend_plugin",
 
   "info": {
     "description": "StableNet® Datasource",

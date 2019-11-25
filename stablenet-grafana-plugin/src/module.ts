@@ -8,7 +8,15 @@
 import {GenericDatasource} from './datasource';
 import {GenericDatasourceQueryCtrl} from './query_ctrl';
 
-class GenericConfigCtrl {}
+export class GenericConfigCtrl {
+  constructor(){
+    this.passExist = this.current.secureJsonFields.snpassword ? true : false;   //false if input is empty, true otherwise
+  }
+
+  resetPass(){
+    this.passExist = false;
+  }
+}
 GenericConfigCtrl.templateUrl = 'partials/config.html';
 
 class GenericQueryOptionsCtrl {}
