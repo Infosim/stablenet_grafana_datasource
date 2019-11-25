@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
-	hclog "github.com/hashicorp/go-hclog"
-	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin"
 )
 
 var pluginLogger = hclog.New(&hclog.LoggerOptions{

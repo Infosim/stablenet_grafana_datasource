@@ -1,10 +1,12 @@
 package query
 
 import (
+	"encoding/json"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 func TestBuildErrorResult(t *testing.T) {
@@ -74,4 +76,33 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 		_, err := query.GetCustomIntField("favouriteDish")
 		require.EqualError(t, err, "unexpected EOF")
 	})
+}
+
+func TestStableNetHandler_fetchMetrics(t *testing.T) {
+	statisicResult, series := sampleStatisticData()
+	tests := []struct {
+		name            string
+		includeMinStats bool
+		includeMaxStats bool
+		includeAvgStats bool
+		want            []*datasource.TimeSeries
+	}{
+		{name: "no stats", includeMinStats: false, includeMaxStats: false, includeAvgStats: false, want: []*datasource.TimeSeries{}},
+		{name: "all stats", includeMinStats: true, includeMaxStats: true, includeAvgStats: true, want: series},
+		{name: "some", includeMinStats: true, includeMaxStats: false, includeAvgStats: true, want: []*datasource.TimeSeries{series[0], series[2]}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rawHandler, _ := setUpHandlerAndLogReceiver()
+			requiredStats := map[string]bool{"includeMinStats": tt.includeMinStats, "includeMaxStats": tt.includeMaxStats, "includeAvgStats": tt.includeAvgStats}
+			jsonQuery, _ := json.Marshal(&requiredStats)
+			query := Query{
+				Query: datasource.Query{ModelJson: string(jsonQuery)},
+			}
+			rawHandler.SnClient.(*mockSnClient).On("FetchDataForMetrics", 1024, []int{123}, time.Time{}, time.Time{}).Return(statisicResult, nil)
+			actual, err := rawHandler.fetchMetrics(query, 1024, []int{123})
+			require.NoError(t, err, "no error expected")
+			compareTimeSeries(t, tt.want, actual)
+		})
+	}
 }

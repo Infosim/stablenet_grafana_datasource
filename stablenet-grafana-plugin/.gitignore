@@ -36,3 +36,4 @@ grafana
 # Test artifacts
 /dist/test/
 /dist/
+/backend-plugin/coverage.out

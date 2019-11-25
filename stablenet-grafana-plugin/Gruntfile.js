@@ -20,14 +20,9 @@ module.exports = function(grunt) {
       src_to_dist: {
         cwd: 'src',
         expand: true,
-        src: ['**/*', '!**/*.ts', '!**/*.scss'],
+        src: ['**/*', '!**/*.ts', '!**/*.scss', "!README_DEVELOPERS.md"],
         dest: 'dist'
       },
-      pluginDef: {
-        expand: true,
-        src: ['README.md'],
-        dest: 'dist'
-      }
     },
 
     watch: {
@@ -83,5 +78,5 @@ module.exports = function(grunt) {
     }
   });
 
-  grunt.registerTask('default', ['clean', 'copy:src_to_dist', 'copy:pluginDef', 'babel', 'mochaTest']);
+  grunt.registerTask('default', ['clean', 'copy:src_to_dist', 'babel', 'mochaTest']);
 };

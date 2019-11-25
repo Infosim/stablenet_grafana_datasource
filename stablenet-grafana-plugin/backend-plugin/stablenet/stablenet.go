@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	url2 "net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -37,22 +36,29 @@ type ClientImpl struct {
 	client *resty.Client
 }
 
+func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {
+	return fmt.Errorf("%s: status code: %d, response: %s", msg, resp.StatusCode(), string(resp.Body()))
+}
+
 func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
 	filter := fmt.Sprintf("name ct '%s'", deviceQuery)
 	url := fmt.Sprintf("https://%s:%d/api/1/devices?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", deviceQuery, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("the statuscode was \"%d\" and the message was \"%s\"", resp.StatusCode(), resp.Status())
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", deviceQuery), resp)
 	}
 	type serverResponse struct {
 		Devices []Device `json:"data"`
 	}
 	var collection serverResponse
 	err = json.Unmarshal(resp.Body(), &collection)
-	return collection.Devices, err
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	return collection.Devices, nil
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {
@@ -60,23 +66,29 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, 
 	url := fmt.Sprintf("https://%s:%d/api/1/measurements?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve measurements for device %d from StableNet: %v", deviceObid, err)
+		return nil, fmt.Errorf("retrieving measurements for device %d failed: %v", deviceObid, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("could not retrieve measurements for device %d, the error code was %d with message \"%s\"; %s", deviceObid, resp.StatusCode(), resp.Status(), url)
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device %d failed", deviceObid), resp)
 	}
 	collection := struct {
 		Measurements []Measurement `json:"data"`
 	}{}
 	err = json.Unmarshal(resp.Body(), &collection)
-	return collection.Measurements, err
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	return collection.Measurements, nil
 }
 
 func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
 	url := fmt.Sprintf("https://%s:%d/api/1/measurements/%d/metrics", c.Host, c.Port, measurementObid)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet(R)", measurementObid)
+		return nil, fmt.Errorf("retrieving metrics for measurement %d failed: %v", measurementObid, err)
+	}
+	if resp.StatusCode() != 200 {
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving metrics for measurement %d failed", measurementObid), resp)
 	}
 	responseData := struct {
 		ValueOutputs []Metric `json:"valueOutputs"`
@@ -91,63 +103,46 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, 
 func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {
 	startMillis := startTime.UnixNano() / int64(time.Millisecond)
 	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1020&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
+	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1010&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve metrics for measurement %d from StableNet", measurementObid)
+		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", measurementObid, err)
 	}
-	data := make([]map[string]interface{}, 0, 0)
-	err = json.Unmarshal(resp.Body(), &data)
+	if resp.StatusCode() != 200 {
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", measurementObid), resp)
+	}
+	return parseStatisticByteSlice(resp.Body())
+}
+
+func parseStatisticByteSlice(bytes []byte) (map[string]MetricDataSeries, error) {
+	data := make([]map[string]string, 0, 0)
+	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
 	resultMap := make(map[string]MetricDataSeries)
-	timeFormat := "2006-01-02 15:04:05 -0700"
 	for _, record := range data {
-		measurementTime, err := time.Parse(timeFormat, record["Time"].(string))
+		converted, err := parseSingleTimestamp(record)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("parsing an entry from RawStatisticServlet failed: %v", err)
 		}
-		tmpMap := make(map[string]MetricData)
-		for key, value := range record {
-			if key == "Time" {
-				continue
+		for key, measurementData := range converted {
+			if _, ok := resultMap[key]; !ok {
+				resultMap[key] = make([]MetricData, 0, 0)
 			}
-			metricName := key[4:]
-			if _, ok := tmpMap[metricName]; !ok {
-				tmpMap[metricName] = MetricData{Time: measurementTime}
-			}
-			metricData := tmpMap[metricName]
-			floatString := value.(string)
-			floatString = strings.Replace(floatString, " ", "", -1)
-			floatString = strings.Replace(floatString, ",", "", -1)
-			value, err := strconv.ParseFloat(floatString, 64)
-			if err != nil {
-				return nil, fmt.Errorf("could not format value: %v", err)
-			}
-			if strings.HasPrefix(key, "Min") {
-				metricData.Min = value
-			} else if strings.HasPrefix(key, "Max") {
-				metricData.Max = value
-			} else if strings.HasPrefix(key, "Avg") {
-				metricData.Avg = value
-			}
-			tmpMap[metricName] = metricData
-		}
-		for metricName, metricData := range tmpMap {
-			if _, ok := resultMap[metricName]; !ok {
-				resultMap[metricName] = make([]MetricData, 0, len(data))
-			}
-			resultMap[metricName] = append(resultMap[metricName], metricData)
+			resultMap[key] = append(resultMap[key], measurementData)
 		}
 	}
 	return resultMap, nil
 }
 
 func (c *ClientImpl) formatMetricIds(valueIds []int) string {
+	if len(valueIds) == 1 {
+		return fmt.Sprintf("value=%d", valueIds[0])
+	}
 	query := make([]string, 0, len(valueIds))
-	for _, valueId := range valueIds {
-		query = append(query, fmt.Sprintf("value=%d", valueId))
+	for index, valueId := range valueIds {
+		query = append(query, fmt.Sprintf("value%d=%d", index, valueId))
 	}
 	return strings.Join(query, "&")
 }

@@ -1,0 +1,87 @@
+{
+  "count": 1860,
+  "data": [
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore.root.infosim.net",
+      "obid": 1029,
+      "type": "ping"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Intel(R) Ethernet Connection (2) I219-LM (ethernet_32769) - Ethernet",
+      "obid": 5370,
+      "type": "snmpInterface"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore snagent",
+      "obid": 1575,
+      "type": "tcpConnect"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Storage C:\\ Label:Windows",
+      "obid": 1576,
+      "type": "snmpTemplate"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Processor: 1 ",
+      "obid": 1587,
+      "type": "snmpTemplate"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Processor: 2 ",
+      "obid": 1588,
+      "type": "snmpTemplate"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Processor: 3 ",
+      "obid": 1589,
+      "type": "snmpTemplate"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Processor: 4 ",
+      "obid": 1590,
+      "type": "snmpTemplate"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Processor: 5 ",
+      "obid": 1591,
+      "type": "snmpTemplate"
+    },
+    {
+      "active": true,
+      "description": "",
+      "destDeviceId": 1024,
+      "name": "Atomcore Processor: 6 ",
+      "obid": 1597,
+      "type": "snmpTemplate"
+    }
+  ],
+  "filterCount": 14,
+  "hasMore": true
+}

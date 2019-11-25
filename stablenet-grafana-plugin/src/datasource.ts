@@ -35,19 +35,20 @@ export class GenericDatasource {
 
         return this.backendSrv.request(options)
             .then(response => {
-                    if (response.message !== null) {
-                        return {
-                            status: "success",
-                            message: "Data source is working and can connect to StableNet®.",
-                            title: "Success"
-                        };
-            } else {
-                return {
-                    status: "error", 
-                    message: "Datasource cannot connect to StableNet®.", 
-                    title: "Failure"};
-            }
-        });
+                if (response.message !== null) {
+                    return {
+                        status: "success",
+                        message: "Data source is working and can connect to StableNet®.",
+                        title: "Success"
+                    };
+                } else {
+                    return {
+                        status: "error",
+                        message: "Datasource cannot connect to StableNet®.",
+                        title: "Failure"
+                    };
+                }
+            });
     }
 
     queryDevices(queryString) {
@@ -67,7 +68,7 @@ export class GenericDatasource {
                 return result.data.results.A.meta.map(device => {
                     return {text: device.name, value: device.obid};
                 })
-        });
+            });
     }
 
     findMeasurementsForDevice(obid) {
@@ -122,17 +123,17 @@ export class GenericDatasource {
         let queries = [];
         let id = this.id;
 
-        options.targets.forEach(function(target) {
+        options.targets.forEach(function (target) {
             if (target.mode === "Statistic Link" && target.statisticLink !== "") {
                 queries.push({
-                        refId: target.refId,
-                        datasourceId: id,
-                        queryType: "statisticLink",
-                        statisticLink: target.statisticLink,
-                        includeMinStats: target.includeMinStats,
-                        includeAvgStats: target.includeAvgStats,
-                        includeMaxStats: target.includeMaxStats
-                    });
+                    refId: target.refId,
+                    datasourceId: id,
+                    queryType: "statisticLink",
+                    statisticLink: target.statisticLink,
+                    includeMinStats: target.includeMinStats,
+                    includeAvgStats: target.includeAvgStats,
+                    includeMaxStats: target.includeMaxStats
+                });
                 return;
             }
 
@@ -145,7 +146,7 @@ export class GenericDatasource {
                 datasourceId: id,
                 queryType: "metricData",
                 measurementObid: parseInt(target.measurement),
-                metricId: target.metric,
+                metricIds: [target.metric],
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
@@ -163,7 +164,7 @@ export class GenericDatasource {
         };
 
         return this.doRequest(data)
-                    .then(handleTsdbResponse);
+            .then(handleTsdbResponse);
     }
 
     doRequest(data) {

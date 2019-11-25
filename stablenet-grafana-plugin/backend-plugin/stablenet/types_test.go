@@ -3,6 +3,8 @@ package stablenet
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"testing"
 	"time"
 )
@@ -35,4 +37,20 @@ func TestMetricDataSeries(t *testing.T) {
 	test.Equal(wantedMin, dataSeries.MinValues(), "min Values differ")
 	test.Equal(wantedAvg, dataSeries.AvgValues(), "avg Values differ")
 	test.Equal(wantedMax, dataSeries.MaxValues(), "max Values differ")
+}
+
+func TestMetricDataSeries_ExpandWithMissingValues(t *testing.T) {
+	uptimes, err := ioutil.ReadFile("./test-data/uptimes.json")
+	require.NoError(t, err)
+	statisticData, err := parseStatisticByteSlice(uptimes)
+	require.NoError(t, err)
+	uptimeStatistic := statisticData["System Uptime"]
+	expanded := uptimeStatistic.ExpandWithMissingValues()
+	assert.Equal(t, 247, len(expanded))
+}
+
+func TestMetricDataSeries_ExpandWithMissingValues2(t *testing.T) {
+	statistic := MetricDataSeries{MetricData{}}
+	expanded := statistic.ExpandWithMissingValues()
+	assert.Equal(t, 1, len(expanded))
 }
