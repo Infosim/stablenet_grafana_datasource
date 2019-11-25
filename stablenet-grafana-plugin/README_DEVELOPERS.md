@@ -16,8 +16,9 @@ are:
 3. Much data may not be needed by the client but is sent to it nonetheless (overfetching).
 
 To address these downsides we use a Go backend plugin. Now, the whenever the browser needs data, it issues a request
-to the Grafana server. The Grafana server *internally* starts the backend plugin and passes the request to from the
+to the Grafana server. The Grafana server *internally* starts the backend plugin and passes the request from the
 browser to the plugin as well as encrypted data such as the StableNet® password. The plugin then communicates with
+the StableNet® server, fetches and transforms the data and gives the data back to the Grafana server parent process,
 the StableNet® server, fetches and transforms the data and gives the data back to the Grafana server parent process,
 which sends it to the browser.
 
@@ -27,7 +28,7 @@ which sends it to the browser.
      +-----------------------------------------------+ +----------------------+ SN data (pw,ip,port,user)     +----------------+ |
      |-----------------------------------------------+ |Grafana|Server Process+<------------------------------+Grafana Database| |
      ||  request /api/query with custom json payload | ++-------------+-------+                               +----------------+ |
-     ||                                              | |             ^                                                          |
+     ||                                              |  |             ^                                                          |
      ||                                              |  |request +    |                                                          |
      ||                                              |  |SN data      |                                                          |
      ||                                              |  v             |                                                          |
@@ -38,17 +39,14 @@ which sends it to the browser.
      ||                                              |  |             ^                                                          |
      ||                                              +---------------------------------------------------------------------------+
      ||                                                 |             |
-     ||                                                 |             |
 +-----v----------+                          REST request|             |
 |Browser with    |                                      |             |
 |Frontend-Plugin |                                      |             |
-+----------------+                                      |             |
-                                                        v             |
++----------------+                                      v             |
                                                     +---+-------------+-----+
                                                     |  StableNet® Server    |
                                                     |                       |
                                                     +-----------------------+
-
 ```
 
 ### Project Structure
