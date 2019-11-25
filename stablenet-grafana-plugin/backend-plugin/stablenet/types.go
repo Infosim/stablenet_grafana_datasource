@@ -2,6 +2,7 @@ package stablenet
 
 import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
+	"math"
 	"sort"
 	"time"
 )
@@ -74,11 +75,11 @@ func (s MetricDataSeries) ExpandWithMissingValues() MetricDataSeries {
 		threshold := s[currentIndex].Time.Add(-currentInterval)
 		currentIndex = currentIndex - 1
 		if currentIndex >= 0 && s[currentIndex].Time.Before(threshold) {
-			result = append(result, MetricData{Time: threshold})
+			result = append(result, MetricData{Time: threshold.Add(currentInterval), Avg: math.NaN(), Min: math.NaN(), Max: math.NaN()})
 			for currentIndex >= 0 && s[currentIndex].Time.Before(threshold) {
 				threshold = threshold.Add(-currentInterval)
 			}
-			result = append(result, MetricData{Time: threshold.Add(currentInterval)})
+			result = append(result, MetricData{Time: threshold.Add(currentInterval), Avg: math.NaN(), Min: math.NaN(), Max: math.NaN()})
 		}
 	}
 	for left, right := 0, len(result)-1; left < right; left, right = left+1, right-1 {

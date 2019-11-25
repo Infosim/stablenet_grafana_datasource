@@ -2,7 +2,7 @@ all: grunt build_linux build_windows deploy
 compile: grunt build_linux build_windows
 
 grunt:
-	grunt > /dev/null
+	${GRUNT_HOME}/grunt > /dev/null
 
 build_linux:
 	cd backend-plugin;GOOS=linux GOARCH=amd64 go build -o ../dist/stablenet_backend_plugin_linux_amd64 backend-plugin/main;cd ..
