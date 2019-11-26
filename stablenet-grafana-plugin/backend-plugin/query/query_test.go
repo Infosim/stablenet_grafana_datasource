@@ -108,7 +108,7 @@ func TestQuery_GetMeasurementDataRequest_Error(t *testing.T) {
 	}{
 		{name: "invalid model json", modelJson: "this is not a model json", wantErr: "error while creating json from modelJson: invalid character 'h' in literal true (expecting 'r')"},
 		{name: "unknown format", modelJson: "{\"requestData\" : \"still no a json\"}", wantErr: "requestData field of modelJson has not the expected format: json: cannot unmarshal string into Go value of type []query.measurementDataRequest"},
-		{name: "requestData not preset", modelJson: "{}", wantErr: "dataRequest not present in the the modelJson"},
+		{name: "requestData not preset", modelJson: "{}", wantErr: "dataRequest not present in the modelJson"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -230,7 +230,7 @@ func TestHandlersClientErrors(t *testing.T) {
 		{name: "device query", handler: deviceHandler{}, json: "{}", wantErr: "could not extract the deviceQuery from the query"},
 		{name: "measurements for device", handler: measurementHandler{}, json: "{}", wantErr: "could not extract deviceObid from the query"},
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
-		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the the modelJson"},
+		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the modelJson"},
 		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
 		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id"},
 	}

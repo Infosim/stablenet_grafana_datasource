@@ -58,7 +58,7 @@ func (q *Query) GetMeasurementDataRequest() ([]measurementDataRequest, error) {
 		return nil, fmt.Errorf("error while creating json from modelJson: %v", err)
 	}
 	if queryJson.Get("requestData").Interface() == nil {
-		return nil, fmt.Errorf("dataRequest not present in the the modelJson")
+		return nil, fmt.Errorf("dataRequest not present in the modelJson")
 	}
 	dataRequestBytes, err := queryJson.Get("requestData").Encode()
 	var result []measurementDataRequest
