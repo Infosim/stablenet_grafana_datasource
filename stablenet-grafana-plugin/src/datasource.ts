@@ -145,8 +145,7 @@ export class GenericDatasource {
                 refId: target.refId,
                 datasourceId: id,
                 queryType: "metricData",
-                measurementObid: parseInt(target.measurement),
-                metricIds: [target.metric],
+                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [target.metric]}],
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
