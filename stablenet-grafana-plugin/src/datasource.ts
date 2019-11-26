@@ -117,13 +117,16 @@ export class GenericDatasource {
         });
     }
 
-    query(options) {
+    async query(options) {
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];
         let id = this.id;
 
-        options.targets.forEach(function (target) {
+        //options.targets.forEach(function (target) {
+        for(let i = 0; i < options.targets.length; i++){
+            let target = options.targets[i];
+
             if (target.mode === "Statistic Link" && target.statisticLink !== "") {
                 queries.push({
                     refId: target.refId,
@@ -134,12 +137,14 @@ export class GenericDatasource {
                     includeAvgStats: target.includeAvgStats,
                     includeMaxStats: target.includeMaxStats
                 });
-                return;
+                continue;
             }
 
             if (!target.metric || target.metric === "select metric") {
-                return;
+                continue;
             }
+
+            let metricsForMsm = await this.findMetricsForMeasurement(target.measurement);
 
             queries.push({
                 refId: target.refId,
@@ -150,10 +155,11 @@ export class GenericDatasource {
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
             });
-        });
+        //});
+        }
 
         if (queries.length === 0) {
-            return [];
+            return {data: []};
         }
 
         let data = {
@@ -161,7 +167,7 @@ export class GenericDatasource {
             to: to,
             queries: queries
         };
-        return this.doRequest(data)
+        return await this.doRequest(data)
             .then(handleTsdbResponse);
     }
 
@@ -173,6 +179,10 @@ export class GenericDatasource {
             data: data
         }
         return this.backendSrv.datasourceRequest(options);
+    }
+
+    checkIfRegex(text){
+        return text.charAt(0) === '/' && text.charAt(text.length-1) === '/';
     }
 }
 
