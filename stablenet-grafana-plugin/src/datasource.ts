@@ -79,7 +79,7 @@ export class GenericDatasource {
         let data = {
             queries: [
                 {
-                    refId: "A",
+                    refId: DEFAULT_REFID,
                     datasourceId: this.id,   // Required
                     queryType: "measurements",
                     deviceObid: obid
@@ -100,15 +100,18 @@ export class GenericDatasource {
         }
 
         let data = {
-            queries: [
-                {
-                    refId: "A",
-                    datasourceId: this.id,
-                    queryType: "metricNames",
-                    measurementObid: parseInt(obid)
-                }
-            ]
+            queries: []
         };
+        if (typeof obid === 'number'){
+            data.queries.push({
+                refId: DEFAULT_REFID,
+                datasourceId: this.id,
+                queryType: "metricNames",
+                measurementObid: obid
+            })
+        } else {
+            //@TODO: find a way to ask (POST) Backend for /rest/devices/measurements : deviceId
+        }
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
@@ -123,7 +126,6 @@ export class GenericDatasource {
         let queries = [];
         let id = this.id;
 
-        //options.targets.forEach(function (target) {
         for(let i = 0; i < options.targets.length; i++){
             let target = options.targets[i];
 
@@ -144,18 +146,41 @@ export class GenericDatasource {
                 continue;
             }
 
-            let metricsForMsm = await this.findMetricsForMeasurement(target.measurement);
+            //WIP
+            let measurementsList;
+            if (typeof target.measurement === 'number'){
+                measurementsList = [target.measurement];
+            } else {
+                measurementsList = await this.findMeasurementsForDevice(target.device)
+                                            .then(response => response.filter(m => this.checkIfRegex(target.measurement) ?
+                                                                                m.text.match(new RegExp(target.measurement.substring(1).slice(0,-1), "i"))
+                                                                                :
+                                                                                m.text.toLocaleLowerCase().indexOf(target.measurement.toLocaleLowerCase()) !== -1)
+                                                                      .map(m => m.value));
+            }
+            //WIP end
+
+            let metricsList;
+            if (typeof target.metric === 'number'){
+                metricsList =  [target.metric];
+            } else {
+                metricsList = await this.findMetricsForMeasurement(target.measurement)
+                                        .then(response => response.filter(m => this.checkIfRegex(target.metric) ?
+                                                                                m.text.match(new RegExp(target.metric.substring(1).slice(0,-1), "i"))
+                                                                                :
+                                                                                m.text.toLocaleLowerCase().indexOf(target.metric.toLocaleLowerCase()) !== -1)
+                                                                  .map(m => m.value));
+            }
 
             queries.push({
                 refId: target.refId,
                 datasourceId: id,
                 queryType: "metricData",
-                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [target.metric]}],
+                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [...metricsList]}],
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
             });
-        //});
         }
 
         if (queries.length === 0) {

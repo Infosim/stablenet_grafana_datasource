@@ -27,7 +27,7 @@
             <div class="gf-form gf-form--grow">
                 <label class="gf-form-label query-keyword width-9">
                     Device Query:
-                    <info-popover mode="right-normal">The first dropdown menu below will only show devices containing the input of that field. Case sensitive.</info-popover>
+                    <info-popover mode="right-normal">The first dropdown menu below will only show devices containing the input of that field. Case insensitive.</info-popover>
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.deviceQuery"
                        ng-blur="ctrl.onDeviceQueryChange()">
@@ -75,7 +75,7 @@
                 <label class="gf-form-label query-keyword width-9">
                     Metric:
                     <info-popover mode="right-normal">Manual querying by substring and regular expression also possible.
-                        A regular expression must be enclosed in /.../.
+                        A regular expression must be enclosed in /.../. Case insensitive.
                     </info-popover>
                 </label>
                 <gf-form-dropdown model="ctrl.target.metric"
