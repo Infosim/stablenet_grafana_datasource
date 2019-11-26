@@ -7,7 +7,7 @@
  */
 import _ from "lodash";
 
-const BACKEND = '/api/tsdb/query';
+const BACKEND_URL = '/api/tsdb/query';
 const DEFAULT_REFID = 'A';
 
 export class GenericDatasource {
@@ -21,7 +21,7 @@ export class GenericDatasource {
     testDatasource() {
         let options = {
             headers: {'Content-Type': 'application/json'},
-            url: BACKEND,
+            url: BACKEND_URL,
             method: 'POST',
             data: {
                 queries: [
@@ -161,7 +161,6 @@ export class GenericDatasource {
             to: to,
             queries: queries
         };
-
         return this.doRequest(data)
             .then(handleTsdbResponse);
     }
@@ -169,11 +168,10 @@ export class GenericDatasource {
     doRequest(data) {
         let options = {
             headers: {'Content-Type': 'application/json'},
-            url: BACKEND,
+            url: BACKEND_URL,
             method: 'POST',
             data: data
         }
-
         return this.backendSrv.datasourceRequest(options);
     }
 }

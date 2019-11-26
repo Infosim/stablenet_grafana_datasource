@@ -6,15 +6,12 @@
   ~                  www.infosim.net
   -->
 <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true"> <!--maybe we don't want text edit mode?...-->
-
-    <!--Creates a Device/StatLink switch.-->
     <div class="gf-form-inline">
         <div class="gf-form">
             <label class="gf-form-label query-keyword width-9">
                 Query Mode:
                 <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.</info-popover>
             </label>
-            <!--<select class="gf-form-input width-13" ng-model="ctrl.target.mode" ng-options="f as f for f in ['Device', 'Statistic Link']"></select>-->
             <gf-form-dropdown model="ctrl.target.mode"
                               allow-custom="true"
                               lookup-text="true"
@@ -96,7 +93,6 @@
 
     </div>
 
-    <!--If in StatisticLink mode, creates an input field for a link. Clicking outside of the field is sufficient to trigger a change.-->
     <div ng-if="ctrl.target.mode==='Statistic Link'">
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
@@ -109,7 +105,6 @@
         </div>
     </div>
 
-    <!--Creates 3 checkboxes for including Min, Avg and/or Max stats.-->
     <div class="gf-form-group">
 		<div class="gf-form-inline">
             <div class="gf-form">
@@ -129,6 +124,5 @@
             </div>
 		</div>
 	</div>
-
 </query-editor-row>
   

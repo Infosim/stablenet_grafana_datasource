@@ -18,9 +18,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.measurement = this.target.measurement || 'select measurement';
         this.target.metric = this.target.metric || 'select metric';
         this.target.statisticLink = this.target.statisticLink || '';
-        this.target.includeMinStats = this.target.includeMinStats || true;
-        this.target.includeAvgStats = this.target.includeAvgStats || true;
-        this.target.includeMaxStats = this.target.includeMaxStats || true;
+        this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
+        this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true  : this.target.includeAvgStats;
+        this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
     }
 
     getModes(){
