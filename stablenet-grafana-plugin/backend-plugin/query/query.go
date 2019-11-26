@@ -1,3 +1,10 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 package query
 
 import (
@@ -16,6 +23,11 @@ func BuildErrorResult(msg string, refId string) *datasource.QueryResult {
 		Error: msg,
 		RefId: refId,
 	}
+}
+
+type measurementDataRequest struct {
+	MeasurementObid int   `json:"measurementObid"`
+	MetricIds       []int `json:"metricIds"`
 }
 
 type Query struct {
@@ -40,23 +52,19 @@ func (q *Query) GetCustomIntField(name string) (int, error) {
 	return queryJson.Get(name).Int()
 }
 
-func (q *Query) GetCustomIntArray(name string) ([]int, error) {
+func (q *Query) GetMeasurementDataRequest() ([]measurementDataRequest, error) {
 	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while creating json from modelJson: %v", err)
 	}
-	array, err := queryJson.Get(name).Array()
+	if queryJson.Get("requestData").Interface() == nil {
+		return nil, fmt.Errorf("dataRequest not present in the the modelJson")
+	}
+	dataRequestBytes, err := queryJson.Get("requestData").Encode()
+	var result []measurementDataRequest
+	err = json.Unmarshal(dataRequestBytes, &result)
 	if err != nil {
-		return nil, err
-	}
-	result := make([]int, 0, len(array))
-	for _, value := range array {
-		intVal, ok := value.(json.Number)
-		if !ok {
-			return nil, fmt.Errorf("the value %v is not an integer", value)
-		}
-		realInt, _ := intVal.Int64()
-		result = append(result, int(realInt))
+		return nil, fmt.Errorf("requestData field of modelJson has not the expected format: %v", err)
 	}
 	return result, nil
 }

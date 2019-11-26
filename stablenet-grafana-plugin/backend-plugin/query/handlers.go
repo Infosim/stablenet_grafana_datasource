@@ -1,3 +1,10 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 package query
 
 import (
@@ -139,20 +146,20 @@ type metricDataHandler struct {
 }
 
 func (m metricDataHandler) Process(query Query) (*datasource.QueryResult, error) {
-	measurementObid, err := query.GetCustomIntField("measurementObid")
+	requests, err := query.GetMeasurementDataRequest()
 	if err != nil {
-		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
-	}
-	metricIds, err := query.GetCustomIntArray("metricIds")
-	if err != nil {
-		return BuildErrorResult("could not extract metricIds from query", query.RefId), nil
+		return BuildErrorResult(fmt.Sprintf("could not extract measurement requests from query: %v", err), query.RefId), nil
 	}
 
-	series, err := m.fetchMetrics(query, measurementObid, metricIds)
-	if err != nil {
-		e := fmt.Errorf("could not fetch metric data from server: %v", err)
-		m.Logger.Error(e.Error())
-		return nil, e
+	series := make([]*datasource.TimeSeries, 0, 0)
+	for _, request := range requests {
+		requestSeries, err := m.fetchMetrics(query, request.MeasurementObid, request.MetricIds)
+		if err != nil {
+			e := fmt.Errorf("could not fetch metric data from server: %v", err)
+			m.Logger.Error(e.Error())
+			return nil, e
+		}
+		series = append(series, requestSeries...)
 	}
 
 	result := datasource.QueryResult{

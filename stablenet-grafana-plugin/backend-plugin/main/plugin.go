@@ -1,3 +1,10 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 package main
 
 import (

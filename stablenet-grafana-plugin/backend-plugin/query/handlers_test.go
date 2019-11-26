@@ -1,3 +1,10 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 package query
 
 import (
@@ -223,8 +230,7 @@ func TestHandlersClientErrors(t *testing.T) {
 		{name: "device query", handler: deviceHandler{}, json: "{}", wantErr: "could not extract the deviceQuery from the query"},
 		{name: "measurements for device", handler: measurementHandler{}, json: "{}", wantErr: "could not extract deviceObid from the query"},
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
-		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
-		{name: "metric data no metricId", handler: metricDataHandler{}, json: "{\"measurementObid\": 1626}", wantErr: "could not extract metricIds from query"},
+		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the the modelJson"},
 		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
 		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id"},
 	}
@@ -309,7 +315,10 @@ func metricNameHandlerTest() *handlerServerTestCase {
 }
 
 func metricDataHandlerTest() *handlerServerTestCase {
-	queryArgs := []arg{{name: "measurementObid", value: 1111}, {name: "metricIds", value: []int{123}}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
+	requestData := []measurementDataRequest{
+		{MeasurementObid: 1111, MetricIds: []int{123}},
+	}
+	queryArgs := []arg{{name: "requestData", value: requestData}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
 	clientArgs := []arg{{value: 1111}, {value: []int{123}}, {value: time.Time{}}, {value: time.Time{}}}
 	clientReturn, timeSeries := sampleStatisticData()
 	return &handlerServerTestCase{
