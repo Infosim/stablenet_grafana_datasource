@@ -2,6 +2,7 @@ package stablenet
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,7 +30,7 @@ func parseSingleTimestamp(data map[string]string) (map[string]MetricData, error)
 	}
 	result := make(map[string]MetricData)
 	for key, stringVal := range data {
-		if key == timestampKey || key == intervalKey {
+		if key == timestampKey || key == intervalKey || measurementTime == time.Unix(0, 0) {
 			continue
 		}
 		value, formatErr := parseMeasurementData(stringVal)
@@ -82,5 +83,8 @@ func parseInterval(value string) (time.Duration, error) {
 func parseMeasurementData(value string) (float64, error) {
 	value = strings.Replace(value, " ", "", -1)
 	value = strings.Replace(value, ",", "", -1)
+	if value == "" {
+		return math.NaN(), nil
+	}
 	return strconv.ParseFloat(value, 64)
 }
