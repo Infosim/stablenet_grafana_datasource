@@ -24,7 +24,7 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 
 	devices, err := ioutil.ReadFile("./test-data/devices.json")
 	require.NoError(t, err)
-	httpmock.RegisterResponder("GET", "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27", httpmock.NewBytesResponder(200, devices))
+	httpmock.RegisterResponder("GET", "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27&$top=100", httpmock.NewBytesResponder(200, devices))
 	client := NewClient(&ConnectOptions{Port: 5443, Host: "127.0.0.1"})
 	clientImpl := client.(*ClientImpl)
 	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
@@ -33,12 +33,13 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 
 	assert := testify.New(t)
 	assert.Equal(1, httpmock.GetTotalCallCount())
-	assert.Equal(10, len(actual))
-	assert.Equal("newyork.routerlab.infosim.net", actual[7].Name)
+	assert.Equal(10, len(actual.Devices))
+	assert.Equal("newyork.routerlab.infosim.net", actual.Devices[7].Name)
+	assert.True(actual.HasMore)
 }
 
 func TestClientImpl_QueryDevice_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27"
+	url := "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27&$top=100"
 	shouldReturnError := func(client Client) (interface{}, error) {
 		return client.QueryDevices("lab")
 	}

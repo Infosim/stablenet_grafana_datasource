@@ -96,13 +96,13 @@ func (d deviceHandler) Process(q Query) (*datasource.QueryResult, error) {
 	if err != nil {
 		return BuildErrorResult("could not extract the deviceQuery from the query", q.RefId), nil
 	}
-	devices, err := d.SnClient.QueryDevices(deviceQuery)
+	queryResult, err := d.SnClient.QueryDevices(deviceQuery)
 	if err != nil {
 		e := fmt.Errorf("could not retrieve devices from StableNet(R): %v", err)
 		d.Logger.Error(e.Error())
 		return nil, e
 	}
-	return createResponseWithCustomData(devices, q.RefId), nil
+	return createResponseWithCustomData(queryResult, q.RefId), nil
 }
 
 type measurementHandler struct {

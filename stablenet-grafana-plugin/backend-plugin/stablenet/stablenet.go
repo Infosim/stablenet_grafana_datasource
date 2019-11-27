@@ -18,7 +18,7 @@ import (
 )
 
 type Client interface {
-	QueryDevices(string) ([]Device, error)
+	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(int) ([]Measurement, error)
 	FetchMetricsForMeasurement(int) ([]Metric, error)
 	FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)
@@ -47,9 +47,14 @@ func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {
 	return fmt.Errorf("%s: status code: %d, response: %s", msg, resp.StatusCode(), string(resp.Body()))
 }
 
-func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
+type DeviceQueryResult struct {
+	Devices []Device `json:"data"`
+	HasMore bool     `json:"hasMore"`
+}
+
+func (c *ClientImpl) QueryDevices(deviceQuery string) (*DeviceQueryResult, error) {
 	filter := fmt.Sprintf("name ct '%s'", deviceQuery)
-	url := fmt.Sprintf("https://%s:%d/api/1/devices?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
+	url := fmt.Sprintf("https://%s:%d/api/1/devices?$filter=%s&$top=100", c.Host, c.Port, url2.QueryEscape(filter))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", deviceQuery, err)
@@ -57,15 +62,12 @@ func (c *ClientImpl) QueryDevices(deviceQuery string) ([]Device, error) {
 	if resp.StatusCode() != 200 {
 		return nil, c.buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", deviceQuery), resp)
 	}
-	type serverResponse struct {
-		Devices []Device `json:"data"`
-	}
-	var collection serverResponse
-	err = json.Unmarshal(resp.Body(), &collection)
+	var result DeviceQueryResult
+	err = json.Unmarshal(resp.Body(), &result)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
-	return collection.Devices, nil
+	return &result, nil
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {

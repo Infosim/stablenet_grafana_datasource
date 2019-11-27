@@ -274,7 +274,7 @@ func datasourceTestHandlerTest() *handlerServerTestCase {
 
 func deviceHandlerTest() *handlerServerTestCase {
 	args := []arg{{name: "deviceQuery", value: "lab"}}
-	clientReturn := []stablenet.Device{{Name: "london.routerlab", Obid: 1024}, {Name: "berlin.routerlab", Obid: 5055}}
+	clientReturn := stablenet.DeviceQueryResult{Devices: []stablenet.Device{{Name: "london.routerlab", Obid: 1024}, {Name: "berlin.routerlab", Obid: 5055}}}
 	metaJson, _ := json.Marshal(clientReturn)
 	return &handlerServerTestCase{
 		handler:       func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} },
@@ -402,10 +402,11 @@ type mockSnClient struct {
 	mock.Mock
 }
 
-func (m *mockSnClient) QueryDevices(query string) ([]stablenet.Device, error) {
+func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult, error) {
 	args := m.Called(query)
 	if args.Get(0) != nil {
-		return args.Get(0).([]stablenet.Device), args.Error(1)
+		result := &stablenet.DeviceQueryResult{Devices: args.Get(0).([]stablenet.Device)}
+		return result, args.Error(1)
 	}
 	return nil, args.Error(1)
 }
