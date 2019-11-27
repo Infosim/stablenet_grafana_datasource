@@ -127,7 +127,8 @@ func (m metricNameHandler) Process(query Query) (*datasource.QueryResult, error)
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
 	}
-	metrics, err := m.SnClient.FetchMetricsForMeasurement(*measurementObid)
+	filter, _ := query.GetCustomField("filter")
+	metrics, err := m.SnClient.FetchMetricsForMeasurement(*measurementObid, filter)
 	if err != nil {
 		e := fmt.Errorf("could not retrieve metric names from StableNet(R): %v", err)
 		m.Logger.Error(e.Error())

@@ -289,7 +289,7 @@ func measurementHandlerTest() *handlerServerTestCase {
 	var deviceObid = 1024
 	clientReturn := &stablenet.MeasurementQueryResult{
 		Measurements: []stablenet.Measurement{{Name: "london.routerlab Host", Obid: 4362}, {Name: "londen.routerlab Processor", Obid: 2623}},
-		HasMore: true,
+		HasMore:      true,
 	}
 	metaJson, _ := json.Marshal(clientReturn)
 	return &handlerServerTestCase{
@@ -303,7 +303,7 @@ func measurementHandlerTest() *handlerServerTestCase {
 }
 
 func metricNameHandlerTest() *handlerServerTestCase {
-	args := []arg{{name: "measurementObid", value: 111}}
+	args := []arg{{name: "measurementObid", value: 111}, {name: "filter", value: "Host"}}
 	clientReturn := []stablenet.Metric{{Name: "Uptime", Id: 4002}, {Name: "Processes", Id: 2003}}
 	metaJson, _ := json.Marshal(clientReturn)
 	return &handlerServerTestCase{
@@ -422,8 +422,8 @@ func (m *mockSnClient) FetchMeasurementsForDevice(deviceObid *int, nameFilter st
 	return nil, args.Error(1)
 }
 
-func (m *mockSnClient) FetchMetricsForMeasurement(measurementObid int) ([]stablenet.Metric, error) {
-	args := m.Called(measurementObid)
+func (m *mockSnClient) FetchMetricsForMeasurement(measurementObid int, filter string) ([]stablenet.Metric, error) {
+	args := m.Called(measurementObid, filter)
 	if args.Get(0) != nil {
 		return args.Get(0).([]stablenet.Metric), args.Error(1)
 	}

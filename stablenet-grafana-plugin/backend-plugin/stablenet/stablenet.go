@@ -20,7 +20,7 @@ import (
 type Client interface {
 	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
-	FetchMetricsForMeasurement(int) ([]Metric, error)
+	FetchMetricsForMeasurement(int, string) ([]Metric, error)
 	FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)
 }
 
@@ -78,8 +78,8 @@ func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
 func (c *ClientImpl) buildJsonApiUrl(endpoint string, filters ...string) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
 	nonEmpty := make([]string, 0, len(filters))
-	for _, f := range filters{
-		if len(f) > 0{
+	for _, f := range filters {
+		if len(f) > 0 {
 			nonEmpty = append(nonEmpty, f)
 		}
 	}
@@ -92,7 +92,7 @@ func (c *ClientImpl) buildJsonApiUrl(endpoint string, filters ...string) string 
 
 type MeasurementQueryResult struct {
 	Measurements []Measurement `json:"data"`
-	HasMore bool `json:"hasMore"`
+	HasMore      bool          `json:"hasMore"`
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) (*MeasurementQueryResult, error) {
@@ -100,7 +100,7 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) 
 	if deviceObid != nil {
 		deviceFilter = fmt.Sprintf("destDeviceId eq '%d'", *deviceObid)
 	}
-	if len(filter) != 0{
+	if len(filter) != 0 {
 		nameFilter = fmt.Sprintf("name ct '%s'", filter)
 	}
 	url := c.buildJsonApiUrl("measurements", deviceFilter, nameFilter)
@@ -119,8 +119,13 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) 
 	return &result, nil
 }
 
-func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
-	url := fmt.Sprintf("https://%s:%d/api/1/measurements/%d/metrics", c.Host, c.Port, measurementObid)
+func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter string) ([]Metric, error) {
+	var nameFilter string
+	if len(filter) != 0 {
+		nameFilter = fmt.Sprintf("name ct '%s'", filter)
+	}
+	endpoint := fmt.Sprintf("measurements/%d/metrics", measurementObid)
+	url := c.buildJsonApiUrl(endpoint, nameFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metrics for measurement %d failed: %v", measurementObid, err)
