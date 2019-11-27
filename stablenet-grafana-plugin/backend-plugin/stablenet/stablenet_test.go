@@ -19,27 +19,42 @@ import (
 )
 
 func TestClientImpl_QueryDevices(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.Deactivate()
-
 	devices, err := ioutil.ReadFile("./test-data/devices.json")
 	require.NoError(t, err)
-	httpmock.RegisterResponder("GET", "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27&$top=100", httpmock.NewBytesResponder(200, devices))
-	client := NewClient(&ConnectOptions{Port: 5443, Host: "127.0.0.1"})
-	clientImpl := client.(*ClientImpl)
-	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-	actual, err := client.QueryDevices("lab")
-	require.NoError(t, err)
 
-	assert := testify.New(t)
-	assert.Equal(1, httpmock.GetTotalCallCount())
-	assert.Equal(10, len(actual.Devices))
-	assert.Equal("newyork.routerlab.infosim.net", actual.Devices[7].Name)
-	assert.True(actual.HasMore)
+	tests := []struct {
+		name    string
+		filter  string
+		mockUrl string
+	}{
+		{name: "no filter", filter: "", mockUrl: "https://127.0.0.1:5443/api/1/devices?$top=100"},
+		{name: "one filter", filter: "lab", mockUrl: "https://127.0.0.1:5443/api/1/devices?$top=100&$filter=name+ct+%27lab%27"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			httpmock.Activate()
+			defer httpmock.Deactivate()
+			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, devices))
+			client := NewClient(&ConnectOptions{Port: 5443, Host: "127.0.0.1"})
+			clientImpl := client.(*ClientImpl)
+			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+			actual, err := client.QueryDevices(tt.filter)
+			require.NoError(t, err)
+
+			assert := testify.New(t)
+			assert.Equal(1, httpmock.GetTotalCallCount())
+			assert.Equal(10, len(actual.Devices))
+			assert.Equal("newyork.routerlab.infosim.net", actual.Devices[7].Name)
+			assert.True(actual.HasMore)
+			httpmock.Reset()
+		})
+	}
+
 }
 
 func TestClientImpl_QueryDevice_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/devices?$filter=name+ct+%27lab%27&$top=100"
+	url := "https://127.0.0.1:5443/api/1/devices?$top=100&$filter=name+ct+%27lab%27"
 	shouldReturnError := func(client Client) (interface{}, error) {
 		return client.QueryDevices("lab")
 	}
@@ -215,6 +230,30 @@ func TestClientImpl_formatMetricIds(t *testing.T) {
 			client := ClientImpl{}
 			got := client.formatMetricIds(tt.args)
 			testify.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestClientImpl_buildJsonApiUrl(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		filters  []string
+		want     string
+	}{
+		{name: "no filters", endpoint: "devices", filters: []string{}, want: "https://127.0.0.1:5443/api/1/devices?$top=100"},
+		{name: "two filters", endpoint: "measurement/1234/metrics", filters: []string{"destDeviceId eq '1024'", "name ct 'ether'"}, want: "https://127.0.0.1:5443/api/1/measurement/1234/metrics?$top=100&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27ether%27"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &ClientImpl{
+				ConnectOptions: ConnectOptions{
+					Host: "127.0.0.1",
+					Port: 5443,
+				},
+			}
+			got := c.buildJsonApiUrl(tt.endpoint, tt.filters...)
+			require.Equal(t, tt.want, got, "constructed url not correct")
 		})
 	}
 }

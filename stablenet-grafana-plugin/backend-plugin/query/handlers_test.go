@@ -227,7 +227,6 @@ func TestHandlersClientErrors(t *testing.T) {
 		json    string
 		wantErr string
 	}{
-		{name: "device query", handler: deviceHandler{}, json: "{}", wantErr: "could not extract the deviceQuery from the query"},
 		{name: "measurements for device", handler: measurementHandler{}, json: "{}", wantErr: "could not extract deviceObid from the query"},
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
 		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the modelJson"},
@@ -273,8 +272,8 @@ func datasourceTestHandlerTest() *handlerServerTestCase {
 }
 
 func deviceHandlerTest() *handlerServerTestCase {
-	args := []arg{{name: "deviceQuery", value: "lab"}}
-	clientReturn := stablenet.DeviceQueryResult{Devices: []stablenet.Device{{Name: "london.routerlab", Obid: 1024}, {Name: "berlin.routerlab", Obid: 5055}}}
+	args := []arg{{name: "filter", value: "lab"}}
+	clientReturn := &stablenet.DeviceQueryResult{Devices: []stablenet.Device{{Name: "london.routerlab", Obid: 1024}, {Name: "berlin.routerlab", Obid: 5055}}}
 	metaJson, _ := json.Marshal(clientReturn)
 	return &handlerServerTestCase{
 		handler:       func(h *StableNetHandler) Handler { return deviceHandler{StableNetHandler: h} },
@@ -405,7 +404,7 @@ type mockSnClient struct {
 func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult, error) {
 	args := m.Called(query)
 	if args.Get(0) != nil {
-		result := &stablenet.DeviceQueryResult{Devices: args.Get(0).([]stablenet.Device)}
+		result := args.Get(0).(*stablenet.DeviceQueryResult)
 		return result, args.Error(1)
 	}
 	return nil, args.Error(1)

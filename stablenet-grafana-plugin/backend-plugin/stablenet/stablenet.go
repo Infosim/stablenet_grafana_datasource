@@ -52,15 +52,20 @@ type DeviceQueryResult struct {
 	HasMore bool     `json:"hasMore"`
 }
 
-func (c *ClientImpl) QueryDevices(deviceQuery string) (*DeviceQueryResult, error) {
-	filter := fmt.Sprintf("name ct '%s'", deviceQuery)
-	url := fmt.Sprintf("https://%s:%d/api/1/devices?$filter=%s&$top=100", c.Host, c.Port, url2.QueryEscape(filter))
+func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
+	var url string
+	if len(filter) != 0 {
+		filterParam := fmt.Sprintf("name ct '%s'", filter)
+		url = c.buildJsonApiUrl("devices", filterParam)
+	} else {
+		url = c.buildJsonApiUrl("devices")
+	}
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", deviceQuery, err)
+		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", filter, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", deviceQuery), resp)
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", filter), resp)
 	}
 	var result DeviceQueryResult
 	err = json.Unmarshal(resp.Body(), &result)
@@ -68,6 +73,15 @@ func (c *ClientImpl) QueryDevices(deviceQuery string) (*DeviceQueryResult, error
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
 	return &result, nil
+}
+
+func (c *ClientImpl) buildJsonApiUrl(endpoint string, filters ...string) string {
+	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
+	if len(filters) == 0 {
+		return url
+	}
+	filter := "&$filter=" + url2.QueryEscape(strings.Join(filters, " and "))
+	return url + filter
 }
 
 func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {

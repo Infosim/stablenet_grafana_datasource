@@ -92,11 +92,8 @@ type deviceHandler struct {
 }
 
 func (d deviceHandler) Process(q Query) (*datasource.QueryResult, error) {
-	deviceQuery, err := q.GetCustomField("deviceQuery")
-	if err != nil {
-		return BuildErrorResult("could not extract the deviceQuery from the query", q.RefId), nil
-	}
-	queryResult, err := d.SnClient.QueryDevices(deviceQuery)
+	filter, _ := q.GetCustomField("filter")
+	queryResult, err := d.SnClient.QueryDevices(filter)
 	if err != nil {
 		e := fmt.Errorf("could not retrieve devices from StableNet(R): %v", err)
 		d.Logger.Error(e.Error())
