@@ -64,32 +64,48 @@ func TestClientImpl_QueryDevice_Error(t *testing.T) {
 }
 
 func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements?$filter=destDeviceId+eq+%271024%27"
-	httpmock.Activate()
-	defer httpmock.Deactivate()
-
 	rawData, err := ioutil.ReadFile("./test-data/measurements.json")
 	require.NoError(t, err)
-	httpmock.RegisterResponder("GET", url, httpmock.NewBytesResponder(200, rawData))
-	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-	clientImpl := client.(*ClientImpl)
-	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-	actual, err := client.FetchMeasurementsForDevice(1024)
-	require.NoError(t, err)
-	require.Equal(t, 10, len(actual), "number of queried measurements wrong")
-	test := testify.New(t)
-	test.Equal(1587, actual[4].Obid, "obid of fifth measurement wrong")
-	test.Equal("Atomcore Processor: 1 ", actual[4].Name, "name of fifth measurement wrong")
+	deviceId := 1024
+	tests := []struct{
+		name       string
+		deviceObid *int
+		nameFilter string
+		mockUrl    string
+	}{
+		{name: "no filter", deviceObid: nil, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100"},
+		{name: "device filter", deviceObid: &deviceId, nameFilter: "", mockUrl:"https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=destDeviceId+eq+%271024%27"},
+		{name: "name filter", deviceObid:nil, nameFilter:"Host", mockUrl:"https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=name+ct+%27Host%27"},
+		{name: "device and name filter", deviceObid: &deviceId, nameFilter: "Host", mockUrl:"https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"},
+	}
+	for _, tt := range tests{
+	 t.Run(tt.name, func(t *testing.T) {
+		 httpmock.Activate()
+		 defer httpmock.Deactivate()
+		 httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, rawData))
+		 client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+		 clientImpl := client.(*ClientImpl)
+		 httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+		 actual, err := client.FetchMeasurementsForDevice(tt.deviceObid, tt.nameFilter)
+		 require.NoError(t, err)
+		 require.Equal(t, 10, len(actual.Measurements), "number of queried measurements wrong")
+		 test := testify.New(t)
+		 test.Equal(1587, actual.Measurements[4].Obid, "obid of fifth measurement wrong")
+		 test.Equal("Atomcore Processor: 1 ", actual.Measurements[4].Name, "name of fifth measurement wrong")
+		 test.True(actual.HasMore, "hasMore should be true")
+	 })
+	}
 }
 
 func TestClientImpl_FetchMeasurementsForDevice_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements?$filter=destDeviceId+eq+%271024%27"
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"
+	deviceId := 1024
 	shouldReturnError := func(client Client) (interface{}, error) {
-		return client.FetchMeasurementsForDevice(1024)
+		return client.FetchMeasurementsForDevice(&deviceId, "Host")
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, url))
-	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "measurements for device 1024"))
-	t.Run("rest error", errorResponseTest(shouldReturnError, url, "measurements for device 1024"))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
+	t.Run("rest error", errorResponseTest(shouldReturnError, url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
 }
 
 func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {

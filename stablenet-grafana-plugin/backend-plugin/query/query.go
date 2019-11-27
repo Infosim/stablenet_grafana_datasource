@@ -44,12 +44,21 @@ func (q *Query) GetCustomField(name string) (string, error) {
 	return queryJson.Get(name).String()
 }
 
-func (q *Query) GetCustomIntField(name string) (int, error) {
-	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
+func (q *Query) GetCustomIntField(name string) (*int, error) {
+	var object map[string]interface{}
+	err := json.Unmarshal([]byte(q.ModelJson), &object)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return queryJson.Get(name).Int()
+	if _, ok := object[name]; !ok{
+		return nil, fmt.Errorf("value '%s' not present in the modelJson", name)
+	}
+	floatValue, ok := object[name].(float64)
+	if !ok{
+		return nil, fmt.Errorf("value '%s' is supposed to be an int, but was not", name)
+	}
+	intValue := int(floatValue)
+	return &intValue, nil
 }
 
 func (q *Query) GetMeasurementDataRequest() ([]measurementDataRequest, error) {

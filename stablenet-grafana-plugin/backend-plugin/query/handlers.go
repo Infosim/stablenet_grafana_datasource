@@ -107,11 +107,9 @@ type measurementHandler struct {
 }
 
 func (m measurementHandler) Process(query Query) (*datasource.QueryResult, error) {
-	deviceObid, err := query.GetCustomIntField("deviceObid")
-	if err != nil {
-		return BuildErrorResult("could not extract deviceObid from the query", query.RefId), nil
-	}
-	measurements, err := m.SnClient.FetchMeasurementsForDevice(deviceObid)
+	deviceObid, _ := query.GetCustomIntField("deviceObid")
+	measurementFilter, _ := query.GetCustomField("filter")
+	measurements, err := m.SnClient.FetchMeasurementsForDevice(deviceObid, measurementFilter)
 	if err != nil {
 		e := fmt.Errorf("could not fetch measurements from StableNet(R): %v", err)
 		m.Logger.Error(e.Error())
@@ -129,7 +127,7 @@ func (m metricNameHandler) Process(query Query) (*datasource.QueryResult, error)
 	if err != nil {
 		return BuildErrorResult("could not extract measurementObid from query", query.RefId), nil
 	}
-	metrics, err := m.SnClient.FetchMetricsForMeasurement(measurementObid)
+	metrics, err := m.SnClient.FetchMetricsForMeasurement(*measurementObid)
 	if err != nil {
 		e := fmt.Errorf("could not retrieve metric names from StableNet(R): %v", err)
 		m.Logger.Error(e.Error())
@@ -171,7 +169,7 @@ type datasourceTestHandler struct {
 }
 
 func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, error) {
-	_, err := d.SnClient.FetchMeasurementsForDevice(-1)
+	_, err := d.SnClient.FetchMeasurementsForDevice(nil, "")
 	if err != nil {
 		return BuildErrorResult("Cannot login into StableNet(R) with the provided credentials", query.RefId), nil
 	}

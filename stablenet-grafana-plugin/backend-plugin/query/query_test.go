@@ -66,11 +66,11 @@ func TestQuery_GetCustomIntField(t *testing.T) {
 	t.Run("test successful", func(t *testing.T) {
 		actual, err := query.GetCustomIntField("age")
 		require.NoError(t, err)
-		testify.Equal(t, 5, actual)
+		testify.Equal(t, 5, *actual)
 	})
 	t.Run("test error", func(t *testing.T) {
 		_, err := query.GetCustomIntField("birthYear")
-		testify.EqualError(t, err, "invalid value type")
+		testify.EqualError(t, err, "value 'birthYear' not present in the modelJson")
 	})
 }
 
@@ -81,7 +81,7 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 	query := Query{Query: rawquery}
 	t.Run("test successful", func(t *testing.T) {
 		_, err := query.GetCustomIntField("favouriteDish")
-		require.EqualError(t, err, "unexpected EOF")
+		require.EqualError(t, err, "unexpected end of JSON input")
 	})
 }
 

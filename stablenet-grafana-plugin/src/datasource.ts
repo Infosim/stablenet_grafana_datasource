@@ -58,14 +58,14 @@ export class GenericDatasource {
                     refId: DEFAULT_REFID,
                     datasourceId: this.id,   // Required
                     queryType: "devices",
-                    deviceQuery: queryString
+                    filter: queryString
                 }
             ]
         };
 
         return this.doRequest(data)
             .then(result => {
-                return result.data.results.A.meta.map(device => {
+                return result.data.results.A.meta.data.map(device => {
                     return {text: device.name, value: device.obid};
                 })
             });
@@ -82,13 +82,14 @@ export class GenericDatasource {
                     refId: "A",
                     datasourceId: this.id,   // Required
                     queryType: "measurements",
-                    deviceObid: obid
+                    deviceObid: obid,
+                    filter: "Processor"
                 }
             ]
         };
 
         return this.doRequest(data).then(result => {
-            return result.data.results.A.meta.map(measurement => {
+            return result.data.results.A.meta.data.map(measurement => {
                 return {text: measurement.name, value: measurement.obid};
             })
         });

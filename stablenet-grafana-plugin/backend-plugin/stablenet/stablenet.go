@@ -19,7 +19,7 @@ import (
 
 type Client interface {
 	QueryDevices(string) (*DeviceQueryResult, error)
-	FetchMeasurementsForDevice(int) ([]Measurement, error)
+	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
 	FetchMetricsForMeasurement(int) ([]Metric, error)
 	FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)
 }
@@ -77,31 +77,46 @@ func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
 
 func (c *ClientImpl) buildJsonApiUrl(endpoint string, filters ...string) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
-	if len(filters) == 0 {
+	nonEmpty := make([]string, 0, len(filters))
+	for _, f := range filters{
+		if len(f) > 0{
+			nonEmpty = append(nonEmpty, f)
+		}
+	}
+	if len(nonEmpty) == 0 {
 		return url
 	}
-	filter := "&$filter=" + url2.QueryEscape(strings.Join(filters, " and "))
+	filter := "&$filter=" + url2.QueryEscape(strings.Join(nonEmpty, " and "))
 	return url + filter
 }
 
-func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) ([]Measurement, error) {
-	filter := fmt.Sprintf("destDeviceId eq '%d'", deviceObid)
-	url := fmt.Sprintf("https://%s:%d/api/1/measurements?$filter=%s", c.Host, c.Port, url2.QueryEscape(filter))
+type MeasurementQueryResult struct {
+	Measurements []Measurement `json:"data"`
+	HasMore bool `json:"hasMore"`
+}
+
+func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) (*MeasurementQueryResult, error) {
+	var deviceFilter, nameFilter string
+	if deviceObid != nil {
+		deviceFilter = fmt.Sprintf("destDeviceId eq '%d'", *deviceObid)
+	}
+	if len(filter) != 0{
+		nameFilter = fmt.Sprintf("name ct '%s'", filter)
+	}
+	url := c.buildJsonApiUrl("measurements", deviceFilter, nameFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving measurements for device %d failed: %v", deviceObid, err)
+		return nil, fmt.Errorf("retrieving measurements for device filter \"%s\" and name filter \"%s\" failed: %v", deviceFilter, nameFilter, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device %d failed", deviceObid), resp)
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device filter \"%s\" and name filter \"%s\" failed", deviceFilter, nameFilter), resp)
 	}
-	collection := struct {
-		Measurements []Measurement `json:"data"`
-	}{}
-	err = json.Unmarshal(resp.Body(), &collection)
+	var result MeasurementQueryResult
+	err = json.Unmarshal(resp.Body(), &result)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
-	return collection.Measurements, nil
+	return &result, nil
 }
 
 func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {

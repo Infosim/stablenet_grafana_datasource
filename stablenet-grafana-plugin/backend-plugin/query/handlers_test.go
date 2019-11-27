@@ -227,7 +227,6 @@ func TestHandlersClientErrors(t *testing.T) {
 		json    string
 		wantErr string
 	}{
-		{name: "measurements for device", handler: measurementHandler{}, json: "{}", wantErr: "could not extract deviceObid from the query"},
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
 		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the modelJson"},
 		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
@@ -260,12 +259,13 @@ type handlerServerTestCase struct {
 }
 
 func datasourceTestHandlerTest() *handlerServerTestCase {
-	clientReturn := []stablenet.Measurement{{}}
+	clientReturn := &stablenet.MeasurementQueryResult{HasMore: false, Measurements: []stablenet.Measurement{}}
+	var nilInt *int
 	return &handlerServerTestCase{
 		handler:       func(h *StableNetHandler) Handler { return datasourceTestHandler{StableNetHandler: h} },
 		queryArgs:     []arg{},
 		clientMethod:  "FetchMeasurementsForDevice",
-		clientArgs:    []arg{{value: -1}},
+		clientArgs:    []arg{{value: nilInt}, {value: ""}},
 		clientReturn:  clientReturn,
 		successResult: &datasource.QueryResult{},
 	}
@@ -286,14 +286,17 @@ func deviceHandlerTest() *handlerServerTestCase {
 }
 
 func measurementHandlerTest() *handlerServerTestCase {
-	args := []arg{{name: "deviceObid", value: 1024}}
-	clientReturn := []stablenet.Measurement{{Name: "london.routerlab Host", Obid: 4362}, {Name: "londen.routerlab Processor", Obid: 2623}}
+	var deviceObid = 1024
+	clientReturn := &stablenet.MeasurementQueryResult{
+		Measurements: []stablenet.Measurement{{Name: "london.routerlab Host", Obid: 4362}, {Name: "londen.routerlab Processor", Obid: 2623}},
+		HasMore: true,
+	}
 	metaJson, _ := json.Marshal(clientReturn)
 	return &handlerServerTestCase{
 		handler:       func(h *StableNetHandler) Handler { return measurementHandler{StableNetHandler: h} },
-		queryArgs:     args,
+		queryArgs:     []arg{{name: "deviceObid", value: deviceObid}, {name: "filter", value: "o"}},
 		clientMethod:  "FetchMeasurementsForDevice",
-		clientArgs:    args,
+		clientArgs:    []arg{{value: &deviceObid}, {value: "o"}},
 		clientReturn:  clientReturn,
 		successResult: &datasource.QueryResult{MetaJson: string(metaJson), Series: []*datasource.TimeSeries{}},
 	}
@@ -379,7 +382,8 @@ func statisticLinkHandlerTest() *handlerServerTestCase {
 
 func TestDatasourceTestHandler_Process_Error(t *testing.T) {
 	rawHandler, _ := setUpHandlerAndLogReceiver()
-	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", -1).Return(nil, errors.New("login not possible"))
+	var nilInt *int
+	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", nilInt, "").Return(nil, errors.New("login not possible"))
 	handler := datasourceTestHandler{StableNetHandler: rawHandler}
 	result, err := handler.Process(Query{})
 	assert.NoError(t, err, "no error is expected to be thrown")
@@ -410,10 +414,10 @@ func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult,
 	return nil, args.Error(1)
 }
 
-func (m *mockSnClient) FetchMeasurementsForDevice(deviceObid int) ([]stablenet.Measurement, error) {
-	args := m.Called(deviceObid)
+func (m *mockSnClient) FetchMeasurementsForDevice(deviceObid *int, nameFilter string) (*stablenet.MeasurementQueryResult, error) {
+	args := m.Called(deviceObid, nameFilter)
 	if args.Get(0) != nil {
-		return args.Get(0).([]stablenet.Measurement), args.Error(1)
+		return args.Get(0).(*stablenet.MeasurementQueryResult), args.Error(1)
 	}
 	return nil, args.Error(1)
 }
