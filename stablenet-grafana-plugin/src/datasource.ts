@@ -11,7 +11,6 @@ const BACKEND_URL = '/api/tsdb/query';
 const DEFAULT_REFID = 'A';
 
 export class GenericDatasource {
-
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
         this.id = instanceSettings.id;
         this.backendSrv = backendSrv;
@@ -20,7 +19,7 @@ export class GenericDatasource {
 
     testDatasource() {
         let options = {
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             url: BACKEND_URL,
             method: 'POST',
             data: {
@@ -66,14 +65,14 @@ export class GenericDatasource {
         return this.doRequest(data)
             .then(result => {
                 return result.data.results.A.meta.map(device => {
-                    return {text: device.name, value: device.obid};
+                    return { text: device.name, value: device.obid };
                 })
             });
     }
 
     findMeasurementsForDevice(obid) {
         if (obid === "select device") {
-            return [];
+            return Promise.resolve([]);
         }
 
         let data = {
@@ -89,20 +88,20 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(measurement => {
-                return {text: measurement.name, value: measurement.obid};
+                return { text: measurement.name, value: measurement.obid };
             })
         });
     }
 
     findMetricsForMeasurement(obid) {
         if (obid === "select measurement") {
-            return [];
+            return Promise.resolve([]);
         }
 
         let data = {
             queries: []
         };
-        if (typeof obid === 'number'){
+        if (typeof obid === 'number') {
             data.queries.push({
                 refId: DEFAULT_REFID,
                 datasourceId: this.id,
@@ -115,7 +114,7 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
-                return {text: metric.name, value: metric.id};
+                return { text: metric.name, value: metric.id };
             })
         });
     }
@@ -124,15 +123,14 @@ export class GenericDatasource {
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];
-        let id = this.id;
 
-        for(let i = 0; i < options.targets.length; i++){
+        for (let i = 0; i < options.targets.length; i++) {
             let target = options.targets[i];
 
             if (target.mode === "Statistic Link" && target.statisticLink !== "") {
                 queries.push({
                     refId: target.refId,
-                    datasourceId: id,
+                    datasourceId: this.id,
                     queryType: "statisticLink",
                     statisticLink: target.statisticLink,
                     includeMinStats: target.includeMinStats,
@@ -146,37 +144,23 @@ export class GenericDatasource {
                 continue;
             }
 
-            //WIP
-            let measurementsList;
-            if (typeof target.measurement === 'number'){
-                measurementsList = [target.measurement];
-            } else {
-                measurementsList = await this.findMeasurementsForDevice(target.device)
-                                            .then(response => response.filter(m => this.checkIfRegex(target.measurement) ?
-                                                                                m.text.match(new RegExp(target.measurement.substring(1).slice(0,-1), "i"))
-                                                                                :
-                                                                                m.text.toLocaleLowerCase().indexOf(target.measurement.toLocaleLowerCase()) !== -1)
-                                                                      .map(m => m.value));
-            }
-            //WIP end
-
             let metricsList;
-            if (typeof target.metric === 'number'){
-                metricsList =  [target.metric];
+            if (typeof target.metric === 'number') {
+                metricsList = [target.metric];
             } else {
                 metricsList = await this.findMetricsForMeasurement(target.measurement)
-                                        .then(response => response.filter(m => this.checkIfRegex(target.metric) ?
-                                                                                m.text.match(new RegExp(target.metric.substring(1).slice(0,-1), "i"))
-                                                                                :
-                                                                                m.text.toLocaleLowerCase().indexOf(target.metric.toLocaleLowerCase()) !== -1)
-                                                                  .map(m => m.value));
+                    .then(response => response.filter(m => checkIfRegex(target.metric) ?
+                        m.text.match(new RegExp(target.metric.substring(1).slice(0, -1), "i"))
+                        :
+                        m.text.toLocaleLowerCase().indexOf(target.metric.toLocaleLowerCase()) !== -1)
+                        .map(m => m.value));
             }
 
             queries.push({
                 refId: target.refId,
-                datasourceId: id,
+                datasourceId: this.id,
                 queryType: "metricData",
-                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [...metricsList]}],
+                requestData: [{ measurementObid: parseInt(target.measurement), metricIds: [...metricsList] }],
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
@@ -184,7 +168,7 @@ export class GenericDatasource {
         }
 
         if (queries.length === 0) {
-            return {data: []};
+            return { data: [] };
         }
 
         let data = {
@@ -198,24 +182,31 @@ export class GenericDatasource {
 
     doRequest(data) {
         let options = {
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             url: BACKEND_URL,
             method: 'POST',
             data: data
         }
         return this.backendSrv.datasourceRequest(options);
     }
+}
 
-    checkIfRegex(text){
-        return text.charAt(0) === '/' && text.charAt(text.length-1) === '/';
-    }
+export function checkIfRegex(text) {
+    return text.charAt(0) === '/' && text.charAt(text.length - 1) === '/';
+}
+
+export function filterTextValuePair(pair, filterValue){
+    return checkIfRegex(filterValue) ?
+        pair.text.match(new RegExp(filterValue.substring(1).slice(0, -1), "i"))
+        :
+        pair.text.toLocaleLowerCase().indexOf(filterValue.toLocaleLowerCase()) !== -1;
 }
 
 export function handleTsdbResponse(response) {
     const res = [];
     _.forEach(response.data.results, r => {
         _.forEach(r.series, s => {
-            res.push({target: s.name, datapoints: s.points});
+            res.push({ target: s.name, datapoints: s.points });
         });
         _.forEach(r.tables, t => {
             t.type = 'table';

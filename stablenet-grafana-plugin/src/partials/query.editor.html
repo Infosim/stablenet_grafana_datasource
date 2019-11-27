@@ -5,7 +5,7 @@
   ~                  97074 Wuerzburg, Germany
   ~                  www.infosim.net
   -->
-<query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="true"> <!--maybe we don't want text edit mode?...-->
+<query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="false">
     <div class="gf-form-inline">
         <div class="gf-form">
             <label class="gf-form-label query-keyword width-9">
@@ -74,9 +74,8 @@
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-9">
                     Metric:
-                    <info-popover mode="right-normal">Manual querying by substring and regular expression also possible.
-                        A regular expression must be enclosed in /.../. Case insensitive.
-                    </info-popover>
+                    <info-popover mode="right-normal">Query metrics by selection, or manual via a substring or a regular expression. 
+                        Regular expressions must be enclosed between slashes.</info-popover>
                 </label>
                 <gf-form-dropdown model="ctrl.target.metric"
                                   allow-custom="true"

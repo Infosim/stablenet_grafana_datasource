@@ -5,11 +5,10 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import {QueryCtrl} from 'app/plugins/sdk';
+import { QueryCtrl } from 'app/plugins/sdk';
 import './css/query-editor.css!'
 
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
-
     constructor($scope, $injector) {
         super($scope, $injector);
         this.target.mode = this.target.mode || 'Device';
@@ -19,12 +18,15 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.metric = this.target.metric || 'select metric';
         this.target.statisticLink = this.target.statisticLink || '';
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
-        this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true  : this.target.includeAvgStats;
+        this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
+        this.target.deviceStorage = this.target.deviceStorage || 'select device';
+        this.target.measurementStorage = this.target.measurementStorage || 'select measurement';
+        this.target.metricStorage = this.target.metricStorage || 'select metric';
     }
 
-    getModes(){
-        return [{text: 'Device', value:'Device'}, {text:'Statistic Link', value:'Statistic Link'}];
+    getModes() {
+        return [{ text: 'Device', value: 'Device' }, { text: 'Statistic Link', value: 'Statistic Link' }];
     }
 
     onDeviceQueryChange() {
@@ -56,7 +58,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     getMetrics() {
         return this.datasource.findMetricsForMeasurement(this.target.measurement);
     }
-    
+
     onChangeInternal() {
         this.panelCtrl.refresh(); // Asks the panel to refresh data.
     }
