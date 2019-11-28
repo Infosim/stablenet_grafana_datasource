@@ -5,7 +5,7 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { QueryCtrl } from 'app/plugins/sdk';
+import {QueryCtrl} from 'app/plugins/sdk';
 import './css/query-editor.css!'
 
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
@@ -20,13 +20,11 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
-        this.target.deviceStorage = this.target.deviceStorage || 'select device';
-        this.target.measurementStorage = this.target.measurementStorage || 'select measurement';
-        this.target.metricStorage = this.target.metricStorage || 'select metric';
+        this.target.metricRegex = this.target.metricRegex || '.*';
     }
 
     getModes() {
-        return [{ text: 'Device', value: 'Device' }, { text: 'Statistic Link', value: 'Statistic Link' }];
+        return [{text: 'Device', value: 'Device'}, {text: 'Statistic Link', value: 'Statistic Link'}];
     }
 
     onDeviceQueryChange() {
@@ -51,13 +49,39 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onMeasurementChange() {
-        this.target.metric = 'select metric';
-        this.onChangeInternal();
+        this.target.metric = "";
+        this.datasource.findMetricsForMeasurement(this.target.measurement, this.target.refId);
     }
 
     getMetrics() {
-        return this.datasource.findMetricsForMeasurement(this.target.measurement);
+        return JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
     }
+
+    onMetricChange() {
+        let allMetrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
+        for (let i = 0; i < allMetrics.length; i++) {
+            let metric = allMetrics[i];
+            if (metric.value === this.target.metric) {
+                this.target.metricRegex = metric.text;
+            }
+        }
+        this.onChangeInternal();
+    }
+
+    onMetricRegexChange(){
+        let metricsList = [];
+        let allMetrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
+        let regex = new RegExp(this.target.metricRegex, "i");
+        for (let metricIndex = 0; metricIndex < allMetrics.length; metricIndex++) {
+            let metric = allMetrics[metricIndex];
+            if (regex.exec(metric.text)) {
+                metricsList.push(metric.value);
+            }
+        }
+        this.target.metricIds = metricsList;
+        this.onChangeInternal();
+    }
+
 
     onChangeInternal() {
         this.panelCtrl.refresh(); // Asks the panel to refresh data.

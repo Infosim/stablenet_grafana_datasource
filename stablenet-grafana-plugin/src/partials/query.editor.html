@@ -10,7 +10,8 @@
         <div class="gf-form">
             <label class="gf-form-label query-keyword width-9">
                 Query Mode:
-                <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.</info-popover>
+                <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.
+                </info-popover>
             </label>
             <gf-form-dropdown model="ctrl.target.mode"
                               allow-custom="true"
@@ -22,12 +23,14 @@
     </div>
 
     <div ng-if="ctrl.target.mode==='Device'">
-        
+
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
                 <label class="gf-form-label query-keyword width-9">
                     Device Query:
-                    <info-popover mode="right-normal">The first dropdown menu below will only show devices containing the input of that field. Case insensitive.</info-popover>
+                    <info-popover mode="right-normal">The first dropdown menu below will only show devices containing
+                        the input of that field. Case insensitive.
+                    </info-popover>
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.deviceQuery"
                        ng-blur="ctrl.onDeviceQueryChange()">
@@ -50,9 +53,9 @@
             <div class="gf-form gf-form--grow">
                 <div class="gf-form-label gf-form-label--grow"></div>
             </div>
-         </div>   
+        </div>
 
-         <div class="gf-form-inline">
+        <div class="gf-form-inline">
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-9">
                     Measurement:
@@ -72,13 +75,20 @@
 
         <div class="gf-form-inline">
             <div class="gf-form">
+                <label class="gf-form-label query-keyword width-12">
+                    Metric Regex Filter:
+                </label>
+                <input class="gf-form-input" type="text" ng-model="ctrl.target.metricRegex"
+                       ng-blur="ctrl.onMetricRegexChange()">
+            </div>
+            <div class="gf-form">
                 <label class="gf-form-label query-keyword width-9">
-                    Metric:
-                    <info-popover mode="right-normal">Query metrics by selection, or manual via a substring or a regular expression. 
-                        Regular expressions must be enclosed between slashes.</info-popover>
+                    Quick Select:
+                    <info-popover mode="right-normal">Select a single metric to be used as regular expression.
+                    </info-popover>
                 </label>
                 <gf-form-dropdown model="ctrl.target.metric"
-                                  allow-custom="true"
+                                  allow-custom="false"
                                   lookup-text="true"
                                   get-options="ctrl.getMetrics()"
                                   on-change="ctrl.onChangeInternal()"
@@ -99,29 +109,29 @@
                     Link:
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.statisticLink"
-                    spellcheck="false" ng-blur="ctrl.onChangeInternal()">
+                       spellcheck="false" ng-blur="ctrl.onChangeInternal()">
             </div>
         </div>
     </div>
 
     <div class="gf-form-group">
-		<div class="gf-form-inline">
+        <div class="gf-form-inline">
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">Include Min Statistics:</label>
-                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeMinStats" switch-class="max-width-6" 
-                    on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeMinStats" switch-class="max-width-6"
+                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
             </div>
-			<div class="gf-form">
+            <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">Include Avg Statistics:</label>
-                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeAvgStats" switch-class="max-width-6" 
-                    on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeAvgStats" switch-class="max-width-6"
+                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
             </div>
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">Include Max Statistics:</label>
-                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeMaxStats" switch-class="max-width-6" 
-                    on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.includeMaxStats" switch-class="max-width-6"
+                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
             </div>
-		</div>
-	</div>
+        </div>
+    </div>
 </query-editor-row>
   

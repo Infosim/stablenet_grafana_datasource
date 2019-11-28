@@ -19,7 +19,7 @@ export class GenericDatasource {
 
     testDatasource() {
         let options = {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             url: BACKEND_URL,
             method: 'POST',
             data: {
@@ -65,7 +65,7 @@ export class GenericDatasource {
         return this.doRequest(data)
             .then(result => {
                 return result.data.results.A.meta.map(device => {
-                    return { text: device.name, value: device.obid };
+                    return {text: device.name, value: device.obid};
                 })
             });
     }
@@ -88,12 +88,12 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(measurement => {
-                return { text: measurement.name, value: measurement.obid };
+                return {text: measurement.name, value: measurement.obid};
             })
         });
     }
 
-    findMetricsForMeasurement(obid) {
+    findMetricsForMeasurement(obid, refid) {
         if (obid === "select measurement") {
             return Promise.resolve([]);
         }
@@ -111,10 +111,15 @@ export class GenericDatasource {
         } else {
             //@TODO: find a way to ask (POST) Backend for /rest/devices/measurements : deviceId
         }
+        localStorage.setItem(refid + "_metrics", "[]");
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
-                return { text: metric.name, value: metric.id };
+                let loadedMetrics = JSON.parse(localStorage.getItem(refid + "_metrics"));
+                let object = {text: metric.name, value: metric.id};
+                loadedMetrics.push(object);
+                localStorage.setItem(refid + "_metrics", JSON.stringify(loadedMetrics));
+                return object;
             })
         });
     }
@@ -140,27 +145,13 @@ export class GenericDatasource {
                 continue;
             }
 
-            if (!target.metric || target.metric === "select metric") {
-                continue;
-            }
-
-            let metricsList;
-            if (typeof target.metric === 'number') {
-                metricsList = [target.metric];
-            } else {
-                metricsList = await this.findMetricsForMeasurement(target.measurement)
-                    .then(response => response.filter(m => checkIfRegex(target.metric) ?
-                        m.text.match(new RegExp(target.metric.substring(1).slice(0, -1), "i"))
-                        :
-                        m.text.toLocaleLowerCase().indexOf(target.metric.toLocaleLowerCase()) !== -1)
-                        .map(m => m.value));
-            }
+            console.log(target.metricIds);
 
             queries.push({
                 refId: target.refId,
                 datasourceId: this.id,
                 queryType: "metricData",
-                requestData: [{ measurementObid: parseInt(target.measurement), metricIds: [...metricsList] }],
+                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [...target.metricIds]}],
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
@@ -182,7 +173,7 @@ export class GenericDatasource {
 
     doRequest(data) {
         let options = {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             url: BACKEND_URL,
             method: 'POST',
             data: data
@@ -195,7 +186,7 @@ export function checkIfRegex(text) {
     return text.charAt(0) === '/' && text.charAt(text.length - 1) === '/';
 }
 
-export function filterTextValuePair(pair, filterValue){
+export function filterTextValuePair(pair, filterValue) {
     return checkIfRegex(filterValue) ?
         pair.text.match(new RegExp(filterValue.substring(1).slice(0, -1), "i"))
         :
@@ -206,7 +197,7 @@ export function handleTsdbResponse(response) {
     const res = [];
     _.forEach(response.data.results, r => {
         _.forEach(r.series, s => {
-            res.push({ target: s.name, datapoints: s.points });
+            res.push({target: s.name, datapoints: s.points});
         });
         _.forEach(r.tables, t => {
             t.type = 'table';
