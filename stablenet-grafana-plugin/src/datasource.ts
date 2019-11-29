@@ -116,10 +116,9 @@ export class GenericDatasource {
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
                 let loadedMetrics = JSON.parse(localStorage.getItem(refid + "_metrics"));
-                let object = {text: metric.name, value: metric.id};
+                let object = {text: metric.name, value: metric.id, measurementObid: obid};
                 loadedMetrics.push(object);
                 localStorage.setItem(refid + "_metrics", JSON.stringify(loadedMetrics));
-                return object;
             })
         });
     }
@@ -145,13 +144,23 @@ export class GenericDatasource {
                 continue;
             }
 
-            console.log(target.metricIds);
+            if(!target.dataQueries){
+                continue;
+            }
+            let requestData = [];
+            for (const [measurementObid, metricIds] of Object.entries(target.dataQueries)){
+                requestData.push({measurementObid: parseInt(measurementObid), metricIds: metricIds})
+            }
+            if (requestData.length == 0) {
+                continue;
+            }
+            console.log(requestData);
 
             queries.push({
                 refId: target.refId,
                 datasourceId: this.id,
                 queryType: "metricData",
-                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [...target.metricIds]}],
+                requestData: requestData,
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats

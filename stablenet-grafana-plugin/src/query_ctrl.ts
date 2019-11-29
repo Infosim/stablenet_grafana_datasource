@@ -15,12 +15,13 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.deviceQuery = this.target.deviceQuery || '';
         this.target.selectedDevice = this.target.selectedDevice || 'select device';
         this.target.measurement = this.target.measurement || 'select measurement';
-        this.target.metric = this.target.metric || 'select metric';
+        this.target.dataQueries = this.target.dataQueries || [];
         this.target.statisticLink = this.target.statisticLink || '';
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
         this.target.metricRegex = this.target.metricRegex || '.*';
+        this.target.metric = '';
     }
 
     getModes() {
@@ -65,20 +66,24 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
                 this.target.metricRegex = metric.text;
             }
         }
-        this.onChangeInternal();
+        this.onMetricRegexChange();
     }
 
     onMetricRegexChange(){
+        let dataQueries = {};
         let metricsList = [];
         let allMetrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
         let regex = new RegExp(this.target.metricRegex, "i");
         for (let metricIndex = 0; metricIndex < allMetrics.length; metricIndex++) {
             let metric = allMetrics[metricIndex];
             if (regex.exec(metric.text)) {
-                metricsList.push(metric.value);
+                if(!dataQueries[metric.measurementObid]){
+                    dataQueries[metric.measurementObid] = [];
+                }
+                dataQueries[metric.measurementObid].push(metric.value)
             }
         }
-        this.target.metricIds = metricsList;
+        this.target.dataQueries = dataQueries;
         this.onChangeInternal();
     }
 
