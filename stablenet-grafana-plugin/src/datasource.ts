@@ -70,7 +70,7 @@ export class GenericDatasource {
             });
     }
 
-    findMeasurementsForDevice(obid) {
+    findMeasurementsForDevice(obid, refid) {
         if (obid === "select device") {
             return Promise.resolve([]);
         }
@@ -78,7 +78,7 @@ export class GenericDatasource {
         let data = {
             queries: [
                 {
-                    refId: DEFAULT_REFID,
+                    refId: refid,
                     datasourceId: this.id,   // Required
                     queryType: "measurements",
                     deviceObid: obid
@@ -88,7 +88,10 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(measurement => {
-                return {text: measurement.name, value: measurement.obid};
+                let loadedMeasurements = JSON.parse(localStorage.getItem(refid+ "_measurements"));
+                let object = {text: measurement.name, value: measurement.obid};
+                loadedMeasurements.push(object);
+                localStorage.setItem(refid + "_measurements", JSON.stringify(loadedMeasurements));
             })
         });
     }
@@ -111,7 +114,6 @@ export class GenericDatasource {
         } else {
             //@TODO: find a way to ask (POST) Backend for /rest/devices/measurements : deviceId
         }
-        localStorage.setItem(refid + "_metrics", "[]");
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {

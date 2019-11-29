@@ -21,6 +21,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
         this.target.metricRegex = this.target.metricRegex || '.*';
+        this.target.measurementRegex = this.target.measurementRegex || '.*';
         this.target.metric = '';
     }
 
@@ -41,43 +42,66 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
     onDeviceChange() {
         this.target.measurement = 'select measurement';
-        this.target.metric = 'select metric';
-        this.onChangeInternal();
+        this.target.metric = '';
+        localStorage.setItem(this.target.refId + "_measurements", "[]");
+        this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.refId);
     }
 
     getMeasurements() {
-        return this.datasource.findMeasurementsForDevice(this.target.selectedDevice);
+        return JSON.parse(localStorage.getItem(this.target.refId + "_measurements"));
     }
 
     onMeasurementChange() {
-        this.target.metric = "";
-        this.datasource.findMetricsForMeasurement(this.target.measurement, this.target.refId);
+        let allMeasurements = JSON.parse(localStorage.getItem(this.target.refId + "_measurements"));
+        for (let i = 0; i < allMeasurements.length; i++) {
+            let measurement = allMeasurements[i];
+            if (measurement.value === this.target.measurement) {
+                this.target.measurementRegex = measurement.text;
+            }
+        }
+        this.onMeasurementRegexChange();
+    }
+
+    onMeasurementRegexChange() {
+        localStorage.setItem(this.target.refId + "_metrics", "[]");
+        let allMeasurements = JSON.parse(localStorage.getItem(this.target.refId + "_measurements"));
+        let filteredMeasurements = [];
+        let regex = new RegExp(this.target.measurementRegex, "i");
+        for (let measurementIndex = 0; measurementIndex < allMeasurements.length; measurementIndex++) {
+            let measurement = allMeasurements[measurementIndex];
+            if (regex.exec(measurement.text)) {
+                this.datasource.findMetricsForMeasurement(measurement.value, this.target.refId);
+            }
+        }
     }
 
     getMetrics() {
-        return JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
+        let union = {};
+        let metrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
+        for (let i = 0; i < metrics.length; i++) {
+            union[metrics[i].text] = true;
+        }
+        let result = [];
+        for (let [key, value] of Object.entries(union)) {
+            result.push({value: key, text: key})
+        }
+        console.log(result);
+        return result;
     }
 
     onMetricChange() {
-        let allMetrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
-        for (let i = 0; i < allMetrics.length; i++) {
-            let metric = allMetrics[i];
-            if (metric.value === this.target.metric) {
-                this.target.metricRegex = metric.text;
-            }
-        }
+        this.target.metricRegex = this.target.metric;
         this.onMetricRegexChange();
     }
 
-    onMetricRegexChange(){
+    onMetricRegexChange() {
         let dataQueries = {};
-        let metricsList = [];
         let allMetrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
         let regex = new RegExp(this.target.metricRegex, "i");
         for (let metricIndex = 0; metricIndex < allMetrics.length; metricIndex++) {
             let metric = allMetrics[metricIndex];
             if (regex.exec(metric.text)) {
-                if(!dataQueries[metric.measurementObid]){
+                if (!dataQueries[metric.measurementObid]) {
                     dataQueries[metric.measurementObid] = [];
                 }
                 dataQueries[metric.measurementObid].push(metric.value)
