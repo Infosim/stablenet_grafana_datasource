@@ -8,7 +8,7 @@
 <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="false">
     <div class="gf-form-inline">
         <div class="gf-form">
-            <label class="gf-form-label query-keyword width-9">
+            <label class="gf-form-label query-keyword width-13">
                 Query Mode:
                 <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.
                 </info-popover>
@@ -17,7 +17,7 @@
                               allow-custom="true"
                               lookup-text="true"
                               get-options="ctrl.getModes()"
-                              class="width-13">
+                              class="width-10">
             </gf-form-dropdown>
         </div>
     </div>
@@ -25,21 +25,18 @@
     <div ng-if="ctrl.target.mode==='Device'">
 
         <div class="gf-form-inline">
-            <div class="gf-form gf-form--grow">
-                <label class="gf-form-label query-keyword width-9">
+            <div class="gf-form">
+                <label class="gf-form-label query-keyword width-13">
                     Device Query:
-                    <info-popover mode="right-normal">The first dropdown menu below will only show devices containing
+                    <info-popover mode="right-normal">The dropdown menu on the right will only show devices containing
                         the input of that field. Case insensitive.
                     </info-popover>
                 </label>
-                <input class="gf-form-input" type="text" ng-model="ctrl.target.deviceQuery"
+                <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.deviceQuery"
                        ng-blur="ctrl.onDeviceQueryChange()">
             </div>
-        </div>
-
-        <div class="gf-form-inline">
             <div class="gf-form">
-                <label class="gf-form-label query-keyword width-9">
+                <label class="gf-form-label query-keyword width-11">
                     Device:
                 </label>
                 <gf-form-dropdown model="ctrl.target.selectedDevice"
@@ -47,7 +44,7 @@
                                   lookup-text="true"
                                   get-options="ctrl.getDevices()"
                                   on-change="ctrl.onDeviceChange()"
-                                  class="min-width-13">
+                                  class="min-width-19">
                 </gf-form-dropdown>
             </div>
             <div class="gf-form gf-form--grow">
@@ -57,54 +54,37 @@
 
         <div class="gf-form-inline">
             <div class="gf-form">
-                <label class="gf-form-label query-keyword width-14">
-                    Measurement Regex Filter:
+                <label class="gf-form-label query-keyword width-13">
+                    Measurement Filter:
                 </label>
-                <input class="gf-form-input" type="text" ng-model="ctrl.target.measurementRegex"
+                <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.measurementQuery"
                        ng-blur="ctrl.onMeasurementRegexChange()">
             </div>
             <div class="gf-form">
-                <label class="gf-form-label query-keyword width-9">
-                    Quick Select:
+                <label class="gf-form-label query-keyword width-11">
+                    Measurement Select:
                 </label>
                 <gf-form-dropdown model="ctrl.target.measurement"
                                   allow-custom="true"
                                   lookup-text="true"
                                   get-options="ctrl.getMeasurements()"
                                   on-change="ctrl.onMeasurementChange()"
-                                  class="min-width-13">
+                                  class="width-19">
                 </gf-form-dropdown>
             </div>
+            
             <div class="gf-form gf-form--grow">
                 <div class="gf-form-label gf-form-label--grow"></div>
             </div>
         </div>
 
         <div class="gf-form-inline">
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-14">
-                    Metric Regex Filter:
-                </label>
-                <input class="gf-form-input" type="text" ng-model="ctrl.target.metricRegex"
-                       ng-blur="ctrl.onMetricRegexChange()">
+            <div class="gf-form" ng-repeat="metric in ctrl.target.metric">
+                <label class="gf-form-label query-keyword width-11">{{ metric.text }}</label>
+                <gf-form-checkbox class="gf-form" checked="ctrl.target.chosenMetrics[metric.value]" switch-class="max-width-6"
+                                  ></gf-form-checkbox>
             </div>
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-9">
-                    Quick Select:
-                    <info-popover mode="right-normal">Select a single metric to be used as regular expression.
-                    </info-popover>
-                </label>
-                <gf-form-dropdown model="ctrl.target.metric"
-                                  allow-custom="false"
-                                  lookup-text="true"
-                                  get-options="ctrl.getMetrics()"
-                                  on-change="ctrl.onMetricChange()"
-                                  class="min-width-13">
-                </gf-form-dropdown>
-            </div>
-            <div class="gf-form gf-form--grow">
-                <div class="gf-form-label gf-form-label--grow"></div>
-            </div>
+            
         </div>
 
     </div>
@@ -112,7 +92,7 @@
     <div ng-if="ctrl.target.mode==='Statistic Link'">
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
-                <label class="gf-form-label query-keyword width-9">
+                <label class="gf-form-label query-keyword width-13">
                     Link:
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.statisticLink"

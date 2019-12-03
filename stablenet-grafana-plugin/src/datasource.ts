@@ -64,40 +64,47 @@ export class GenericDatasource {
 
         return this.doRequest(data)
             .then(result => {
-                return result.data.results.A.meta.data.map(device => {
+                let res =  result.data.results.A.meta.data.map(device => {
                     return {text: device.name, value: device.obid};
-                })
+                });
+                res.unshift({text: "none", value: -1})
+                return res;
             });
     }
 
-    findMeasurementsForDevice(obid, refid) {
-        if (obid === "select device") {
+    findMeasurementsForDevice(obid, input, refid) {
+        if (obid === "none") {
             return Promise.resolve([]);
         }
 
-        let data = {
-            queries: [
-                {
-                    refId: refid,
-                    datasourceId: this.id,   // Required
-                    queryType: "measurements",
-                    deviceObid: obid
-                }
-            ]
-        };
+        let data = {queries: []};
+
+        if (input === undefined){
+            data.queries.push({
+                refId: refid,
+                datasourceId: this.id,   // Required
+                queryType: "measurements",
+                deviceObid: obid,
+            });
+        } else {
+            data.queries.push({
+                refId: refid,
+                datasourceId: this.id,   // Required
+                queryType: "measurements",
+                deviceObid: obid,
+                filter: input,
+            });
+        }
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.data.map(measurement => {
-                let loadedMeasurements = JSON.parse(localStorage.getItem(refid+ "_measurements"));
-                let object = {text: measurement.name, value: measurement.obid};
-                loadedMeasurements.push(object);
-                localStorage.setItem(refid + "_measurements", JSON.stringify(loadedMeasurements));
+                return {text: measurement.name, value: measurement.obid};
             })
         });
     }
 
     findMetricsForMeasurement(obid, refid) {
-        if (obid === "select measurement") {
+        if (obid === -1) {
             return Promise.resolve([]);
         }
 
@@ -106,7 +113,7 @@ export class GenericDatasource {
         };
         if (typeof obid === 'number') {
             data.queries.push({
-                refId: DEFAULT_REFID,
+                refId: refid,
                 datasourceId: this.id,
                 queryType: "metricNames",
                 measurementObid: obid
@@ -117,10 +124,7 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
-                let loadedMetrics = JSON.parse(localStorage.getItem(refid + "_metrics"));
-                let object = {text: metric.name, value: metric.id, measurementObid: obid};
-                loadedMetrics.push(object);
-                localStorage.setItem(refid + "_metrics", JSON.stringify(loadedMetrics));
+                return {text: metric.name, value: metric.id, measurementObid: obid};
             })
         });
     }

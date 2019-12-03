@@ -13,16 +13,18 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         super($scope, $injector);
         this.target.mode = this.target.mode || 'Device';
         this.target.deviceQuery = this.target.deviceQuery || '';
-        this.target.selectedDevice = this.target.selectedDevice || 'select device';
-        this.target.measurement = this.target.measurement || 'select measurement';
+        this.target.selectedDevice = this.target.selectedDevice || 'none';
+        this.target.measurementQuery = this.target.measurementQuery || '';
+        this.target.measurement = this.target.measurement || '';
         this.target.dataQueries = this.target.dataQueries || [];
         this.target.statisticLink = this.target.statisticLink || '';
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
-        this.target.metricRegex = this.target.metricRegex || '.*';
-        this.target.measurementRegex = this.target.measurementRegex || '.*';
-        this.target.metric = '';
+            this.target.metricRegex = this.target.metricRegex || '.*';
+        this.target.metric = this.target.metric || [];
+        this.target.chosenMetrics = this.target.chosenMetrics || [];
+            this.target.testlist = ["a", "b", "x"]
     }
 
     getModes() {
@@ -30,8 +32,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onDeviceQueryChange() {
-        this.target.selectedDevice = "select device";
-        this.target.measurement = 'select measurement';
+        this.target.selectedDevice = "none";
+        this.target.measurement = 'none';
         this.target.metric = 'select metric';
         this.onChangeInternal();
     }
@@ -41,53 +43,21 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onDeviceChange() {
-        this.target.measurement = 'select measurement';
-        this.target.metric = '';
-        localStorage.setItem(this.target.refId + "_measurements", "[]");
-        this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.refId);
+        this.target.measurement = 'none';
+        this.target.metric = [];
     }
 
     getMeasurements() {
-        return JSON.parse(localStorage.getItem(this.target.refId + "_measurements"));
+        return this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId);
     }
 
-    onMeasurementChange() {
-        let allMeasurements = JSON.parse(localStorage.getItem(this.target.refId + "_measurements"));
-        for (let i = 0; i < allMeasurements.length; i++) {
-            let measurement = allMeasurements[i];
-            if (measurement.value === this.target.measurement) {
-                this.target.measurementRegex = measurement.text;
-            }
-        }
-        this.onMeasurementRegexChange();
+    async onMeasurementChange() {
+        let pizza = await this.datasource.findMetricsForMeasurement(this.target.measurement, this.target.refId);
+        console.log(this.target.metric);
+        pizza.forEach(m => this.target.metric.push(m));
+        this.target.metric.push(this.target.metric.length)
     }
 
-    onMeasurementRegexChange() {
-        localStorage.setItem(this.target.refId + "_metrics", "[]");
-        let allMeasurements = JSON.parse(localStorage.getItem(this.target.refId + "_measurements"));
-        let filteredMeasurements = [];
-        let regex = new RegExp(this.target.measurementRegex, "i");
-        for (let measurementIndex = 0; measurementIndex < allMeasurements.length; measurementIndex++) {
-            let measurement = allMeasurements[measurementIndex];
-            if (regex.exec(measurement.text)) {
-                this.datasource.findMetricsForMeasurement(measurement.value, this.target.refId);
-            }
-        }
-    }
-
-    getMetrics() {
-        let union = {};
-        let metrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
-        for (let i = 0; i < metrics.length; i++) {
-            union[metrics[i].text] = true;
-        }
-        let result = [];
-        for (let [key, value] of Object.entries(union)) {
-            result.push({value: key, text: key})
-        }
-        console.log(result);
-        return Promise.resolve(result);
-    }
 
     onMetricChange() {
         this.target.metricRegex = this.target.metric;
@@ -110,7 +80,6 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.dataQueries = dataQueries;
         this.onChangeInternal();
     }
-
 
     onChangeInternal() {
         this.panelCtrl.refresh(); // Asks the panel to refresh data.
