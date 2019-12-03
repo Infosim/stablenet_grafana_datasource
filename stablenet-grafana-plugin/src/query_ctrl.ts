@@ -15,13 +15,13 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.deviceQuery = this.target.deviceQuery || '';
         this.target.selectedDevice = this.target.selectedDevice || 'none';
         this.target.measurementQuery = this.target.measurementQuery || '';
-        this.target.measurement = this.target.measurement || '';
-        this.target.statisticLink = this.target.statisticLink || '';
+        this.target.selectedMeasurement = this.target.selectedMeasurement || '';
+        this.target.metrics = this.target.metrics || [];
+        this.target.chosenMetrics = this.target.chosenMetrics || {};
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true  : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
-        this.target.metric = this.target.metric || [];
-        this.target.chosenMetrics = this.target.chosenMetrics || {};
+        this.target.statisticLink = this.target.statisticLink || '';
     }
 
     getModes() {
@@ -31,8 +31,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     onDeviceQueryChange() {
         this.target.selectedDevice = "none";
         this.target.measurementQuery = '';
-        this.target.measurement = '';
-        this.target.metric = [];
+        this.target.selectedMeasurement = '';
+        this.target.metrics = [];
         this.target.chosenMetrics = {};
         this.onChangeInternal();
     }
@@ -43,8 +43,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
     onDeviceChange() {
         this.target.measurementQuery = '';
-        this.target.measurement = '';
-        this.target.metric = [];
+        this.target.selectedMeasurement = '';
+        this.target.metrics = [];
         this.target.chosenMetrics = {};
     }
 
@@ -53,14 +53,14 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onMeasurementRegexChange() {
-        this.target.measurement = '';
-        this.target.metric = [];
+        this.target.selectedMeasurement = '';
+        this.target.metrics = [];
         this.target.chosenMetrics = {};
         this.onChangeInternal();
     }
 
     async onMeasurementChange() {
-        this.target.metric = await this.datasource.findMetricsForMeasurement(this.target.measurement, this.target.refId);
+        this.target.metrics = await this.datasource.findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId);
         this.target.chosenMetrics = {};
         this.onChangeInternal();
     }

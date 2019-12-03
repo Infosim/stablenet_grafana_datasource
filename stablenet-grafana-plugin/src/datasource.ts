@@ -111,6 +111,7 @@ export class GenericDatasource {
         let data = {
             queries: []
         };
+
         if (typeof obid === 'number') {
             data.queries.push({
                 refId: refid,
@@ -119,6 +120,7 @@ export class GenericDatasource {
                 measurementObid: obid
             })
         } else {
+            //In case of multiple Measurements, obid might be string. Will see.
             //@TODO: find a way to ask (POST) Backend for /rest/devices/measurements : deviceId
         }
 
@@ -151,7 +153,7 @@ export class GenericDatasource {
             }
 
             if (!target.chosenMetrics){
-                continue;
+                continue;   //otherwise Object.entries() throws exception - in case of 'undefined'
             }
 
             let requestData = [];
@@ -159,7 +161,7 @@ export class GenericDatasource {
             let e = Object.entries(target.chosenMetrics);
 
             if (e.length === 0){
-                continue;
+                continue;   //otherwise loop throws exception
             }
             
             for (let [key, value] of e){
@@ -169,12 +171,12 @@ export class GenericDatasource {
             }
 
             if (ids.length === 0){
-                continue;
+                continue;   //otherwise Go throws exception
             }
 
-            requestData.push({measurementObid: parseInt(target.measurement), metricIds: ids})
+            requestData.push({measurementObid: parseInt(target.selectedMeasurement), metricIds: ids})
 
-            if (requestData.length == 0) {
+            if (requestData.length === 0) {
                 continue;
             }
 
