@@ -153,7 +153,7 @@ export class GenericDatasource {
             }
 
             if (!target.chosenMetrics){
-                continue;   //otherwise Object.entries() throws exception - in case of 'undefined'
+                continue;   //otherwise Object.entries() throws exception - in case of an 'undefined'
             }
 
             let requestData = [];
