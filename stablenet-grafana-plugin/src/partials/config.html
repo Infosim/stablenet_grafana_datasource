@@ -10,7 +10,7 @@
 <div class="gf-form-group max-width-30">
 
     <div class="gf-form">
-        <label class="gf-form-label width-13" ng-click="ctrl.resetSecretKey()">StableNet® Server</label>
+        <label class="gf-form-label width-13">StableNet® Server</label>
         <input type="text" class="gf-form-input max-width-18 gf-form-input--has-help-icon"
                ng-model='ctrl.current.jsonData.snip' placeholder="127.0.0.1">
     </div>
@@ -29,15 +29,9 @@
 
     <div class="gf-form">
         <label class="gf-form-label width-13">Password</label>
-        <label class="gf-form-label width-13" ng-show="ctrl.passExist">Configured</label>
-        <a class="btn btn-secondary gf-form-btn" type="submit" ng-click="ctrl.resetPass()" ng-show="ctrl.passExist">Reset</a>
-        <input type="password" class="gf-form-input" ng-hide="ctrl.passExist" ng-model='ctrl.current.secureJsonData.snpassword' placeholder="stablenet">
-    </div>
-
-    <div class="gf-form">
-        <label class="gf-form-label width-13">Entity Limit</label>
-        <input number="text" class="gf-form-input max-width-18" ng-model='ctrl.current.jsonData.entityLimit' placeholder="1000">
-        <info-popover mode="right-normal">Limits the number of devices and measurements that can be downloaded to the browser.</info-popover>
+        <label class="gf-form-label width-13" ng-show="ctrl.passwordExists">Configured</label>
+        <a class="btn btn-secondary gf-form-btn" type="submit" ng-click="ctrl.resetPassword()" ng-show="ctrl.passwordExists">Reset</a>
+        <input type="password" class="gf-form-input" ng-hide="ctrl.passwordExists" ng-model='ctrl.current.secureJsonData.snpassword'>
     </div>
 
 </div>

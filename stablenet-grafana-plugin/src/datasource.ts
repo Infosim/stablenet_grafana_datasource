@@ -7,11 +7,10 @@
  */
 import _ from "lodash";
 
-const BACKEND = '/api/tsdb/query';
+const BACKEND_URL = '/api/tsdb/query';
 const DEFAULT_REFID = 'A';
 
 export class GenericDatasource {
-
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
         this.id = instanceSettings.id;
         this.backendSrv = backendSrv;
@@ -21,7 +20,7 @@ export class GenericDatasource {
     testDatasource() {
         let options = {
             headers: {'Content-Type': 'application/json'},
-            url: BACKEND,
+            url: BACKEND_URL,
             method: 'POST',
             data: {
                 queries: [
@@ -71,90 +70,106 @@ export class GenericDatasource {
             });
     }
 
-    findMeasurementsForDevice(obid) {
+    findMeasurementsForDevice(obid, refid) {
         if (obid === "select device") {
-            return [];
+            return Promise.resolve([]);
         }
 
         let data = {
             queries: [
                 {
-                    refId: "A",
+                    refId: refid,
                     datasourceId: this.id,   // Required
                     queryType: "measurements",
-                    deviceObid: obid,
-                    filter: "Processor"
+                    deviceObid: obid
                 }
             ]
         };
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.data.map(measurement => {
-                return {text: measurement.name, value: measurement.obid};
+                let loadedMeasurements = JSON.parse(localStorage.getItem(refid+ "_measurements"));
+                let object = {text: measurement.name, value: measurement.obid};
+                loadedMeasurements.push(object);
+                localStorage.setItem(refid + "_measurements", JSON.stringify(loadedMeasurements));
             })
         });
     }
 
-    findMetricsForMeasurement(obid) {
+    findMetricsForMeasurement(obid, refid) {
         if (obid === "select measurement") {
-            return [];
+            return Promise.resolve([]);
         }
 
         let data = {
-            queries: [
-                {
-                    refId: "A",
-                    datasourceId: this.id,
-                    queryType: "metricNames",
-                    measurementObid: parseInt(obid)
-                }
-            ]
+            queries: []
         };
+        if (typeof obid === 'number') {
+            data.queries.push({
+                refId: DEFAULT_REFID,
+                datasourceId: this.id,
+                queryType: "metricNames",
+                measurementObid: obid
+            })
+        } else {
+            //@TODO: find a way to ask (POST) Backend for /rest/devices/measurements : deviceId
+        }
 
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
-                return {text: metric.name, value: metric.id};
+                let loadedMetrics = JSON.parse(localStorage.getItem(refid + "_metrics"));
+                let object = {text: metric.name, value: metric.id, measurementObid: obid};
+                loadedMetrics.push(object);
+                localStorage.setItem(refid + "_metrics", JSON.stringify(loadedMetrics));
             })
         });
     }
 
-    query(options) {
+    async query(options) {
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];
-        let id = this.id;
 
-        options.targets.forEach(function (target) {
+        for (let i = 0; i < options.targets.length; i++) {
+            let target = options.targets[i];
+
             if (target.mode === "Statistic Link" && target.statisticLink !== "") {
                 queries.push({
                     refId: target.refId,
-                    datasourceId: id,
+                    datasourceId: this.id,
                     queryType: "statisticLink",
                     statisticLink: target.statisticLink,
                     includeMinStats: target.includeMinStats,
                     includeAvgStats: target.includeAvgStats,
                     includeMaxStats: target.includeMaxStats
                 });
-                return;
+                continue;
             }
 
-            if (!target.metric || target.metric === "select metric") {
-                return;
+            if(!target.dataQueries){
+                continue;
+            }
+            let requestData = [];
+            for (const [measurementObid, metricIds] of Object.entries(target.dataQueries)){
+                requestData.push({measurementObid: parseInt(measurementObid), metricIds: metricIds})
+            }
+            if (requestData.length == 0) {
+                continue;
             }
 
             queries.push({
                 refId: target.refId,
-                datasourceId: id,
+                datasourceId: this.id,
                 queryType: "metricData",
-                requestData: [{measurementObid: parseInt(target.measurement), metricIds: [target.metric]}],
+                requestData: requestData,
                 includeMinStats: target.includeMinStats,
                 includeAvgStats: target.includeAvgStats,
                 includeMaxStats: target.includeMaxStats
             });
-        });
+        }
 
         if (queries.length === 0) {
-            return [];
+            return { data: [] };
         }
 
         let data = {
@@ -162,21 +177,30 @@ export class GenericDatasource {
             to: to,
             queries: queries
         };
-
-        return this.doRequest(data)
+        return await this.doRequest(data)
             .then(handleTsdbResponse);
     }
 
     doRequest(data) {
         let options = {
             headers: {'Content-Type': 'application/json'},
-            url: BACKEND,
+            url: BACKEND_URL,
             method: 'POST',
             data: data
         }
-
         return this.backendSrv.datasourceRequest(options);
     }
+}
+
+export function checkIfRegex(text) {
+    return text.charAt(0) === '/' && text.charAt(text.length - 1) === '/';
+}
+
+export function filterTextValuePair(pair, filterValue) {
+    return checkIfRegex(filterValue) ?
+        pair.text.match(new RegExp(filterValue.substring(1).slice(0, -1), "i"))
+        :
+        pair.text.toLocaleLowerCase().indexOf(filterValue.toLocaleLowerCase()) !== -1;
 }
 
 export function handleTsdbResponse(response) {

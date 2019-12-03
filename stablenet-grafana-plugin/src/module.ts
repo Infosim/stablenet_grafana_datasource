@@ -10,11 +10,11 @@ import {GenericDatasourceQueryCtrl} from './query_ctrl';
 
 export class GenericConfigCtrl {
   constructor(){
-    this.passExist = this.current.secureJsonFields.snpassword ? true : false;   //false if input is empty, true otherwise
+    this.passwordExists = this.current.secureJsonFields.snpassword ? true : false;
   }
 
-  resetPass(){
-    this.passExist = false;
+  resetPassword(){
+    this.passwordExists = false;
   }
 }
 GenericConfigCtrl.templateUrl = 'partials/config.html';
