@@ -16,15 +16,12 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.selectedDevice = this.target.selectedDevice || 'none';
         this.target.measurementQuery = this.target.measurementQuery || '';
         this.target.measurement = this.target.measurement || '';
-        this.target.dataQueries = this.target.dataQueries || [];
         this.target.statisticLink = this.target.statisticLink || '';
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
-        this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
+        this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true  : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
-            this.target.metricRegex = this.target.metricRegex || '.*';
         this.target.metric = this.target.metric || [];
-        this.target.chosenMetrics = this.target.chosenMetrics || [];
-            this.target.testlist = ["a", "b", "x"]
+        this.target.chosenMetrics = this.target.chosenMetrics || {};
     }
 
     getModes() {
@@ -52,32 +49,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     async onMeasurementChange() {
-        let pizza = await this.datasource.findMetricsForMeasurement(this.target.measurement, this.target.refId);
-        console.log(this.target.metric);
-        pizza.forEach(m => this.target.metric.push(m));
-        this.target.metric.push(this.target.metric.length)
-    }
-
-
-    onMetricChange() {
-        this.target.metricRegex = this.target.metric;
-        this.onMetricRegexChange();
-    }
-
-    onMetricRegexChange() {
-        let dataQueries = {};
-        let allMetrics = JSON.parse(localStorage.getItem(this.target.refId + "_metrics"));
-        let regex = new RegExp(this.target.metricRegex, "i");
-        for (let metricIndex = 0; metricIndex < allMetrics.length; metricIndex++) {
-            let metric = allMetrics[metricIndex];
-            if (regex.exec(metric.text)) {
-                if (!dataQueries[metric.measurementObid]) {
-                    dataQueries[metric.measurementObid] = [];
-                }
-                dataQueries[metric.measurementObid].push(metric.value)
-            }
-        }
-        this.target.dataQueries = dataQueries;
+        this.target.metric = await this.datasource.findMetricsForMeasurement(this.target.measurement, this.target.refId);
+        this.target.chosenMetrics = {};
         this.onChangeInternal();
     }
 

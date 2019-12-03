@@ -150,13 +150,23 @@ export class GenericDatasource {
                 continue;
             }
 
-            if(!target.dataQueries){
+            let requestData = [];
+            let ids = [];
+            let e = [];
+            try {
+                e = Object.entries(target.chosenMetrics);
+            } catch(error) {
+                console.log("Error: " + error);
                 continue;
             }
-            let requestData = [];
-            for (const [measurementObid, metricIds] of Object.entries(target.dataQueries)){
-                requestData.push({measurementObid: parseInt(measurementObid), metricIds: metricIds})
+            for (let [key, value] of e){
+                if (value){
+                    ids.push(parseInt(key));
+                }
             }
+            requestData.push({measurementObid: parseInt(target.measurement), metricIds: ids})
+            console.log(requestData)
+
             if (requestData.length == 0) {
                 continue;
             }

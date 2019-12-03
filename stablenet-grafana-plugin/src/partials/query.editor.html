@@ -82,7 +82,7 @@
             <div class="gf-form" ng-repeat="metric in ctrl.target.metric">
                 <label class="gf-form-label query-keyword width-11">{{ metric.text }}</label>
                 <gf-form-checkbox class="gf-form" checked="ctrl.target.chosenMetrics[metric.value]" switch-class="max-width-6"
-                                  ></gf-form-checkbox>
+                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
             </div>
             
         </div>
