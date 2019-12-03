@@ -86,7 +86,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
             result.push({value: key, text: key})
         }
         console.log(result);
-        return result;
+        return Promise.resolve(result);
     }
 
     onMetricChange() {
