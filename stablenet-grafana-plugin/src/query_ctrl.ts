@@ -30,22 +30,33 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
     onDeviceQueryChange() {
         this.target.selectedDevice = "none";
-        this.target.measurement = 'none';
-        this.target.metric = 'select metric';
+        this.target.measurementQuery = '';
+        this.target.measurement = '';
+        this.target.metric = [];
+        this.target.chosenMetrics = {};
         this.onChangeInternal();
     }
 
     getDevices() {
-        return this.datasource.queryDevices(this.target.deviceQuery);
+        return this.datasource.queryDevices(this.target.deviceQuery, this.target.refId);
     }
 
     onDeviceChange() {
-        this.target.measurement = 'none';
+        this.target.measurementQuery = '';
+        this.target.measurement = '';
         this.target.metric = [];
+        this.target.chosenMetrics = {};
     }
 
     getMeasurements() {
         return this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId);
+    }
+
+    onMeasurementRegexChange() {
+        this.target.measurement = '';
+        this.target.metric = [];
+        this.target.chosenMetrics = {};
+        this.onChangeInternal();
     }
 
     async onMeasurementChange() {

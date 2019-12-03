@@ -50,21 +50,21 @@ export class GenericDatasource {
             });
     }
 
-    queryDevices(queryString) {
+    queryDevices(queryString, refid) {
         let data = {
             queries: [
                 {
-                    refId: DEFAULT_REFID,
+                    refId: refid,
                     datasourceId: this.id,   // Required
                     queryType: "devices",
                     filter: queryString
                 }
             ]
-        };
+        };console.log(data)
 
         return this.doRequest(data)
             .then(result => {
-                let res =  result.data.results.A.meta.data.map(device => {
+                let res =  result.data.results[refid].meta.data.map(device => {
                     return {text: device.name, value: device.obid};
                 });
                 res.unshift({text: "none", value: -1})
@@ -97,7 +97,7 @@ export class GenericDatasource {
         }
 
         return this.doRequest(data).then(result => {
-            return result.data.results.A.meta.data.map(measurement => {
+            return result.data.results[refid].meta.data.map(measurement => {
                 return {text: measurement.name, value: measurement.obid};
             })
         });
@@ -123,7 +123,7 @@ export class GenericDatasource {
         }
 
         return this.doRequest(data).then(result => {
-            return result.data.results.A.meta.map(metric => {
+            return result.data.results[refid].meta.map(metric => {
                 return {text: metric.name, value: metric.id, measurementObid: obid};
             })
         });
@@ -150,22 +150,29 @@ export class GenericDatasource {
                 continue;
             }
 
-            let requestData = [];
-            let ids = [];
-            let e = [];
-            try {
-                e = Object.entries(target.chosenMetrics);
-            } catch(error) {
-                console.log("Error: " + error);
+            if (!target.chosenMetrics){
                 continue;
             }
+
+            let requestData = [];
+            let ids = [];
+            let e = Object.entries(target.chosenMetrics);
+
+            if (e.length === 0){
+                continue;
+            }
+            
             for (let [key, value] of e){
                 if (value){
                     ids.push(parseInt(key));
                 }
             }
+
+            if (ids.length === 0){
+                continue;
+            }
+
             requestData.push({measurementObid: parseInt(target.measurement), metricIds: ids})
-            console.log(requestData)
 
             if (requestData.length == 0) {
                 continue;
