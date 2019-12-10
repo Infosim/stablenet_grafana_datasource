@@ -26,7 +26,7 @@ type Measurement struct {
 
 type Metric struct {
 	Name string `json:"name"`
-	Id   int    `json:"id"`
+	Id   int    `json:"dataId"`
 }
 
 type MetricData struct {

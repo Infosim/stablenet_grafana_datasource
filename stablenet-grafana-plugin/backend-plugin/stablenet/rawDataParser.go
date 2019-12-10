@@ -16,8 +16,8 @@ import (
 	"time"
 )
 
-const timestampKey = "TIMESTAMP"
-const intervalKey = "INTERVAL"
+const timestampKey = "Time"
+const intervalKey = "Interval"
 const timeFormat = "2006-01-02 15:04:05 -0700"
 
 func parseSingleTimestamp(data map[string]string) (map[string]MetricData, error) {
@@ -77,14 +77,9 @@ func getTypeAndKey(key string) (string, func(*MetricData, float64)) {
 var durationRegex = regexp.MustCompile("(\\d+):(\\d\\d):(\\d\\d)")
 
 func parseInterval(value string) (time.Duration, error) {
-	matches := durationRegex.FindAllStringSubmatch(value, 1)
-	if len(matches) != 1 {
-		return 0 * time.Second, fmt.Errorf("the interval \"%s\" did not match the interval regex \"%s\"", value, durationRegex.String())
-	}
-	hours, _ := strconv.Atoi(matches[0][1])
-	minutes, _ := strconv.Atoi(matches[0][2])
-	seconds, _ := strconv.Atoi(matches[0][3])
-	return time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second, nil
+	millis, _ := strconv.Atoi(value)
+		return time.Duration(millis)*time.Millisecond, nil
+	
 }
 
 func parseMeasurementData(value string) (float64, error) {

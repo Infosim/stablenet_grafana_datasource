@@ -133,14 +133,12 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter stri
 	if resp.StatusCode() != 200 {
 		return nil, c.buildStatusError(fmt.Sprintf("retrieving metrics for measurement %d failed", measurementObid), resp)
 	}
-	responseData := struct {
-		ValueOutputs []Metric `json:"valueOutputs"`
-	}{}
+	responseData := make([]Metric, 0, 0)
 	err = json.Unmarshal(resp.Body(), &responseData)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
-	return responseData.ValueOutputs, nil
+	return responseData, nil
 }
 
 func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {

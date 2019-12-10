@@ -126,7 +126,7 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results[refid].meta.map(metric => {
-                return {text: metric.name, value: metric.id, measurementObid: obid};
+                return {text: metric.name, value: metric.dataId, measurementObid: obid};
             })
         });
     }
@@ -152,26 +152,19 @@ export class GenericDatasource {
                 continue;
             }
 
-            if (!target.chosenMetrics){
-                continue;   //otherwise Object.entries() throws exception - in case of an 'undefined'
+            if (!target.chosenMetrics || (Object.entries(target.chosenMetrics).length === 0) 
+                                      || (Object.values(target.chosenMetrics).filter(v => v).length === 0)){
+                continue;
             }
 
             let requestData = [];
             let ids = [];
             let e = Object.entries(target.chosenMetrics);
-
-            if (e.length === 0){
-                continue;   //otherwise loop throws exception
-            }
             
             for (let [key, value] of e){
                 if (value){
                     ids.push(parseInt(key));
                 }
-            }
-
-            if (ids.length === 0){
-                continue;   //otherwise Go throws exception
             }
 
             requestData.push({measurementObid: parseInt(target.selectedMeasurement), metricIds: ids})

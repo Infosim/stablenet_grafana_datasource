@@ -16,12 +16,14 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.selectedDevice = this.target.selectedDevice || 'none';
         this.target.measurementQuery = this.target.measurementQuery || '';
         this.target.selectedMeasurement = this.target.selectedMeasurement || '';
-        this.target.metrics = this.target.metrics || [];
         this.target.chosenMetrics = this.target.chosenMetrics || {};
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
         this.target.statisticLink = this.target.statisticLink || '';
+        this.target.metrics = this.target.metrics || [];
+            //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid), 
+            //but we need the variable to make ng-repeat in query-editor.html (and thus the checkboxes) work
     }
 
     getModes() {
