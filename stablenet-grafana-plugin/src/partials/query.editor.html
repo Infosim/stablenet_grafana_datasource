@@ -63,6 +63,9 @@
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">
                     Measurement Filter:
+                    <info-popover mode="right-normal">The dropdown menu on the right will only show measurements containing
+                        the input of that field. Case insensitive.
+                    </info-popover>
                 </label>
                 <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.measurementQuery"
                        ng-blur="ctrl.onMeasurementRegexChange()">
@@ -92,9 +95,11 @@
         </div>
 
         <div class="gf-form-inline">
-            <label ng-if="!ctrl.target.metrics.length" class="gf-form-label query-keyword width-30" style="padding-left: 150px;">No metrics available!</label>
-            <label ng-if="ctrl.target.metrics.length" class="gf-form-label query-keyword width-11">Metrics:</label>
-            <div class="gf-form" ng-repeat="metric in ctrl.target.metrics">     <!--no ng-if necessary: in case of empty array, displays nothing anyway.-->
+            <div class="gf-form">
+                <label ng-if="!ctrl.target.metrics.length" class="gf-form-label query-keyword width-30" style="padding-left: 150px;">No metrics available!</label>
+                <label ng-if="ctrl.target.metrics.length" class="gf-form-label query-keyword width-11">Metrics:</label>
+            </div>
+            <div class="gf-form" ng-repeat="metric in ctrl.target.metrics">
                 <label class="gf-form-label query-keyword width-11">{{ metric.text }}</label>
                 <gf-form-checkbox class="gf-form" checked="ctrl.target.chosenMetrics[metric.value]" switch-class="max-width-6"
                                   on-change="ctrl.onChangeInternal()"></gf-form-checkbox>

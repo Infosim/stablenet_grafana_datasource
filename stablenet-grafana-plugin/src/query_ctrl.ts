@@ -21,7 +21,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
         this.target.statisticLink = this.target.statisticLink || '';
-        
+
         this.target.metrics = this.target.metrics || [];
             //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid), 
             //but we need the variable to make ng-repeat in query-editor.html (and thus the checkboxes) work
@@ -69,8 +69,8 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.onChangeInternal();
     }
 
-    async onMeasurementChange() {
-        this.target.metrics = await this.datasource.findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId);
+    onMeasurementChange() {
+        this.datasource.findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId).then(res => this.target.metrics = res);
         this.target.chosenMetrics = {};
         this.onChangeInternal();
     }

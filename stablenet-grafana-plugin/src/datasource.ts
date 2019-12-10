@@ -127,8 +127,6 @@ export class GenericDatasource {
     }
 
     async query(options) {
-        console.log(options.targets[0].metrics);
-        console.log(options.targets[0].chosenMetrics);
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];
@@ -164,11 +162,7 @@ export class GenericDatasource {
                 }
             }
 
-            requestData.push({measurementObid: parseInt(target.selectedMeasurement), metricIds: ids})
-
-            if (requestData.length === 0) {
-                continue;
-            }
+            requestData.push({measurementObid: parseInt(target.selectedMeasurement), metricIds: ids});
 
             queries.push({
                 refId: target.refId,
