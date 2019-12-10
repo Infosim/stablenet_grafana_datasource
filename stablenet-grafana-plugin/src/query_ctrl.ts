@@ -21,9 +21,13 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
         this.target.statisticLink = this.target.statisticLink || '';
+        
         this.target.metrics = this.target.metrics || [];
             //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid), 
             //but we need the variable to make ng-repeat in query-editor.html (and thus the checkboxes) work
+        this.target.moreDevices = typeof this.target.moreDevices === 'undefined' ? false : this.target.moreDevices;
+        this.target.moreMeasurements = typeof this.target.moreMeasurements === 'undefined' ? false : this.target.moreMeasurements;
+            //these two do not belong in this.target either, but the ng-ifs in the optional tooltips have to be bound to something
     }
 
     getModes() {
@@ -40,7 +44,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     getDevices() {
-        return this.datasource.queryDevices(this.target.deviceQuery, this.target.refId);
+        let result = this.datasource.queryDevices(this.target.deviceQuery, this.target.refId);
+        result.then(r => this.target.moreDevices = r.hasMore)
+        return result.then(r => r.data);
     }
 
     onDeviceChange() {
@@ -51,7 +57,9 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     getMeasurements() {
-        return this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId);
+        let result = this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId);
+        result.then(r => this.target.moreMeasurements = r.hasMore)
+        return result.then(r => r.data);
     }
 
     onMeasurementRegexChange() {

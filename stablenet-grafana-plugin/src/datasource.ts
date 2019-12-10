@@ -66,8 +66,8 @@ export class GenericDatasource {
                 let res =  result.data.results[refid].meta.data.map(device => {
                     return {text: device.name, value: device.obid};
                 });
-                res.unshift({text: "none", value: -1})
-                return res;
+                res.unshift({text: "none", value: -1});
+                return {data: res, hasMore: result.data.results[refid].meta.hasMore};
             });
     }
 
@@ -96,9 +96,10 @@ export class GenericDatasource {
         }
 
         return this.doRequest(data).then(result => {
-            return result.data.results[refid].meta.data.map(measurement => {
+            let res = result.data.results[refid].meta.data.map(measurement => {
                 return {text: measurement.name, value: measurement.obid};
-            })
+            });
+            return {data: res, hasMore: result.data.results[refid].meta.hasMore};
         });
     }
 
