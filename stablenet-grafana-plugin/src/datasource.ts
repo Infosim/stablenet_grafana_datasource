@@ -118,7 +118,7 @@ export class GenericDatasource {
         return this.doRequest(data).then(result => {
             return result.data.results.A.meta.map(metric => {
                 let loadedMetrics = JSON.parse(localStorage.getItem(refid + "_metrics"));
-                let object = {text: metric.name, value: metric.id, measurementObid: obid};
+                let object = {text: metric.name, value: metric.key, measurementObid: obid};
                 loadedMetrics.push(object);
                 localStorage.setItem(refid + "_metrics", JSON.stringify(loadedMetrics));
             })

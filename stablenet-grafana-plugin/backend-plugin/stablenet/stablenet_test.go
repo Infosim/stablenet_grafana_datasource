@@ -132,11 +132,11 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 3, len(metrics), "number of queried metrics wrong")
 			test := testify.New(t)
-			test.Equal(1000, metrics[0].Id, "id of first metric wrong")
+			test.Equal("SNMP_1000", metrics[0].Key, "Key of first metric wrong")
 			test.Equal("System Users", metrics[0].Name, "name of first metric wrong")
-			test.Equal(1001, metrics[1].Id, "id of first second wrong")
+			test.Equal("SNMP_1001", metrics[1].Key, "Key of first second wrong")
 			test.Equal("System Processes", metrics[1].Name, "name of second metric wrong")
-			test.Equal(1002, metrics[2].Id, "id of third metric wrong")
+			test.Equal("SNMP_1002", metrics[2].Key, "Key of third metric wrong")
 			test.Equal("System Uptime", metrics[2].Name, "name of third metric wrong")
 		})
 	}
@@ -155,17 +155,17 @@ func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
 func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
-	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value0=1&value1=2&value2=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
+	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data")
 	httpmock.Activate()
 	defer httpmock.Deactivate()
 
 	rawData, err := ioutil.ReadFile("./test-data/measurement-raw-data.json")
 	require.NoError(t, err)
-	httpmock.RegisterResponder("GET", url, httpmock.NewBytesResponder(200, rawData))
+	httpmock.RegisterResponder("POST", url, httpmock.NewBytesResponder(200, rawData))
 	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 	clientImpl := client.(*ClientImpl)
 	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-	actual, err := client.FetchDataForMetrics(5555, []int{1, 2, 3}, start, end)
+	actual, err := client.FetchDataForMetrics(5555, []string{"System Processes", "System Users", "System Uptime"}, start, end)
 	require.NoError(t, err)
 	systemProcesses := actual["System Processes"]
 	systemUsers := actual["System Users"]
@@ -192,7 +192,7 @@ func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	end := start.Add(5 * time.Minute)
 	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value0=1&value1=2&value2=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
 	shouldReturnError := func(client Client) (i interface{}, e error) {
-		return client.FetchDataForMetrics(5555, []int{1, 2, 3}, start, end)
+		return client.FetchDataForMetrics(5555, []string{"1", "2", "3"}, start, end)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, url))
 	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "metric data for measurement 5555"))
