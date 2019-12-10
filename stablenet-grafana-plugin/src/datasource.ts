@@ -8,7 +8,6 @@
 import _ from "lodash";
 
 const BACKEND_URL = '/api/tsdb/query';
-const DEFAULT_REFID = 'A';
 
 export class GenericDatasource {
     constructor(instanceSettings, $q, backendSrv, templateSrv) {
@@ -60,7 +59,7 @@ export class GenericDatasource {
                     filter: queryString
                 }
             ]
-        };console.log(data)
+        };
 
         return this.doRequest(data)
             .then(result => {
@@ -112,17 +111,12 @@ export class GenericDatasource {
             queries: []
         };
 
-        if (typeof obid === 'number') {
-            data.queries.push({
-                refId: refid,
-                datasourceId: this.id,
-                queryType: "metricNames",
-                measurementObid: obid
-            })
-        } else {
-            //In case of multiple Measurements, obid might be string. Will see.
-            //@TODO: find a way to ask (POST) Backend for /rest/devices/measurements : deviceId
-        }
+        data.queries.push({
+            refId: refid,
+            datasourceId: this.id,
+            queryType: "metricNames",
+            measurementObid: obid
+        })
 
         return this.doRequest(data).then(result => {
             return result.data.results[refid].meta.map(metric => {
@@ -132,6 +126,8 @@ export class GenericDatasource {
     }
 
     async query(options) {
+        console.log(options.targets[0].metrics);
+        console.log(options.targets[0].chosenMetrics);
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];

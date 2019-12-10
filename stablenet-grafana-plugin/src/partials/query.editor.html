@@ -8,7 +8,7 @@
 <query-editor-row query-ctrl="ctrl" class="generic-datasource-query-row" has-text-edit-mode="false">
     <div class="gf-form-inline">
         <div class="gf-form">
-            <label class="gf-form-label query-keyword width-13">
+            <label class="gf-form-label query-keyword width-11">
                 Query Mode:
                 <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.
                 </info-popover>
@@ -26,8 +26,8 @@
 
         <div class="gf-form-inline">
             <div class="gf-form">
-                <label class="gf-form-label query-keyword width-13">
-                    Device Query:
+                <label class="gf-form-label query-keyword width-11">
+                    Device Filter:
                     <info-popover mode="right-normal">The dropdown menu on the right will only show devices containing
                         the input of that field. Case insensitive.
                     </info-popover>
@@ -54,7 +54,7 @@
 
         <div class="gf-form-inline">
             <div class="gf-form">
-                <label class="gf-form-label query-keyword width-13">
+                <label class="gf-form-label query-keyword width-11">
                     Measurement Filter:
                 </label>
                 <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.measurementQuery"
@@ -78,7 +78,9 @@
         </div>
 
         <div class="gf-form-inline">
-            <div class="gf-form" ng-repeat="metric in ctrl.target.metrics">
+            <label ng-if="!ctrl.target.metrics.length" class="gf-form-label query-keyword width-30" style="padding-left: 150px;">No metrics available!</label>
+            <label ng-if="ctrl.target.metrics.length" class="gf-form-label query-keyword width-11">Metrics:</label>
+            <div class="gf-form" ng-repeat="metric in ctrl.target.metrics">     <!--no ng-if necessary: in case of empty array, displays nothing anyway.-->
                 <label class="gf-form-label query-keyword width-11">{{ metric.text }}</label>
                 <gf-form-checkbox class="gf-form" checked="ctrl.target.chosenMetrics[metric.value]" switch-class="max-width-6"
                                   on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
@@ -91,7 +93,7 @@
     <div ng-if="ctrl.target.mode==='Statistic Link'">
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
-                <label class="gf-form-label query-keyword width-13">
+                <label class="gf-form-label query-keyword width-11">
                     Link:
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.statisticLink"
