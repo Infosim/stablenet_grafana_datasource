@@ -185,7 +185,7 @@ export class GenericDatasource {
             queries: queries
         };
         return await this.doRequest(data)
-            .then(handleTsdbResponse);
+            .then(res => handleTsdbResponse(res, options.targets));
     }
 
     doRequest(data) {
@@ -210,11 +210,20 @@ export function filterTextValuePair(pair, filterValue) {
         pair.text.toLocaleLowerCase().indexOf(filterValue.toLocaleLowerCase()) !== -1;
 }
 
-export function handleTsdbResponse(response) {
+export function handleTsdbResponse(response, targets) {
     const res = [];
+    let seen = new Set();
+    const metrics = targets.flatMap(t => t.metrics)
+                            .filter(m => {
+                                const duplicate = seen.has(m.value);
+                                seen.add(m.value);
+                                return !duplicate;
+                            });
     _.forEach(response.data.results, r => {
         _.forEach(r.series, s => {
             res.push({target: s.name, datapoints: s.points});
+            let metric = metrics.filter(m => m.value === s.name)[0];
+            //res.push({target: metric.text, datapoints: s.points});
         });
         _.forEach(r.tables, t => {
             t.type = 'table';
