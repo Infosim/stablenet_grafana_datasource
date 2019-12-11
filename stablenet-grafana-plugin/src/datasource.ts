@@ -121,7 +121,7 @@ export class GenericDatasource {
 
         return this.doRequest(data).then(result => {
             return result.data.results[refid].meta.map(metric => {
-                return {text: metric.name, value: metric.dataId, measurementObid: obid};
+                return {text: metric.name, value: metric.key, measurementObid: obid};
             })
         });
     }
