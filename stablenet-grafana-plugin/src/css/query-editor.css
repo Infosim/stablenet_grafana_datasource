@@ -8,3 +8,7 @@
 .generic-datasource-query-row .query-keyword {
   width: 75px;
 }
+
+.snwidth > label {
+  width: 30px!important;
+}

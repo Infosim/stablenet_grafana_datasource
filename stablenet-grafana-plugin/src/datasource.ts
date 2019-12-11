@@ -158,11 +158,12 @@ export class GenericDatasource {
             
             for (let [key, value] of e){
                 if (value){
-                    keys.push(key);
+                    //@TODO: cross-reference name with target.metrics
+                    keys.push({key: key, name: "pizza" + key});
                 }
             }
 
-            requestData.push({measurementObid: parseInt(target.selectedMeasurement), keys: keys});
+            requestData.push({measurementObid: parseInt(target.selectedMeasurement), metrics: keys});
 
             queries.push({
                 refId: target.refId,
@@ -185,7 +186,7 @@ export class GenericDatasource {
             queries: queries
         };
         return await this.doRequest(data)
-            .then(res => handleTsdbResponse(res, options.targets));
+            .then(handleTsdbResponse);
     }
 
     doRequest(data) {
@@ -210,20 +211,11 @@ export function filterTextValuePair(pair, filterValue) {
         pair.text.toLocaleLowerCase().indexOf(filterValue.toLocaleLowerCase()) !== -1;
 }
 
-export function handleTsdbResponse(response, targets) {
+export function handleTsdbResponse(response) {
     const res = [];
-    let seen = new Set();
-    const metrics = targets.flatMap(t => t.metrics)
-                            .filter(m => {
-                                const duplicate = seen.has(m.value);
-                                seen.add(m.value);
-                                return !duplicate;
-                            });
     _.forEach(response.data.results, r => {
         _.forEach(r.series, s => {
             res.push({target: s.name, datapoints: s.points});
-            let metric = metrics.filter(m => m.value === s.name)[0];
-            //res.push({target: metric.text, datapoints: s.points});
         });
         _.forEach(r.tables, t => {
             t.type = 'table';
