@@ -9,6 +9,18 @@
   width: 75px;
 }
 
-.snwidth > label {
+.sn-checkbox-width > label {
   width: 30px!important;
+}
+
+.sn-single-metric-label{
+  width: 223px!important;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sn-indented-label {
+  float: left;
+  margin-left: 415px!important
 }

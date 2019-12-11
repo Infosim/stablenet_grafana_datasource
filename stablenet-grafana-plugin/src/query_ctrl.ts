@@ -17,6 +17,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.measurementQuery = this.target.measurementQuery || '';
         this.target.selectedMeasurement = this.target.selectedMeasurement || '';
         this.target.chosenMetrics = this.target.chosenMetrics || {};
+        this.target.metricPrefix = this.target.metricPrefix || '';
         this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
@@ -37,6 +38,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.selectedDevice = "none";
         this.target.measurementQuery = '';
         this.target.selectedMeasurement = '';
+        this.target.metricPrefix = '';
         this.target.metrics = [];
         this.target.chosenMetrics = {};
         this.onChangeInternal();
@@ -53,6 +55,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     onDeviceChange() {
         this.target.measurementQuery = '';
         this.target.selectedMeasurement = '';
+        this.target.metricPrefix = '';
         this.target.metrics = [];
         this.target.chosenMetrics = {};
     }
