@@ -8,6 +8,7 @@
 package query
 
 import (
+	"backend-plugin/stablenet"
 	"encoding/json"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	testify "github.com/stretchr/testify/assert"
@@ -86,9 +87,11 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 }
 
 func TestQuery_GetMeasurementDataRequest(t *testing.T) {
+	metricsRequest1 := []stablenet.Metric{{Name: "Storage", Key: "5"}, {Name: "Free Storage", Key: "4"}, {Name: "Free Storage (%)", Key: "7"}}
+	metricsRequest2 := []stablenet.Metric{{Name: "Uptime", Key: "26"}, {Name: "Users", Key: "24"}}
 	data := []measurementDataRequest{
-		{MeasurementObid: 1234, MetricKeys: []string{"5", "4", "7"}},
-		{MeasurementObid: 6747, MetricKeys: []string{"26", "24"}},
+		{MeasurementObid: 1234, Metrics:metricsRequest(metricsRequest1)},
+		{MeasurementObid: 6747, Metrics:metricsRequest(metricsRequest2)},
 	}
 	jsonBytes, _ := json.Marshal(data)
 	rawquery := datasource.Query{
@@ -145,7 +148,8 @@ func TestStableNetHandler_fetchMetrics(t *testing.T) {
 				Query: datasource.Query{ModelJson: string(jsonQuery)},
 			}
 			rawHandler.SnClient.(*mockSnClient).On("FetchDataForMetrics", 1024, []string{"123"}, time.Time{}, time.Time{}).Return(statisticResult, nil)
-			actual, err := rawHandler.fetchMetrics(query, 1024, []string{"123"})
+			metricsReq := []stablenet.Metric{{Name: "System Uptime", Key: "123"}}
+			actual, err := rawHandler.fetchMetrics(query, 1024, metricsRequest(metricsReq))
 			require.NoError(t, err, "no error expected")
 			compareTimeSeries(t, tt.want, actual)
 		})
