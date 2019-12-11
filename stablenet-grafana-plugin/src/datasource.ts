@@ -132,7 +132,7 @@ export class GenericDatasource {
         let queries = [];
 
         for (let i = 0; i < options.targets.length; i++) {
-            let target = options.targets[i];
+            let target = options.targets[i];console.log(target)
 
             if (target.mode === "Statistic Link" && target.statisticLink !== "") {
                 queries.push({
@@ -158,8 +158,9 @@ export class GenericDatasource {
             
             for (let [key, value] of e){
                 if (value){
+                    let text = target.metrics.filter(m => m.value === key)[0].text;
                     //@TODO: cross-reference name with target.metrics
-                    keys.push({key: key, name: "pizza" + key});
+                    keys.push({key: key, name: text});
                 }
             }
 
