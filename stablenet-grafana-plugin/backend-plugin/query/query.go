@@ -26,8 +26,26 @@ func BuildErrorResult(msg string, refId string) *datasource.QueryResult {
 }
 
 type measurementDataRequest struct {
-	MeasurementObid int      `json:"measurementObid"`
-	MetricKeys      []string `json:"keys"`
+	MeasurementObid int            `json:"measurementObid"`
+	Metrics         metricsRequest `json:"metrics"`
+}
+
+type metricsRequest []stablenet.Metric
+
+func (m metricsRequest) metricKeys() []string {
+	result := make([]string, 0, len(m))
+	for _, metric := range m {
+		result = append(result, metric.Key)
+	}
+	return result
+}
+
+func (m metricsRequest) keyNameMap() map[string]string{
+	result := make(map[string]string)
+	for _, metric := range m{
+		result[metric.Key] = metric.Name
+	}
+	return result
 }
 
 type Query struct {
@@ -110,8 +128,8 @@ type StableNetHandler struct {
 	Logger   hclog.Logger
 }
 
-func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metricKeys []string) ([]*datasource.TimeSeries, error) {
-	data, err := s.SnClient.FetchDataForMetrics(measurementObid, metricKeys, query.StartTime, query.EndTime)
+func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metrics metricsRequest) ([]*datasource.TimeSeries, error) {
+	data, err := s.SnClient.FetchDataForMetrics(measurementObid, metrics.metricKeys(), query.StartTime, query.EndTime)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
@@ -121,19 +139,20 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metric
 	}
 	sort.Strings(keys)
 	result := make([]*datasource.TimeSeries, 0, len(data))
-	for _, name := range keys {
-		series := data[name]
+	names := metrics.keyNameMap()
+	for _, key := range keys {
+		series := data[key]
 		maxTimeSeries := &datasource.TimeSeries{
 			Points: series.MaxValues(),
-			Name:   "Max " + name,
+			Name:   "Max " + names[key],
 		}
 		minTimeSeries := &datasource.TimeSeries{
 			Points: series.MinValues(),
-			Name:   "Min " + name,
+			Name:   "Min " + names[key],
 		}
 		avgTimeSeries := &datasource.TimeSeries{
 			Points: series.AvgValues(),
-			Name:   "Avg " + name,
+			Name:   "Avg " + names[key],
 		}
 		if query.includeMinStats() {
 			result = append(result, minTimeSeries)

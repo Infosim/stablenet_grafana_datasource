@@ -317,8 +317,9 @@ func metricNameHandlerTest() *handlerServerTestCase {
 }
 
 func metricDataHandlerTest() *handlerServerTestCase {
+	metricReq := []stablenet.Metric{{Name: "System Uptime", Key: "123"}}
 	requestData := []measurementDataRequest{
-		{MeasurementObid: 1111, MetricKeys: []string{"123"}},
+		{MeasurementObid: 1111, Metrics: metricsRequest(metricReq)},
 	}
 	queryArgs := []arg{{name: "requestData", value: requestData}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
 	clientArgs := []arg{{value: 1111}, {value: []string{"123"}}, {value: time.Time{}}, {value: time.Time{}}}
@@ -350,7 +351,7 @@ func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource
 		Max:      30,
 		Avg:      25,
 	}
-	dataSeries := map[string]stablenet.MetricDataSeries{"System Uptime": {md1, md2}}
+	dataSeries := map[string]stablenet.MetricDataSeries{"123": {md1, md2}}
 	maxSeries := &datasource.TimeSeries{
 		Name:   "Max System Uptime",
 		Points: []*datasource.Point{{Timestamp: now.UnixNano() / int64(time.Millisecond), Value: 10}, {Timestamp: then.UnixNano() / int64(time.Millisecond), Value: 30}},
