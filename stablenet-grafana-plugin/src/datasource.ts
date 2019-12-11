@@ -151,7 +151,7 @@ export class GenericDatasource {
             }
             let requestData = [];
             for (const [measurementObid, metricIds] of Object.entries(target.dataQueries)){
-                requestData.push({measurementObid: parseInt(measurementObid), metricIds: metricIds})
+                requestData.push({measurementObid: parseInt(measurementObid), keys: metricIds})
             }
             if (requestData.length == 0) {
                 continue;
