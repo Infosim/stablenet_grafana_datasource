@@ -124,7 +124,7 @@ func TestQuery_GetMeasurementDataRequest_Error(t *testing.T) {
 }
 
 func TestStableNetHandler_fetchMetrics(t *testing.T) {
-	statisicResult, series := sampleStatisticData()
+	statisticResult, series := sampleStatisticData()
 	tests := []struct {
 		name            string
 		includeMinStats bool
@@ -144,7 +144,7 @@ func TestStableNetHandler_fetchMetrics(t *testing.T) {
 			query := Query{
 				Query: datasource.Query{ModelJson: string(jsonQuery)},
 			}
-			rawHandler.SnClient.(*mockSnClient).On("FetchDataForMetrics", 1024, []int{123}, time.Time{}, time.Time{}).Return(statisicResult, nil)
+			rawHandler.SnClient.(*mockSnClient).On("FetchDataForMetrics", 1024, []string{"123"}, time.Time{}, time.Time{}).Return(statisticResult, nil)
 			actual, err := rawHandler.fetchMetrics(query, 1024, []string{"123"})
 			require.NoError(t, err, "no error expected")
 			compareTimeSeries(t, tt.want, actual)

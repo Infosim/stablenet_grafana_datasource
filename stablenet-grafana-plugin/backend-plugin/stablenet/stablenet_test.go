@@ -14,6 +14,7 @@ import (
 	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 )
@@ -58,9 +59,9 @@ func TestClientImpl_QueryDevice_Error(t *testing.T) {
 	shouldReturnError := func(client Client) (interface{}, error) {
 		return client.QueryDevices("lab")
 	}
-	t.Run("json error", invalidJsonTest(shouldReturnError, url))
-	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "devices matching query \"lab\""))
-	t.Run("rest error", errorResponseTest(shouldReturnError, url, "devices matching query \"lab\""))
+	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "devices matching query \"lab\""))
+	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "devices matching query \"lab\""))
 }
 
 func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
@@ -103,9 +104,9 @@ func TestClientImpl_FetchMeasurementsForDevice_Error(t *testing.T) {
 	shouldReturnError := func(client Client) (interface{}, error) {
 		return client.FetchMeasurementsForDevice(&deviceId, "Host")
 	}
-	t.Run("json error", invalidJsonTest(shouldReturnError, url))
-	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
-	t.Run("rest error", errorResponseTest(shouldReturnError, url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
+	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
+	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
 }
 
 func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
@@ -147,9 +148,9 @@ func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
 	shouldReturnError := func(client Client) (i interface{}, e error) {
 		return client.FetchMetricsForMeasurement(1643, "Processor")
 	}
-	t.Run("json error", invalidJsonTest(shouldReturnError, url))
-	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "metrics for measurement 1643"))
-	t.Run("rest error", errorResponseTest(shouldReturnError, url, "metrics for measurement 1643"))
+	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "metrics for measurement 1643"))
+	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "metrics for measurement 1643"))
 }
 
 func TestClientImpl_FetchDataForMetrics(t *testing.T) {
@@ -177,63 +178,66 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	assert.Equal(3, len(actual), "number of downloaded metrics")
 
 	var systemUptimeAvg = []*datasource.Point{
-		{Timestamp: 1573815483000, Value: 0.207},
-		{Timestamp: 1573815783000, Value: 0.210},
-		{Timestamp: 1573816083000, Value: 0.214},
-		{Timestamp: 1573816383000, Value: 0.217},
-		{Timestamp: 1573816683000, Value: 0.221},
-		{Timestamp: 1573816983000, Value: 0.224},
-		{Timestamp: 1573817283000, Value: 0.228}}
+		{Timestamp: 1574839083813, Value: 0.207},
+		{Timestamp: 1574839383813, Value: 0.210},
+		{Timestamp: 1574839683813, Value: 0.214},
+		{Timestamp: 1574839983813, Value: 0.217},
+		{Timestamp: 1574840283813, Value: 0.221},
+		{Timestamp: 1574840583813, Value: 0.224},
+		{Timestamp: 1574840883813, Value: 0.228}}
 	assert.Equal(systemUptimeAvg, systemUptime.AvgValues(), "system uptime data")
 }
 
 func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
-	url := fmt.Sprintf("https://127.0.0.1:5443/StatisticServlet?stat=1010&type=json&login=infosim,stablenet&id=5555&start=%d&end=%d&value0=1&value1=2&value2=3", start.UnixNano()/int64(time.Millisecond), end.UnixNano()/int64(time.Millisecond))
+	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data?top=-1")
 	shouldReturnError := func(client Client) (i interface{}, e error) {
 		return client.FetchDataForMetrics(5555, []string{"1", "2", "3"}, start, end)
 	}
-	t.Run("json error", invalidJsonTest(shouldReturnError, url))
-	t.Run("status error", wrongStatusResponseTest(shouldReturnError, url, "metric data for measurement 5555"))
-	t.Run("rest error", errorResponseTest(shouldReturnError, url, "metric data for measurement 5555"))
+	t.Run("json error", invalidJsonTest(shouldReturnError, "POST", url))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "POST", url, "metric data for measurement 5555"))
+	t.Run("rest error", errorResponseTest(shouldReturnError, "POST", url, "metric data for measurement 5555"))
 }
 
-func invalidJsonTest(shouldReturnError func(Client) (interface{}, error), url string) func(*testing.T) {
+func invalidJsonTest(shouldReturnError func(Client) (interface{}, error), method string, url string) func(*testing.T) {
 	return func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()
 
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "<>"))
+		httpmock.RegisterResponder(method, url, httpmock.NewStringResponder(200, "<>"))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 		clientImpl := client.(*ClientImpl)
 		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-		_, err := shouldReturnError(client)
+		result, err := shouldReturnError(client)
+		testify.Nil(t, result, "the result should be nil")
 		require.EqualError(t, err, "could not unmarshal json: invalid character '<' looking for beginning of value", "error message wrong")
 	}
 }
 
-func errorResponseTest(shouldReturnError func(Client) (interface{}, error), url string, msg string) func(*testing.T) {
+func errorResponseTest(shouldReturnError func(Client) (interface{}, error), method string, url string, msg string) func(*testing.T) {
 	return func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()
 
-		httpmock.RegisterResponder("GET", url, httpmock.NewErrorResponder(fmt.Errorf("custom error")))
+		httpmock.RegisterResponder(method, url, httpmock.NewErrorResponder(fmt.Errorf("custom error")))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 		clientImpl := client.(*ClientImpl)
 		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
 		_, err := shouldReturnError(client)
-		wantErr := fmt.Sprintf("retrieving %s failed: Get %s: custom error", msg, url)
+		capitalizedMethod := []byte(strings.ToLower(method))
+		capitalizedMethod[0] = byte(method[0])
+		wantErr := fmt.Sprintf("retrieving %s failed: %s %s: custom error", msg, capitalizedMethod, url)
 		require.EqualError(t, err, wantErr, "error message wrong")
 	}
 }
 
-func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error), url string, msg string) func(*testing.T) {
+func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error), method string, url string, msg string) func(*testing.T) {
 	return func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()
 
-		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(404, "entity not found"))
+		httpmock.RegisterResponder(method, url, httpmock.NewStringResponder(404, "entity not found"))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 		clientImpl := client.(*ClientImpl)
 		httpmock.ActivateNonDefault(clientImpl.client.GetClient())

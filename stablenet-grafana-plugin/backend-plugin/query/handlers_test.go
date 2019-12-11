@@ -194,7 +194,7 @@ func TestHandlersServerErrors(t *testing.T) {
 		{name: "measurement query", handlerServerTestCase: measurementHandlerTest(), wantErr: "could not fetch measurements from StableNet(R)"},
 		{name: "metric query", handlerServerTestCase: metricNameHandlerTest(), wantErr: "could not retrieve metric names from StableNet(R)"},
 		{name: "metric data", handlerServerTestCase: metricDataHandlerTest(), wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
-		{name: "statistic link", handlerServerTestCase: statisticLinkHandlerTest(), wantErr: "could not fetch data for statistic link from server: could not retrieve metrics from StableNet(R)"},
+		//{name: "statistic link", handlerServerTestCase: statisticLinkHandlerTest(), wantErr: "could not fetch data for statistic link from server: could not retrieve metrics from StableNet(R)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
