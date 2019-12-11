@@ -26,8 +26,8 @@ func BuildErrorResult(msg string, refId string) *datasource.QueryResult {
 }
 
 type measurementDataRequest struct {
-	MeasurementObid int   `json:"measurementObid"`
-	MetricIds       []int `json:"metricIds"`
+	MeasurementObid int      `json:"measurementObid"`
+	MetricKeys      []string `json:"keys"`
 }
 
 type Query struct {
@@ -50,11 +50,11 @@ func (q *Query) GetCustomIntField(name string) (*int, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := object[name]; !ok{
+	if _, ok := object[name]; !ok {
 		return nil, fmt.Errorf("value '%s' not present in the modelJson", name)
 	}
 	floatValue, ok := object[name].(float64)
-	if !ok{
+	if !ok {
 		return nil, fmt.Errorf("value '%s' is supposed to be an int, but was not", name)
 	}
 	intValue := int(floatValue)
@@ -110,8 +110,8 @@ type StableNetHandler struct {
 	Logger   hclog.Logger
 }
 
-func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, valueIds []int) ([]*datasource.TimeSeries, error) {
-	data, err := s.SnClient.FetchDataForMetrics(measurementObid, valueIds, query.StartTime, query.EndTime)
+func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metricKeys []string) ([]*datasource.TimeSeries, error) {
+	data, err := s.SnClient.FetchDataForMetrics(measurementObid, metricKeys, query.StartTime, query.EndTime)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
@@ -122,7 +122,7 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, valueI
 	sort.Strings(keys)
 	result := make([]*datasource.TimeSeries, 0, len(data))
 	for _, name := range keys {
-		series := data[name].ExpandWithMissingValues()
+		series := data[name]
 		maxTimeSeries := &datasource.TimeSeries{
 			Points: series.MaxValues(),
 			Name:   "Max " + name,

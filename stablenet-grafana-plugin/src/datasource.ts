@@ -153,16 +153,16 @@ export class GenericDatasource {
             }
 
             let requestData = [];
-            let ids = [];
+            let keys = [];
             let e = Object.entries(target.chosenMetrics);
             
             for (let [key, value] of e){
                 if (value){
-                    ids.push(parseInt(key));
+                    keys.push(key);
                 }
             }
 
-            requestData.push({measurementObid: parseInt(target.selectedMeasurement), metricIds: ids});
+            requestData.push({measurementObid: parseInt(target.selectedMeasurement), keys: keys});
 
             queries.push({
                 refId: target.refId,

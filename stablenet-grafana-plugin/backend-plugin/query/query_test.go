@@ -87,8 +87,8 @@ func TestQuery_GetCustomIntFieldNoJson(t *testing.T) {
 
 func TestQuery_GetMeasurementDataRequest(t *testing.T) {
 	data := []measurementDataRequest{
-		{MeasurementObid: 1234, MetricIds: []int{5, 4, 7}},
-		{MeasurementObid: 6747, MetricIds: []int{26, 24}},
+		{MeasurementObid: 1234, MetricKeys: []string{"5", "4", "7"}},
+		{MeasurementObid: 6747, MetricKeys: []string{"26", "24"}},
 	}
 	jsonBytes, _ := json.Marshal(data)
 	rawquery := datasource.Query{
@@ -124,7 +124,7 @@ func TestQuery_GetMeasurementDataRequest_Error(t *testing.T) {
 }
 
 func TestStableNetHandler_fetchMetrics(t *testing.T) {
-	statisicResult, series := sampleStatisticData()
+	statisticResult, series := sampleStatisticData()
 	tests := []struct {
 		name            string
 		includeMinStats bool
@@ -144,8 +144,8 @@ func TestStableNetHandler_fetchMetrics(t *testing.T) {
 			query := Query{
 				Query: datasource.Query{ModelJson: string(jsonQuery)},
 			}
-			rawHandler.SnClient.(*mockSnClient).On("FetchDataForMetrics", 1024, []int{123}, time.Time{}, time.Time{}).Return(statisicResult, nil)
-			actual, err := rawHandler.fetchMetrics(query, 1024, []int{123})
+			rawHandler.SnClient.(*mockSnClient).On("FetchDataForMetrics", 1024, []string{"123"}, time.Time{}, time.Time{}).Return(statisticResult, nil)
+			actual, err := rawHandler.fetchMetrics(query, 1024, []string{"123"})
 			require.NoError(t, err, "no error expected")
 			compareTimeSeries(t, tt.want, actual)
 		})

@@ -1,68 +1,29 @@
-{
-  "chartTypes": [
-    {
-      "id": 5504,
-      "name": "Value chart"
-    },
-    {
-      "id": 5501,
-      "name": "Value avg chart"
-    },
-    {
-      "id": 5503,
-      "name": "Value avg chart logarithmic"
-    },
-    {
-      "id": 5502,
-      "name": "Value median chart"
-    },
-    {
-      "id": 5506,
-      "name": "Value quantile chart"
-    },
-    {
-      "id": 5508,
-      "name": "Value quantile trend chart"
-    },
-    {
-      "id": 5510,
-      "name": "Value histogram chart"
-    }
-  ],
-  "statisticTypes": [
-    {
-      "id": 1000,
-      "name": "Measurement configuration"
-    },
-    {
-      "id": 1010,
-      "name": "Measurement raw data"
-    },
-    {
-      "id": 1020,
-      "name": "Measurement data"
-    },
-    {
-      "id": 1100,
-      "name": "Measurement table"
-    },
-    {
-      "id": 1101,
-      "name": "Measurement table with quantiles"
-    }
-  ],
-  "valueOutputs": [
-    {
-      "id": 1000,
-      "name": "System Users"
-    },
-    {
-      "id": 1001,
-      "name": "System Processes"
-    },
-    {
-      "id": 1002,
-      "name": "System Uptime"
-    }
-  ]
-}
+[
+  {
+    "dataId": 1000,
+    "description": "Number of system users",
+    "expectedInterval": 300000,
+    "key": "SNMP_1000",
+    "name": "System Users",
+    "onlyAverage": false,
+    "unit": "#"
+  },
+  {
+    "dataId": 1001,
+    "description": "Number of system processes",
+    "expectedInterval": 300000,
+    "key": "SNMP_1001",
+    "name": "System Processes",
+    "onlyAverage": false,
+    "unit": "#"
+  },
+  {
+    "dataId": 1002,
+    "description": "System uptime of the device",
+    "expectedInterval": 300000,
+    "key": "SNMP_1002",
+    "name": "System Uptime",
+    "onlyAverage": false,
+    "unit": "day"
+  }
+]

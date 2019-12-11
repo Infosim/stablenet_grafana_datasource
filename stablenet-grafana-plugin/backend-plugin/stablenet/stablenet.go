@@ -21,7 +21,7 @@ type Client interface {
 	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
 	FetchMetricsForMeasurement(int, string) ([]Metric, error)
-	FetchDataForMetrics(int, []int, time.Time, time.Time) (map[string]MetricDataSeries, error)
+	FetchDataForMetrics(int, []string, time.Time, time.Time) (map[string]MetricDataSeries, error)
 }
 
 type ConnectOptions struct {
@@ -90,6 +90,24 @@ func (c *ClientImpl) buildJsonApiUrl(endpoint string, filters ...string) string 
 	return url + filter
 }
 
+func (c *ClientImpl) buildJsonApiUrlWithLimit(endpoint string, limit bool, filters ...string) string {
+	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
+	if !limit {
+		url = fmt.Sprintf("https://%s:%d/api/1/%s?top=-1", c.Host, c.Port, endpoint)
+	}
+	nonEmpty := make([]string, 0, len(filters))
+	for _, f := range filters {
+		if len(f) > 0 {
+			nonEmpty = append(nonEmpty, f)
+		}
+	}
+	if len(nonEmpty) == 0 {
+		return url
+	}
+	filter := "&$filter=" + url2.QueryEscape(strings.Join(nonEmpty, " and "))
+	return url + filter
+}
+
 type MeasurementQueryResult struct {
 	Measurements []Measurement `json:"data"`
 	HasMore      bool          `json:"hasMore"`
@@ -141,29 +159,38 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter stri
 	return responseData, nil
 }
 
-func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricIds []int, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {
+func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricKeys []string, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {
 	startMillis := startTime.UnixNano() / int64(time.Millisecond)
 	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	url := fmt.Sprintf("https://%s:%d/StatisticServlet?stat=1010&type=json&login=%s,%s&id=%d&start=%d&end=%d&%s", c.Host, c.Port, c.Username, c.Password, measurementObid, startMillis, endMillis, c.formatMetricIds(metricIds))
-	resp, err := c.client.R().Get(url)
+	query := struct {
+		Start   int64    `json:"start"`
+		End     int64    `json:"end"`
+		Metrics []string `json:"metrics"`
+		Raw     bool     `json:"raw"`
+	}{
+		Start: startMillis, End: endMillis, Metrics: metricKeys, Raw: true,
+	}
+	endpoint := fmt.Sprintf("measurements/%d/data", measurementObid)
+	url := c.buildJsonApiUrlWithLimit(endpoint, false)
+	resp, err := c.client.R().SetHeader("Content-Type", "application/json").SetBody(query).Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", measurementObid, err)
 	}
 	if resp.StatusCode() != 200 {
 		return nil, c.buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", measurementObid), resp)
 	}
-	return parseStatisticByteSlice(resp.Body())
+	return parseStatisticByteSlice(resp.Body(), metricKeys)
 }
 
-func parseStatisticByteSlice(bytes []byte) (map[string]MetricDataSeries, error) {
-	data := make([]map[string]string, 0, 0)
+func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]MetricDataSeries, error) {
+	var data []timestampResponse
 	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
 	resultMap := make(map[string]MetricDataSeries)
 	for _, record := range data {
-		converted, err := parseSingleTimestamp(record)
+		converted, err := parseSingleTimestamp(record, metricKeys)
 		if err != nil {
 			return nil, fmt.Errorf("parsing an entry from RawStatisticServlet failed: %v", err)
 		}
