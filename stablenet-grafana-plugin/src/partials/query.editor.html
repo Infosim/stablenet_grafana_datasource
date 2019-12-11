@@ -94,29 +94,31 @@
             </div>
         </div>
 
-        <div class="gf-form-inline">
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-11 sn-indented-label">
-                    Metric Prefix:
-                    <info-popover mode="right-normal">The input of this field will be added as a prefix to the metrics' names on the chart.
-                    </info-popover>
-                </label>
-                <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.metricPrefix"
-                       ng-blur="ctrl.onChangeInternal()">
+        <div ng-if="ctrl.target.selectedMeasurement">            
+            <div class="gf-form" ng-if="!ctrl.target.metrics.length">
+                <label class="gf-form-label query-keyword width-30 sn-indented-label" style="padding-left: 150px;">No metrics available!</label>
             </div>
-        </div>
-        
-        <div class="gf-form" ng-if="!ctrl.target.metrics.length">
-            <label class="gf-form-label query-keyword width-30 sn-indented-label" style="padding-left: 150px;">No metrics available!</label>
-        </div>
-        <label ng-if="ctrl.target.metrics.length" class="gf-form-label query-keyword width-11 sn-indented-label">Metrics:
-            <info-popover mode="right-normal">Select the metrics you want to display.</info-popover>
-        </label>
-        <div class="gf-form-inline">
-            <div class="gf-form" ng-repeat="metric in ctrl.target.metrics" style="margin-bottom: 0px!important">
-                <label class="gf-form-label query-keyword sn-single-metric-label">{{ metric.text }}</label>
-                <gf-form-checkbox class="gf-form" checked="ctrl.target.chosenMetrics[metric.value]" switch-class="width-3"
-                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+
+            <div class="gf-form" style="margin-bottom: 0px!important">
+                <div class="gf-form" style="margin-bottom: 0px!important">
+                    <label class="gf-form-label query-keyword width-11">
+                        Metric Prefix:
+                        <info-popover mode="right-normal">The input of this field will be added as a prefix to the metrics' names on the chart.
+                        </info-popover>
+                    </label>
+                    <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.metricPrefix"
+                        ng-blur="ctrl.onChangeInternal()">
+                </div>
+                <label class="gf-form-label query-keyword width-11 sn-unindented-label" ng-if="ctrl.target.metrics.length">Metrics:
+                    <info-popover mode="right-normal">Select the metrics you want to display.</info-popover>
+                </label>
+                <div class="gf-form-inline">
+                    <div class="gf-form" ng-repeat="metric in ctrl.target.metrics" style="margin-bottom: 0px!important">
+                        <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.chosenMetrics[metric.value]"
+                                        on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                        <label class="gf-form-label query-keyword sn-single-metric-label">{{ metric.text }}</label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -133,26 +135,26 @@
         </div>
     </div>
 
-    <div class="gf-form-group">
+    <div class="gf-form-group" ng-if="ctrl.target.selectedMeasurement">
         <label class="gf-form-label query-keyword width-11 sn-indented-label">Include Statistics:
             <info-popover mode="right-normal">Select the statistics you want to display.
             </info-popover>
         </label>
         <div class="gf-form-inline">
             <div class="gf-form">
-                <label class="gf-form-label query-keyword" style="width: 56px!important">Min</label>
                 <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.includeMinStats"
                                   on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                <label class="gf-form-label query-keyword" style="width: 56px!important">Min</label>
             </div>
             <div class="gf-form">
-                <label class="gf-form-label query-keyword" style="width: 56px!important">Avg</label>
                 <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.includeAvgStats"
                                   on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                <label class="gf-form-label query-keyword" style="width: 56px!important">Avg</label>
             </div>
             <div class="gf-form">
-                <label class="gf-form-label query-keyword" style="width: 56px!important">Max</label>
                 <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.includeMaxStats"
                                   on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                <label class="gf-form-label query-keyword" style="width: 56px!important">Max</label>
             </div>
         </div>
     </div>
