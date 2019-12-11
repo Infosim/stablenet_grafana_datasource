@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -202,6 +203,7 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 		id, _ := strconv.Atoi(valueMatch[1])
 		valueIds = append(valueIds, id)
 	}
+	metrics, err := s.createMetricRequest()
 
 	series, err := s.fetchMetrics(query, measurementId, metricsRequest{})
 	if err != nil {
@@ -217,6 +219,28 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 	return &result, nil
 }
 
+func (s statisticLinkHandler) createMetricRequest(measurementId int, valueIds []int) (*metricsRequest, error) {
+	metrics, err := s.SnClient.FetchMetricsForMeasurement(measurementId, "")
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch metrics for measurement %d: %v", measurementId, err)
+	}
+	result := make([]stablenet.Metric, 0, len(valueIds))
+	for _, valueId := range valueIds {
+		var found bool
+		for _, metric := range metrics {
+			if strings.Contains(metric.Key, strconv.Itoa(valueId)) {
+				result = append(result, metric)
+				found = true
+			}
+		}
+		if !found {
+			msg := fmt.Sprintf("for measurement %d the metric with value id %d was requested, but no matching metric was found on the StableNet® server", measurementId, valueId)
+			s.Logger.Info(msg)
+		}
+	}
+	res := metricsRequest(result)
+	return &res, nil
+}
 
 func createResponseWithCustomData(data interface{}, refId string) *datasource.QueryResult {
 	payload, err := json.Marshal(data)
