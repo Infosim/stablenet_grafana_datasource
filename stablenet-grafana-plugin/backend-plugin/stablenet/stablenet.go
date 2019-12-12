@@ -168,7 +168,7 @@ func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricKeys []strin
 		Metrics []string `json:"metrics"`
 		Raw     bool     `json:"raw"`
 	}{
-		Start: startMillis, End: endMillis, Metrics: metricKeys, Raw: true,
+		Start: startMillis, End: endMillis, Metrics: metricKeys, Raw: false,
 	}
 	endpoint := fmt.Sprintf("measurements/%d/data", measurementObid)
 	url := c.buildJsonApiUrlWithLimit(endpoint, false)

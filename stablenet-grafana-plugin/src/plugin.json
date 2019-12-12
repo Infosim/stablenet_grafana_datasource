@@ -19,18 +19,18 @@
       "url": "https://www.infosim.net"
     },
     "logos": {
-      "small": "img/Infosim_logo.svg",
-      "large": "img/Infosim_logo.svg"
+      "small": "img/infosim_logo_small.png",
+      "large": "img/infosim_logo.png"
     },
     "links": [
       {"name": "StableNet® by Infosim®", "url": "https://www.infosim.net/stablenet"}
     ],
-    "version": "0.5.0",
-    "updated": "2019-09-11"
+    "version": "1.0.0",
+    "updated": "2019-12-20"
   },
 
   "dependencies": {
-    "grafanaVersion": "6.x.x",
+    "grafanaVersion": "6.4.4",
     "plugins": [ ]
   }
 }
