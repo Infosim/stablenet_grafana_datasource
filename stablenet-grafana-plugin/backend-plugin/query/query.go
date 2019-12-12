@@ -15,6 +15,7 @@ import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -144,15 +145,15 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metric
 		series := data[key]
 		maxTimeSeries := &datasource.TimeSeries{
 			Points: series.MaxValues(),
-			Name:   "Max " + names[key],
+			Name:   insertModifierIntoName(names[key], "Max"),
 		}
 		minTimeSeries := &datasource.TimeSeries{
 			Points: series.MinValues(),
-			Name:   "Min " + names[key],
+			Name:   insertModifierIntoName(names[key], "Min"),
 		}
 		avgTimeSeries := &datasource.TimeSeries{
 			Points: series.AvgValues(),
-			Name:   "Avg " + names[key],
+			Name:   insertModifierIntoName(names[key], "Avg"),
 		}
 		if query.includeMinStats() {
 			result = append(result, minTimeSeries)
@@ -165,4 +166,13 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metric
 		}
 	}
 	return result, nil
+}
+
+const modifierString = "{MinMaxAvg}"
+
+func insertModifierIntoName(name string, modifier string) string{
+	if strings.Contains(name, modifierString){
+		return strings.Replace(name, modifierString, modifier, 1)
+	}
+	return modifier + " " + name
 }

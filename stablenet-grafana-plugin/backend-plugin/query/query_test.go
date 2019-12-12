@@ -10,6 +10,7 @@ package query
 import (
 	"backend-plugin/stablenet"
 	"encoding/json"
+	"github.com/bmizerany/assert"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,6 +153,23 @@ func TestStableNetHandler_fetchMetrics(t *testing.T) {
 			actual, err := rawHandler.fetchMetrics(query, 1024, metricsRequest(metricsReq))
 			require.NoError(t, err, "no error expected")
 			compareTimeSeries(t, tt.want, actual)
+		})
+	}
+}
+
+func Test_insertModifierIntoName(t *testing.T) {
+	tests := []struct {
+		name string
+		metricName string
+		modifier string
+		want string
+	}{
+		{name: "without modifier pattern", metricName: "Storage", modifier:"Min", want:"Min Storage"},
+		{name: "with modifier pattern", metricName: "Device XY {MinMaxAvg} Storage", modifier: "Avg", want: "Device XY Avg Storage"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, insertModifierIntoName(tt.metricName, tt.modifier))
 		})
 	}
 }

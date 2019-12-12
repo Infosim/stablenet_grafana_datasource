@@ -194,7 +194,8 @@ func TestHandlersServerErrors(t *testing.T) {
 		{name: "measurement query", handlerServerTestCase: measurementHandlerTest(), wantErr: "could not fetch measurements from StableNet(R)"},
 		{name: "metric query", handlerServerTestCase: metricNameHandlerTest(), wantErr: "could not retrieve metric names from StableNet(R)"},
 		{name: "metric data", handlerServerTestCase: metricDataHandlerTest(), wantErr: "could not fetch metric data from server: could not retrieve metrics from StableNet(R)"},
-		//{name: "statistic link", handlerServerTestCase: statisticLinkHandlerTest(), wantErr: "could not fetch data for statistic link from server: could not retrieve metrics from StableNet(R)"},
+		//statistic link handler is currently not tested here because it needs two calls to StableNet which cannot be handled by this test framework.
+		//However, it is tested partially at the end of this file.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -367,20 +368,6 @@ func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource
 	return dataSeries, []*datasource.TimeSeries{minSeries, maxSeries, avgSeries}
 }
 
-func statisticLinkHandlerTest() *handlerServerTestCase {
-	queryArgs := []arg{{name: "statisticLink", value: "stable.net/rest?id=1234&value0=1&value1=2"}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
-	clientArgs := []arg{{value: 1234}, {value: []int{1, 2}}, {value: time.Time{}}, {value: time.Time{}}}
-	clientReturn, timeSeries := sampleStatisticData()
-	return &handlerServerTestCase{
-		handler:       func(h *StableNetHandler) Handler { return statisticLinkHandler{StableNetHandler: h} },
-		queryArgs:     queryArgs,
-		clientMethod:  "FetchDataForMetrics",
-		clientArgs:    clientArgs,
-		clientReturn:  clientReturn,
-		successResult: &datasource.QueryResult{Series: timeSeries[0:2]},
-	}
-}
-
 func TestDatasourceTestHandler_Process_Error(t *testing.T) {
 	rawHandler, _ := setUpHandlerAndLogReceiver()
 	var nilInt *int
@@ -437,4 +424,101 @@ func (m *mockSnClient) FetchDataForMetrics(measurementObid int, metricKeys []str
 		return args.Get(0).(map[string]stablenet.MetricDataSeries), args.Error(1)
 	}
 	return nil, args.Error(1)
+}
+
+func Test_statisticLinkHandler_extractIdsFromLink(t *testing.T) {
+	tests := []struct {
+		name              string
+		link              string
+		wantMeasurementId int
+		wantValueIds      []int
+		wantErr           string
+	}{
+		{name: "without values",
+			link:              "https://localhost:5443/PlotServlet?id=1451&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&interval=60000&quality=-1.0&dns=1&multiplecharts=0&multicharttype=0&width=1252&height=1126",
+			wantMeasurementId: 1451,
+			wantValueIds:      []int{},
+			wantErr:           "",
+		},
+		{
+			name:              "with values",
+			link:              "https://localhost:5443/PlotServlet?id=1451&chart=5504&last=0,1440&value=5005&value12=3025&offset=0,0&tz=Europe%2FBerlin&interval=60000&quality=-1.0&dns=1&multiplecharts=0&multicharttype=0&width=1252&height=1126",
+			wantMeasurementId: 1451,
+			wantValueIds:      []int{5005, 3025},
+			wantErr:           "",
+		},
+		{
+			name:              "with values at beginning",
+			link:              "https://localhost:5443/PlotServlet?value=5005&value12=3025&id=1451&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&interval=60000&quality=-1.0&dns=1&multiplecharts=0&multicharttype=0&width=1252&height=1126",
+			wantMeasurementId: 1451,
+			wantValueIds:      []int{5005, 3025},
+			wantErr:           "",
+		},
+		{
+			name:              "without measurement id",
+			link:              "https://localhost:5443/PlotServlet?value=5005&value12=3025&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&interval=60000&quality=-1.0&dns=1&multiplecharts=0&multicharttype=0&width=1252&height=1126",
+			wantMeasurementId: 0,
+			wantValueIds:      []int{},
+			wantErr:           "the link \"https://localhost:5443/PlotServlet?value=5005&value12=3025&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&interval=60000&quality=-1.0&dns=1&multiplecharts=0&multicharttype=0&width=1252&height=1126\" does not carry a measurement id",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := statisticLinkHandler{}
+			gotMeasurementObid, gotValueIds, gotError := handler.extractIdsFromLink(tt.link)
+			if tt.wantErr != "" {
+				assert.EqualError(t, gotError, tt.wantErr, "error message is wrong")
+				assert.Equal(t, 0, gotMeasurementObid, "measurementObid should be 0 if an error occurred")
+				assert.Equal(t, 0, len(gotValueIds), "valueIds should be empty if an error occurred")
+			} else {
+				assert.Equal(t, tt.wantMeasurementId, gotMeasurementObid, "measurementObid differs")
+				assert.Equal(t, tt.wantValueIds, gotValueIds, "value Ids differ")
+				assert.Nil(t, gotError, "got error should be nil")
+			}
+		})
+	}
+}
+
+func Test_statisticLinkHandler_createMetricRequest(t *testing.T) {
+	measurementId := 6743
+	metrics := []stablenet.Metric{
+		{Name: "Users", Key: "SNMP_1000"},
+		{Name: "Uptime", Key: "SNMP_1001"},
+		{Name: "Processes", Key: "SNMP_1002"},
+	}
+	tests := []struct {
+		name              string
+		valueIds          []int
+		snMetrics         []stablenet.Metric
+		snError           error
+		wantMetricIndexes []int
+		wantErr           string
+		wantLog           string
+	}{
+		{name: "no value ids", valueIds: []int{}, snMetrics: metrics, snError: nil, wantMetricIndexes: []int{0, 1, 2}, wantErr: ""},
+		{name: "some ids", valueIds: []int{1000, 1002}, snMetrics: metrics, snError: nil, wantMetricIndexes: []int{0, 2}, wantErr: ""},
+		{name: "fetch metrics error", valueIds: []int{1000, 1002}, snMetrics: nil, snError: errors.New("custom error"), wantMetricIndexes: []int{}, wantErr: "could not fetch metrics for measurement 6743: custom error"},
+		{name: "log", valueIds: []int{1001, 1005}, snMetrics: metrics, snError: nil, wantMetricIndexes: []int{1}, wantErr: "", wantLog: "no time [INFO ] for measurement 6743 the metric with value id 1005 was requested, but no matching metric was found on the StableNet® server\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rawHandler, loggingBytes := setUpHandlerAndLogReceiver()
+			rawHandler.SnClient.(*mockSnClient).On("FetchMetricsForMeasurement", measurementId, "").Return(tt.snMetrics, tt.snError)
+			linkHandler := statisticLinkHandler{rawHandler}
+			actualMetrics, actualError := linkHandler.createMetricRequest(measurementId, tt.valueIds)
+			if tt.wantErr != "" {
+				require.EqualError(t, actualError, tt.wantErr, "Expected error differs from actual error")
+				require.Nil(t, actualMetrics, "the returned metrics should be nil if an error occurred")
+			} else {
+				assert.Nil(t, actualError, "the actual error should be nil")
+				metricsSlice := []stablenet.Metric(*actualMetrics)
+				counter := 0
+				for _, index := range tt.wantMetricIndexes {
+					assert.Equal(t, tt.snMetrics[index], metricsSlice[counter], "metrics and index %d differ", counter)
+					counter = counter + 1
+				}
+			}
+			assert.Equal(t, tt.wantLog, loggingBytes.String(), "Log message not correct")
+		})
+	}
 }
