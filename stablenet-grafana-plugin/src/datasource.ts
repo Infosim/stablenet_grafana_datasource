@@ -63,7 +63,7 @@ export class GenericDatasource {
 
         return this.doRequest(data)
             .then(result => {
-                let res =  result.data.results[refid].meta.data.map(device => {
+                let res = result.data.results[refid].meta.data.map(device => {
                     return {text: device.name, value: device.obid};
                 });
                 res.unshift({text: "none", value: -1});
@@ -78,7 +78,7 @@ export class GenericDatasource {
 
         let data = {queries: []};
 
-        if (input === undefined){
+        if (input === undefined) {
             data.queries.push({
                 refId: refid,
                 datasourceId: this.id,   // Required
@@ -147,18 +147,18 @@ export class GenericDatasource {
                 continue;
             }
 
-            if (!target.chosenMetrics || (Object.entries(target.chosenMetrics).length === 0) 
-                                      || (Object.values(target.chosenMetrics).filter(v => v).length === 0)){
+            if (!target.chosenMetrics || (Object.entries(target.chosenMetrics).length === 0)
+                || (Object.values(target.chosenMetrics).filter(v => v).length === 0)) {
                 continue;
             }
 
             let requestData = [];
             let keys = [];
             let e = Object.entries(target.chosenMetrics);
-            
-            for (let [key, value] of e){
-                if (value){
-                    let text = target.metricPrefix + " " + target.metrics.filter(m => m.value === key)[0].text;
+
+            for (let [key, value] of e) {
+                if (value) {
+                    let text = target.metricPrefix + " {MinMaxAvg} " + target.metrics.filter(m => m.value === key)[0].text;
                     keys.push({key: key, name: text});
                 }
             }
@@ -177,7 +177,7 @@ export class GenericDatasource {
         }
 
         if (queries.length === 0) {
-            return { data: [] };
+            return {data: []};
         }
 
         let data = {
