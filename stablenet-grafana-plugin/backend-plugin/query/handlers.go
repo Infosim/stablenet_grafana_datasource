@@ -190,19 +190,12 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 	if err != nil {
 		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
 	}
-	measurementRegex := regexp.MustCompile("[?&]id=(\\d+)")
-	idMatches := measurementRegex.FindAllStringSubmatch(link, 1)
-	if len(idMatches) == 0 {
-		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id", link), query.RefId), nil
+
+	measurementId, valueIds, err := s.extractIdsFromLink(link)
+	if err != nil {
+		return BuildErrorResult(err.Error(), query.RefId), nil
 	}
-	measurementId, _ := strconv.Atoi(idMatches[0][1])
-	valueRegex := regexp.MustCompile("[?&]value\\d*=(\\d+)")
-	valueMatches := valueRegex.FindAllStringSubmatch(link, -1)
-	valueIds := make([]int, 0, len(valueMatches))
-	for _, valueMatch := range valueMatches {
-		id, _ := strconv.Atoi(valueMatch[1])
-		valueIds = append(valueIds, id)
-	}
+
 	metrics, err := s.createMetricRequest(measurementId, valueIds)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch metric names and keys from StableNet® for measurement %d and value ids %v: %v", measurementId, valueIds, err)
@@ -220,6 +213,23 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 		Series: series,
 	}
 	return &result, nil
+}
+
+func (s statisticLinkHandler) extractIdsFromLink(link string) (int, []int, error) {
+	measurementRegex := regexp.MustCompile("[?&]id=(\\d+)")
+	idMatches := measurementRegex.FindAllStringSubmatch(link, 1)
+	if len(idMatches) == 0 {
+		return 0, nil, fmt.Errorf("the link \"%s\" does not carry a measurement id", link)
+	}
+	measurementId, _ := strconv.Atoi(idMatches[0][1])
+	valueRegex := regexp.MustCompile("[?&]value\\d*=(\\d+)")
+	valueMatches := valueRegex.FindAllStringSubmatch(link, -1)
+	valueIds := make([]int, 0, len(valueMatches))
+	for _, valueMatch := range valueMatches {
+		id, _ := strconv.Atoi(valueMatch[1])
+		valueIds = append(valueIds, id)
+	}
+	return measurementId, valueIds, nil
 }
 
 func (s statisticLinkHandler) createMetricRequest(measurementId int, valueIds []int) (*metricsRequest, error) {
