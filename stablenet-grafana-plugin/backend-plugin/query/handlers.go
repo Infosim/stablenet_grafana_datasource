@@ -203,9 +203,12 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 		id, _ := strconv.Atoi(valueMatch[1])
 		valueIds = append(valueIds, id)
 	}
-	metrics, err := s.createMetricRequest()
+	metrics, err := s.createMetricRequest(measurementId, valueIds)
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch metric names and keys from StableNet® for measurement %d and value ids %v: %v", measurementId, valueIds, err)
+	}
 
-	series, err := s.fetchMetrics(query, measurementId, metricsRequest{})
+	series, err := s.fetchMetrics(query, measurementId, *metrics)
 	if err != nil {
 		e := fmt.Errorf("could not fetch data for statistic link from server: %v", err)
 		s.Logger.Error(e.Error())
@@ -225,6 +228,13 @@ func (s statisticLinkHandler) createMetricRequest(measurementId int, valueIds []
 		return nil, fmt.Errorf("could not fetch metrics for measurement %d: %v", measurementId, err)
 	}
 	result := make([]stablenet.Metric, 0, len(valueIds))
+	if len(valueIds) == 0 {
+		for _, metric := range metrics {
+			result = append(result, metric)
+		}
+		res := metricsRequest(result)
+		return &res, nil
+	}
 	for _, valueId := range valueIds {
 		var found bool
 		for _, metric := range metrics {
