@@ -64,10 +64,18 @@ export class GenericDatasource {
         return this.doRequest(data)
             .then(result => {
                 let res = result.data.results[refid].meta.data.map(device => {
-                    return {text: device.name, value: device.obid};
+                    return {
+                        text: device.name,
+                        value: device.obid
+                    };
                 });
-                res.unshift({text: "none", value: -1});
-                return {data: res, hasMore: result.data.results[refid].meta.hasMore};
+                res.unshift({
+                    text: "none",
+                    value: -1
+                });
+                return {data: res,
+                    hasMore: result.data.results[refid].meta.hasMore
+                };
             });
     }
 
@@ -95,11 +103,18 @@ export class GenericDatasource {
             });
         }
 
-        return this.doRequest(data).then(result => {
-            let res = result.data.results[refid].meta.data.map(measurement => {
-                return {text: measurement.name, value: measurement.obid};
-            });
-            return {data: res, hasMore: result.data.results[refid].meta.hasMore};
+        return this.doRequest(data)
+            .then(result => {
+                let res = result.data.results[refid].meta.data.map(measurement => {
+                    return {
+                        text: measurement.name,
+                        value: measurement.obid
+                    };
+                });
+                return {
+                    data: res,
+                    hasMore: result.data.results[refid].meta.hasMore
+                };
         });
     }
 
@@ -119,11 +134,16 @@ export class GenericDatasource {
             measurementObid: obid
         })
 
-        return this.doRequest(data).then(result => {
-            return result.data.results[refid].meta.map(metric => {
-                return {text: metric.name, value: metric.key, measurementObid: obid};
-            })
-        });
+        return this.doRequest(data)
+            .then(result => {
+                return result.data.results[refid].meta.map(metric => {
+                    return {
+                        text: metric.name,
+                        value: metric.key,
+                        measurementObid: obid
+                    };
+                })
+            });
     }
 
     async query(options) {
@@ -159,11 +179,17 @@ export class GenericDatasource {
             for (let [key, value] of e) {
                 if (value) {
                     let text = target.metricPrefix + " {MinMaxAvg} " + target.metrics.filter(m => m.value === key)[0].text;
-                    keys.push({key: key, name: text});
+                    keys.push({
+                        key: key,
+                        name: text
+                    });
                 }
             }
 
-            requestData.push({measurementObid: parseInt(target.selectedMeasurement), metrics: keys});
+            requestData.push({
+                measurementObid: parseInt(target.selectedMeasurement),
+                metrics: keys
+            });
 
             queries.push({
                 refId: target.refId,
@@ -204,7 +230,10 @@ export function handleTsdbResponse(response) {
     const res = [];
     _.forEach(response.data.results, r => {
         _.forEach(r.series, s => {
-            res.push({target: s.name, datapoints: s.points});
+            res.push({
+                target: s.name,
+                datapoints: s.points
+            });
         });
         _.forEach(r.tables, t => {
             t.type = 'table';

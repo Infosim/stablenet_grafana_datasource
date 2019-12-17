@@ -42,20 +42,20 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
 
     onDeviceQueryChange() {
         this.datasource.queryDevices(this.target.deviceQuery, this.target.refId)
-                        .then(r => r.data)
-                        .then(r => r ? r.map(el => el.value) : [])
-                        .then(r => {
-                            if (!r.includes(this.target.selectedDevice)){
-                                this.target.selectedDevice = "none";
-                                this.target.measurementQuery = '';
-                                this.target.selectedMeasurement = '';
-                                this.target.metricPrefix = '';
-                                this.target.metrics = [];
-                                this.target.chosenMetrics = {};
-                            }
-                            return r;
-                        })
-                        .then(unused => this.onChangeInternal());
+            .then(r => r.data)
+            .then(r => r ? r.map(el => el.value) : [])
+            .then(r => {
+                if (!r.includes(this.target.selectedDevice)){
+                    this.target.selectedDevice = "none";
+                    this.target.measurementQuery = '';
+                    this.target.selectedMeasurement = '';
+                    this.target.metricPrefix = '';
+                    this.target.metrics = [];
+                    this.target.chosenMetrics = {};
+                }
+                return r;
+            })
+            .then(unused => this.onChangeInternal());
     }
 
     getDevices() {
@@ -79,22 +79,22 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
             .then(r => {
                 this.target.moreMeasurements = r.hasMore;
                 return r.data;
-            })
+            });
     }
 
     onMeasurementRegexChange() {
         this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
-                        .then(r => r.data)
-                        .then(r => r ? r.map(el => el.value) : [])
-                        .then(r => {
-                            if (!r.includes(this.target.selectedMeasurement)){
-                                this.target.selectedMeasurement = '';
-                                this.target.metrics = [];
-                                this.target.chosenMetrics = {};
-                            }
-                            return r;
-                        })
-                        .then(unused => this.onChangeInternal());
+            .then(r => r.data)
+            .then(r => r ? r.map(el => el.value) : [])
+            .then(r => {
+                if (!r.includes(this.target.selectedMeasurement)){
+                    this.target.selectedMeasurement = '';
+                    this.target.metrics = [];
+                    this.target.chosenMetrics = {};
+                }
+                return r;
+            })
+            .then(unused => this.onChangeInternal());
     }
 
     onMeasurementChange() {
