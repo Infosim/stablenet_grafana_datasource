@@ -17,7 +17,8 @@
                               allow-custom="true"
                               lookup-text="true"
                               get-options="ctrl.getModes()"
-                              class="width-10">
+                              class="width-10" tabindex="0"
+                              on-change="ctrl.onModeChange()">
             </gf-form-dropdown>
         </div>
     </div>
@@ -33,7 +34,7 @@
                     </info-popover>
                 </label>
                 <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.deviceQuery"
-                       ng-blur="ctrl.onDeviceQueryChange()">
+                       ng-blur="ctrl.onDeviceQueryChange()" tabindex="0">
             </div>
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">
@@ -44,7 +45,8 @@
                                   lookup-text="true"
                                   get-options="ctrl.getDevices()"
                                   on-change="ctrl.onDeviceChange()"
-                                  class="min-width-19">
+                                  class="min-width-19"
+                                  tabindex="0">
                 </gf-form-dropdown>
             </div>
             <div ng-if="ctrl.target.moreDevices" class="gf-form">
@@ -68,7 +70,7 @@
                     </info-popover>
                 </label>
                 <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.measurementQuery"
-                       ng-blur="ctrl.onMeasurementRegexChange()">
+                       ng-blur="ctrl.onMeasurementRegexChange()" tabindex="0">
             </div>
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">
@@ -79,7 +81,8 @@
                                   lookup-text="true"
                                   get-options="ctrl.getMeasurements()"
                                   on-change="ctrl.onMeasurementChange()"
-                                  class="width-19">
+                                  class="width-19"
+                                  tabindex="0">
                 </gf-form-dropdown>
             </div>
             <div ng-if="ctrl.target.moreMeasurements" class="gf-form">
@@ -107,7 +110,7 @@
                         </info-popover>
                     </label>
                     <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.metricPrefix"
-                        ng-blur="ctrl.onChangeInternal()">
+                        ng-blur="ctrl.onChangeInternal()" tabindex="0">
                 </div>
                 <label class="gf-form-label query-keyword width-11 sn-unindented-label" ng-if="ctrl.target.metrics.length">Metrics:
                     <info-popover mode="right-normal">Select the metrics you want to display.</info-popover>
@@ -115,7 +118,7 @@
                 <div class="gf-form-inline">
                     <div class="gf-form" ng-repeat="metric in ctrl.target.metrics" style="margin-bottom: 0px!important">
                         <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.chosenMetrics[metric.value]"
-                                        on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                                        on-change="ctrl.onChangeInternal()" tabindex="0"></gf-form-checkbox>
                         <label class="gf-form-label query-keyword sn-single-metric-label">{{ metric.text }}</label>
                     </div>
                 </div>
@@ -130,7 +133,7 @@
                     Link:
                 </label>
                 <input class="gf-form-input" type="text" ng-model="ctrl.target.statisticLink"
-                       spellcheck="false" ng-blur="ctrl.onChangeInternal()">
+                       spellcheck="false" ng-blur="ctrl.onChangeInternal()" tabindex="0">
             </div>
         </div>
     </div>
@@ -143,17 +146,17 @@
         <div class="gf-form-inline">
             <div class="gf-form">
                 <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.includeMinStats"
-                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                                  on-change="ctrl.onChangeInternal()" tabindex="0"></gf-form-checkbox>
                 <label class="gf-form-label query-keyword" style="width: 56px!important">Min</label>
             </div>
             <div class="gf-form">
                 <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.includeAvgStats"
-                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                                  on-change="ctrl.onChangeInternal()" tabindex="0"></gf-form-checkbox>
                 <label class="gf-form-label query-keyword" style="width: 56px!important">Avg</label>
             </div>
             <div class="gf-form">
                 <gf-form-checkbox class="gf-form sn-checkbox-width" checked="ctrl.target.includeMaxStats"
-                                  on-change="ctrl.onChangeInternal()"></gf-form-checkbox>
+                                  on-change="ctrl.onChangeInternal()" tabindex="0"></gf-form-checkbox>
                 <label class="gf-form-label query-keyword" style="width: 56px!important">Max</label>
             </div>
         </div>

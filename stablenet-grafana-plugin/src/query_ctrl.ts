@@ -34,6 +34,12 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         return [{text: 'Measurement', value: 0}, {text: 'Statistic Link', value: 10}];
     }
 
+    onModeChange(){
+        this.target.includeMinStats = false;
+        this.target.includeAvgStats = true;
+        this.target.includeMaxStats = false;
+    }
+
     onDeviceQueryChange() {
         this.datasource.queryDevices(this.target.deviceQuery, this.target.refId)
                         .then(r => r.data)
@@ -95,13 +101,10 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.datasource.findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId)
             .then(res => this.target.metrics = res);
         this.target.chosenMetrics = {};
-        //We need the name of the Measurement with this id, but it is not saved on our side except somewhere in the dropdown box
-        //which is basically an ul with one li per measurement and a small hell to work with. 1.5h wasted.
         this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
             .then(r => r.data)
             .then(r => r.filter(m => m.value === this.target.selectedMeasurement)[0])
             .then(r => this.target.metricPrefix = r.text)
-        //this.target.metricPrefix = this.target.selectedMeasurement; //@TODO: use name, not obid
         this.onChangeInternal();
     }
 
