@@ -200,17 +200,6 @@ export class GenericDatasource {
     }
 }
 
-export function checkIfRegex(text) {
-    return text.charAt(0) === '/' && text.charAt(text.length - 1) === '/';
-}
-
-export function filterTextValuePair(pair, filterValue) {
-    return checkIfRegex(filterValue) ?
-        pair.text.match(new RegExp(filterValue.substring(1).slice(0, -1), "i"))
-        :
-        pair.text.toLocaleLowerCase().indexOf(filterValue.toLocaleLowerCase()) !== -1;
-}
-
 export function handleTsdbResponse(response) {
     const res = [];
     _.forEach(response.data.results, r => {

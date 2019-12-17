@@ -36,11 +36,12 @@ Open or create a dashboard and add a panel. Select the StableNet® datasource as
 
 The are two options available to display measurement data in Grafana:
 
-*Device Mode*: The device mode offers a GUI to select devices and measurement manually. Start by selecting a device
+*Measurement Mode*: The device mode offers a GUI to select devices and measurements manually. Start by selecting a device
 in the drop down menu. If there are too many devices available, you can filter the devices with the "Device Filter" text
-box. Analogously, select a measurement and then check the metrics of the measurement you want to display. Finally, 
-decide whether you want to display Min, Max or Average data (or any combination of them).
+box. Analogously, select a measurement and then check the metrics of the measurement you want to display. Optionally, add
+a prefix for the visualisation of the metrics on the dashboard. Finally, decide whether you want to display Min, Max or
+Average data (or any combination of them).
 
-*Statistic Link*: This mode allows to directly copy a link generated in the Analyzer of the StableNet® GUI into
+*Statistic Link Mode*: This mode allows to directly copy a link generated in the Analyzer of the StableNet® GUI into
 Grafana and view the same plot. However, the time limits encoded in the link are ignored and instead the time limits
 set by the Grafana dashboard are used.
