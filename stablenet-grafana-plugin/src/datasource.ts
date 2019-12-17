@@ -134,7 +134,7 @@ export class GenericDatasource {
         for (let i = 0; i < options.targets.length; i++) {
             let target = options.targets[i];
 
-            if (target.mode === "Statistic Link" && target.statisticLink !== "") {
+            if (target.mode === 10 && target.statisticLink !== "") {
                 queries.push({
                     refId: target.refId,
                     datasourceId: this.id,

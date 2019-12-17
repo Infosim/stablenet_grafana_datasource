@@ -11,7 +11,7 @@ import './css/query-editor.css!'
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
     constructor($scope, $injector) {
         super($scope, $injector);
-        this.target.mode = this.target.mode || 'Device';
+        this.target.mode = this.target.mode || 0;
         this.target.deviceQuery = this.target.deviceQuery || '';
         this.target.selectedDevice = this.target.selectedDevice || 'none';
         this.target.measurementQuery = this.target.measurementQuery || '';
@@ -31,17 +31,25 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     getModes() {
-        return [{text: 'Device', value: 'Device'}, {text: 'Statistic Link', value: 'Statistic Link'}];
+        return [{text: 'Measurement', value: 0}, {text: 'Statistic Link', value: 10}];
     }
 
     onDeviceQueryChange() {
-        this.target.selectedDevice = "none";
-        this.target.measurementQuery = '';
-        this.target.selectedMeasurement = '';
-        this.target.metricPrefix = '';
-        this.target.metrics = [];
-        this.target.chosenMetrics = {};
-        this.onChangeInternal();
+        this.datasource.queryDevices(this.target.deviceQuery, this.target.refId)
+                        .then(r => r.data)
+                        .then(r => r ? r.map(el => el.value) : [])
+                        .then(r => {
+                            if (!r.includes(this.target.selectedDevice)){
+                                this.target.selectedDevice = "none";
+                                this.target.measurementQuery = '';
+                                this.target.selectedMeasurement = '';
+                                this.target.metricPrefix = '';
+                                this.target.metrics = [];
+                                this.target.chosenMetrics = {};
+                            }
+                            return r;
+                        })
+                        .then(unused => this.onChangeInternal());
     }
 
     getDevices() {
@@ -69,10 +77,18 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     }
 
     onMeasurementRegexChange() {
-        this.target.selectedMeasurement = '';
-        this.target.metrics = [];
-        this.target.chosenMetrics = {};
-        this.onChangeInternal();
+        this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
+                        .then(r => r.data)
+                        .then(r => r ? r.map(el => el.value) : [])
+                        .then(r => {
+                            if (!r.includes(this.target.selectedMeasurement)){
+                                this.target.selectedMeasurement = '';
+                                this.target.metrics = [];
+                                this.target.chosenMetrics = {};
+                            }
+                            return r;
+                        })
+                        .then(unused => this.onChangeInternal());
     }
 
     onMeasurementChange() {

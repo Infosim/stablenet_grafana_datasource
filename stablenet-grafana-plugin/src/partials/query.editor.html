@@ -22,14 +22,14 @@
         </div>
     </div>
 
-    <div ng-if="ctrl.target.mode==='Device'">
+    <div ng-if="ctrl.target.mode===0">
 
         <div class="gf-form-inline">
             <div class="gf-form">
                 <label class="gf-form-label query-keyword width-11">
                     Device Filter:
                     <info-popover mode="right-normal">The dropdown menu on the right will only show devices containing
-                        the input of that field. Case insensitive.
+                        the string typed into this field. Case insensitive.
                     </info-popover>
                 </label>
                 <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.deviceQuery"
@@ -50,7 +50,7 @@
             <div ng-if="ctrl.target.moreDevices" class="gf-form">
                 <label class="gf-form-label width-2">
                     <info-popover mode="right-normal">There are more devices available, but only the first 100 are displayed. 
-                        Use the Device Filter for higher accuracy.
+                        Specify a stricter Device Filter to reduce the number of shown devices.
                     </info-popover> 
                 </label>
             </div>
@@ -64,7 +64,7 @@
                 <label class="gf-form-label query-keyword width-11">
                     Measurement Filter:
                     <info-popover mode="right-normal">The dropdown menu on the right will only show measurements containing
-                        the input of that field. Case insensitive.
+                        the string typed into this field. Case insensitive.
                     </info-popover>
                 </label>
                 <input class="gf-form-input width-19" type="text" ng-model="ctrl.target.measurementQuery"
@@ -123,7 +123,7 @@
         </div>
     </div>
 
-    <div ng-if="ctrl.target.mode==='Statistic Link'">
+    <div ng-if="ctrl.target.mode===10">
         <div class="gf-form-inline">
             <div class="gf-form gf-form--grow">
                 <label class="gf-form-label query-keyword width-11">
