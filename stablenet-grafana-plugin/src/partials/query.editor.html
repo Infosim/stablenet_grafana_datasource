@@ -14,7 +14,7 @@
         <div class="gf-form">
             <label class="gf-form-label query-keyword width-11">
                 Query Mode:
-                <info-popover mode="right-normal">Allows switching between Device and Statistic Link mode.</info-popover>
+                <info-popover mode="right-normal">Allows switching between Measurement mode and Statistic Link mode.</info-popover>
             </label>
             <gf-form-dropdown model="ctrl.target.mode"
                               allow-custom="true"
@@ -170,6 +170,7 @@
             <div class="gf-form gf-form--grow">
                 <label class="gf-form-label query-keyword width-11">
                     Link:
+                    <info-popover mode="right-normal">Copy a link from the StableNet®-Analyzer. Experimental: At the current version, only links containing exactly one measurement are supported.</info-popover>
                 </label>
                 <input class="gf-form-input"
                        type="text"
@@ -183,7 +184,7 @@
     </div>
 
     <div class="gf-form-group"
-         ng-if="ctrl.target.selectedMeasurement"
+         ng-if="ctrl.target.selectedMeasurement || (ctrl.target.mode === 10)"
     >
         <label ng-class="(ctrl.target.mode === 0) ? 'gf-form-label query-keyword width-11 sn-indented-label' : 'gf-form-label query-keyword width-11 sn-unindented-label'">
             Include Statistics:
