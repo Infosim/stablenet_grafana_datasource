@@ -16,3 +16,8 @@ build_darwin:
 deploy:
 	rm -rf ${GRAFANA_HOME}/data/plugins/stablenet-grafana-plugin
 	cp -R ./dist ${GRAFANA_HOME}/data/plugins/stablenet-grafana-plugin
+
+ship:
+	cp -r ./dist ./stablenet-grafana-plugin
+	zip -r stablenet-grafana-plugin stablenet-grafana-plugin
+	rm -r ./stablenet-grafana-plugin

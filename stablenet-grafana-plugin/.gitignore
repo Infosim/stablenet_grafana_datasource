@@ -37,3 +37,4 @@ grafana
 /dist/test/
 /dist/
 /backend-plugin/coverage.out
+/stablenet-grafana-plugin.zip
