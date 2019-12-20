@@ -13,7 +13,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         super($scope, $injector);
         this.target.mode = this.target.mode || 0;
         this.target.deviceQuery = this.target.deviceQuery || '';
-        this.target.selectedDevice = this.target.selectedDevice || 'none';
+        this.target.selectedDevice = this.target.selectedDevice || -1;
         this.target.measurementQuery = this.target.measurementQuery || '';
         this.target.selectedMeasurement = this.target.selectedMeasurement || '';
         this.target.chosenMetrics = this.target.chosenMetrics || {};
@@ -46,7 +46,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
             .then(r => r ? r.map(el => el.value) : [])
             .then(r => {
                 if (!r.includes(this.target.selectedDevice)){
-                    this.target.selectedDevice = "none";
+                    this.target.selectedDevice = -1;
                     this.target.measurementQuery = '';
                     this.target.selectedMeasurement = '';
                     this.target.metricPrefix = '';
