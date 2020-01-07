@@ -8,8 +8,16 @@
 package query
 
 import (
+	"backend-plugin/stablenet"
+	"bufio"
+	"bytes"
+	"github.com/bmizerany/assert"
+	"github.com/grafana/grafana-plugin-model/go/datasource"
+	"github.com/hashicorp/go-hclog"
 	testify "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 func TestFindMeasurementIdsInLink(t *testing.T) {
@@ -37,4 +45,95 @@ func TestFindMeasurementIdsInLink(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExtractMetricKeysForMeasurement(t *testing.T) {
+	cases := []struct {
+		name   string
+		link   string
+		wanted map[int][]string
+	}{
+		{name: "one measurement, one metric", link: "https://localhost:5443/PlotServlet?id=1643&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&value0=1002", wanted: map[int][]string{1643: {"1002"}}},
+		{name: "one measurement, several metrics", link: "https://localhost:5443/PlotServlet?id=1643&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&value0=1002&value1=1000&value2=1001", wanted: map[int][]string{1643: {"1002", "1000", "1001"}}},
+		{name: "several measurements", link: "https://localhost:5443/PlotServlet?multicharttype=0&dns=1&log=0&width=1252&height=1126&quality=-1.0&0last=0,1440&0offset=0,0&0interval=60000&0id=1643&0chart=5504&0value0=1000&0value1=1001&0value2=1002&1last=0,1440&1offset=0,0&1interval=60000&1id=3889&1chart=5504&1value0=1", wanted: map[int][]string{1643: {"1000", "1001", "1002"}, 3889: {"1"}}},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractMetricKeysForMeasurements(tt.link)
+			testify.Equal(t, len(tt.wanted), len(got), "lenght is different")
+			for key, value := range tt.wanted {
+				gotValue, ok := got[key]
+				if !testify.True(t, ok, "key %d not available in got map", key) {
+					continue
+				}
+				testify.Equal(t, value, gotValue, "for key %d the expected value %d differs from the got one %d", key, value, gotValue)
+			}
+		})
+	}
+}
+
+func TestFilterWantedMetrics(t *testing.T) {
+	cases := []struct {
+		name          string
+		metrics       []stablenet.Metric
+		wantedMetrics []string
+		wanted        []int
+	}{
+		{name: "Wanted Metrics 1", metrics: []stablenet.Metric{{Name: "Uptime", Key: "SNMP1001"}, {Name: "Processes", Key: "SNMP1000"}, {Name: "Users", Key: "SNMP1002"}}, wantedMetrics: []string{"1001", "1002"}, wanted: []int{0, 2}},
+		{name: "Wanted Metrics 2", metrics: []stablenet.Metric{{Name: "Uptime", Key: "SNMP1010"}, {Name: "Processes", Key: "SNMP1020"}}, wantedMetrics: []string{"1000"}, wanted: []int{}},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := filterWantedMetrics(tt.wantedMetrics, tt.metrics)
+			testify.Equal(t, len(tt.wanted), len(got))
+			for _, wantedIndex := range tt.wanted {
+				wanted := tt.metrics[wantedIndex]
+				contained := false
+				for _, metric := range got {
+					if metric.Key == wanted.Key && metric.Name == wanted.Name {
+						contained = true
+					}
+				}
+				testify.True(t, contained, "%v was not present in to got metrics", wanted)
+			}
+		})
+	}
+}
+
+func Test_statisticLinkHandler2_Successful(t *testing.T) {
+	startTime := time.Now().Add(-5 * time.Hour)
+	endTime := time.Now()
+
+	metrics1643 := []stablenet.Metric{{Key: "SNMP1000", Name: "Uptime"}, {Key: "SNMP1001", Name: "Processes"}, {Key: "SNMP1002", Name: "Users"}}
+	metrics3886 := []stablenet.Metric{{Key: "PING1", Name: "Ping"}}
+
+	data1643 := map[string]stablenet.MetricDataSeries{"SNMP1000": {{Min: 5, Max: 7, Avg: 6, Interval: 300000, Time: endTime.Add(-1 * time.Hour)}}, "SNMP1002": {{Min: 1, Max: 1, Avg: 1, Interval: 300000, Time: endTime.Add(-1 * time.Hour)}}}
+	data3886 := map[string]stablenet.MetricDataSeries{"PING1": {{Min: 300, Max: 400, Avg: 350, Interval: 300000, Time: endTime.Add(-1 * time.Hour)}}}
+
+	client := new(mockSnClient)
+	client.On("FetchMetricsForMeasurement", 1643, "").Return(metrics1643, nil)
+	client.On("FetchMetricsForMeasurement", 3886, "").Return(metrics3886, nil)
+	client.On("FetchDataForMetrics", 1643, []string{"SNMP1000", "SNMP1002"}, startTime, endTime).Return(data1643, nil)
+	client.On("FetchDataForMetrics", 3886, []string{"PING1"}, startTime, endTime).Return(data3886, nil)
+	link := "https://localhost:5443/PlotServlet?multicharttype=0&dns=1&log=0&width=1252&height=1126&quality=-1.0&0last=0,1440&0offset=0,0&0interval=60000&0id=1643&0chart=5504&0value0=1000&0value1=1002&1last=0,1440&1offset=0,0&1interval=60000&1id=3886&1chart=5504&1value0=1"
+	logData := bytes.Buffer{}
+	logReceiver := bufio.NewWriter(&logData)
+	snHandler := StableNetHandler{SnClient: client, Logger: hclog.New(&hclog.LoggerOptions{Output: logReceiver, TimeFormat: "no time"})}
+	handler := statisticLinkHandler{StableNetHandler: &snHandler}
+	query := Query{Query: datasource.Query{RefId: "A", ModelJson: "{\"includeAvgStats\": true, \"statisticLink\": \"" + link + "\"}"}, StartTime: startTime, EndTime: endTime}
+	got, err := handler.Process(query)
+	require.NoError(t, err, "no error expected")
+	assert.Equal(t, "A", got.RefId, "refId is wrong")
+	series := got.Series
+	require.Equal(t, 3, len(series), "number of series is wrong")
+
+	assert.Equal(t, "Avg Uptime", series[0].Name, "name of first series wrong")
+	assert.Equal(t, 1, len(series[0].Points), "number of data points of first series wrong")
+	assert.Equal(t, 6.0, series[0].Points[0].Value, "value of data of first series wrong")
+	assert.Equal(t, "Avg Users", series[1].Name, "name of second series wrong")
+	assert.Equal(t, 1, len(series[1].Points), "number of data points of second series wrong")
+	assert.Equal(t, 1.0, series[1].Points[0].Value, "value of data of second series wrong")
+	assert.Equal(t, "Avg Ping", series[2].Name, "name of third series wrong")
+	assert.Equal(t, 1, len(series[2].Points), "number of data points of third series wrong")
+	assert.Equal(t, 350.0, series[2].Points[0].Value, "value of data of third series wrong")
 }

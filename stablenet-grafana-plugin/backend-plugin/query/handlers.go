@@ -13,9 +13,7 @@ import (
 	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -179,87 +177,6 @@ func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, er
 		Series: []*datasource.TimeSeries{},
 		RefId:  query.RefId,
 	}, nil
-}
-
-type statisticLinkHandler struct {
-	*StableNetHandler
-}
-
-func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, error) {
-	link, err := query.GetCustomField("statisticLink")
-	if err != nil {
-		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
-	}
-
-	measurementId, valueIds, err := s.extractIdsFromLink(link)
-	if err != nil {
-		return BuildErrorResult(err.Error(), query.RefId), nil
-	}
-
-	metrics, err := s.createMetricRequest(measurementId, valueIds)
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch metric names and keys from StableNet® for measurement %d and value ids %v: %v", measurementId, valueIds, err)
-	}
-
-	series, err := s.fetchMetrics(query, measurementId, *metrics)
-	if err != nil {
-		e := fmt.Errorf("could not fetch data for statistic link from server: %v", err)
-		s.Logger.Error(e.Error())
-		return nil, e
-	}
-
-	result := datasource.QueryResult{
-		RefId:  query.RefId,
-		Series: series,
-	}
-	return &result, nil
-}
-
-func (s statisticLinkHandler) extractIdsFromLink(link string) (int, []int, error) {
-	measurementRegex := regexp.MustCompile("[?&]id=(\\d+)")
-	idMatches := measurementRegex.FindAllStringSubmatch(link, 1)
-	if len(idMatches) == 0 {
-		return 0, nil, fmt.Errorf("the link \"%s\" does not carry a measurement id", link)
-	}
-	measurementId, _ := strconv.Atoi(idMatches[0][1])
-	valueRegex := regexp.MustCompile("[?&]value\\d*=(\\d+)")
-	valueMatches := valueRegex.FindAllStringSubmatch(link, -1)
-	valueIds := make([]int, 0, len(valueMatches))
-	for _, valueMatch := range valueMatches {
-		id, _ := strconv.Atoi(valueMatch[1])
-		valueIds = append(valueIds, id)
-	}
-	return measurementId, valueIds, nil
-}
-
-func (s statisticLinkHandler) createMetricRequest(measurementId int, valueIds []int) (*metricsRequest, error) {
-	metrics, err := s.SnClient.FetchMetricsForMeasurement(measurementId, "")
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch metrics for measurement %d: %v", measurementId, err)
-	}
-	result := make([]stablenet.Metric, 0, len(valueIds))
-	if len(valueIds) == 0 {
-		for _, metric := range metrics {
-			result = append(result, metric)
-		}
-		res := metricsRequest(result)
-		return &res, nil
-	}
-	for _, valueId := range valueIds {
-		var found bool
-		for _, metric := range metrics {
-			if strings.Contains(metric.Key, strconv.Itoa(valueId)) {
-				result = append(result, metric)
-				found = true
-			}
-		}
-		if !found {
-			msg := fmt.Sprintf("for measurement %d the metric with value id %d was requested, but no matching metric was found on the StableNet® server", measurementId, valueId)
-			s.Logger.Info(msg)
-		}
-	}
-	res := metricsRequest(result)
-	return &res, nil
 }
 
 func createResponseWithCustomData(data interface{}, refId string) *datasource.QueryResult {
