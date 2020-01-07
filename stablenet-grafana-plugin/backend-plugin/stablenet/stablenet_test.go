@@ -143,6 +143,20 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	}
 }
 
+func TestClientImpl_FetchMeasurementName(t *testing.T) {
+	url := "https://127.0.0.1:5443/api/1/measurement?$top=100&$filter=obid+eq+%271643%27"
+	httpmock.Activate()
+	defer httpmock.Deactivate()
+
+	httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "{\"count\": 2264, \"hasMore\": false, \"data\": [{\"name\": \"ThinkStation Host\", \"obid\": 1643}]}"))
+	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+	clientImpl := client.(*ClientImpl)
+	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+	name, err := clientImpl.FetchMeasurementName(1643)
+	require.NoError(t, err, "no error expected")
+	require.Equal(t, "ThinkStation Host", *name, "name not correct")
+}
+
 func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
 	url := "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100&$filter=name+ct+%27Processor%27"
 	shouldReturnError := func(client Client) (i interface{}, e error) {
@@ -245,6 +259,27 @@ func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error)
 		wantErr := fmt.Sprintf("retrieving %s failed: status code: 404, response: entity not found", msg)
 		require.EqualError(t, err, wantErr, "error message wrong")
 	}
+}
+
+func TestClientImpl_FetchMeasurementName_Error(t *testing.T) {
+	url := "https://127.0.0.1:5443/api/1/measurement?$top=100&$filter=obid+eq+%271643%27"
+	shouldReturnError := func(client Client) (i interface{}, e error) {
+		return client.FetchMeasurementName(1643)
+	}
+	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "name for measurement 1643"))
+	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "name for measurement 1643"))
+	t.Run("no measurement", func(t *testing.T) {
+		httpmock.Activate()
+		defer httpmock.Deactivate()
+
+		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "{\"count\": 2264, \"hasMore\": false, \"data\": []}"))
+		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+		clientImpl := client.(*ClientImpl)
+		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+		_, err := clientImpl.FetchMeasurementName(1643)
+		require.EqualError(t, err, "measurement with id 1643 does not exist", "error message wrong")
+	})
 }
 
 func TestClientImpl_formatMetricIds(t *testing.T) {

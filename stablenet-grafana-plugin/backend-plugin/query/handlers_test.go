@@ -231,7 +231,7 @@ func TestHandlersClientErrors(t *testing.T) {
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
 		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the modelJson"},
 		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
-		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id"},
+		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id or value ids"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -398,6 +398,14 @@ func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult,
 	if args.Get(0) != nil {
 		result := args.Get(0).(*stablenet.DeviceQueryResult)
 		return result, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *mockSnClient) FetchMeasurementName(id int) (*string, error) {
+	args := m.Called(id)
+	if args.Get(0) != nil {
+		return args.Get(0).(*string), nil
 	}
 	return nil, args.Error(1)
 }

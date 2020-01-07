@@ -20,6 +20,7 @@ import (
 type Client interface {
 	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
+	FetchMeasurementName(int) (*string, error)
 	FetchMetricsForMeasurement(int, string) ([]Metric, error)
 	FetchDataForMetrics(int, []string, time.Time, time.Time) (map[string]MetricDataSeries, error)
 }
@@ -135,6 +136,26 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) 
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
 	return &result, nil
+}
+
+func (c *ClientImpl) FetchMeasurementName(id int) (*string, error) {
+	url := c.buildJsonApiUrl("measurement", fmt.Sprintf("obid eq '%d'", id))
+	resp, err := c.client.R().Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving name for measurement %d failed: %v", id, err)
+	}
+	if resp.StatusCode() != 200 {
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving name for measurement %d failed", id), resp)
+	}
+	var responseData MeasurementQueryResult
+	err = json.Unmarshal(resp.Body(), &responseData)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal json: %v", err)
+	}
+	if len(responseData.Measurements) == 0 {
+		return nil, fmt.Errorf("measurement with id %d does not exist", id)
+	}
+	return &responseData.Measurements[0].Name, nil
 }
 
 func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter string) ([]Metric, error) {

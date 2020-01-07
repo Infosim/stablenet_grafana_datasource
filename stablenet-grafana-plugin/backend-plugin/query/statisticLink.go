@@ -72,7 +72,7 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 	}
 	requested := extractMetricKeysForMeasurements(link)
 	if len(requested) == 0 {
-		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id", link), query.RefId), nil
+		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id or value ids", link), query.RefId), nil
 	}
 	allSeries := make([]*datasource.TimeSeries, 0, 0)
 	for measurementId, metricKeys := range requested {
