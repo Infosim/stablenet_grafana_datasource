@@ -144,7 +144,7 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 }
 
 func TestClientImpl_FetchMeasurementName(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurement?$top=100&$filter=obid+eq+%271643%27"
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=obid+eq+%271643%27"
 	httpmock.Activate()
 	defer httpmock.Deactivate()
 
@@ -262,7 +262,7 @@ func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error)
 }
 
 func TestClientImpl_FetchMeasurementName_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurement?$top=100&$filter=obid+eq+%271643%27"
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=obid+eq+%271643%27"
 	shouldReturnError := func(client Client) (i interface{}, e error) {
 		return client.FetchMeasurementName(1643)
 	}

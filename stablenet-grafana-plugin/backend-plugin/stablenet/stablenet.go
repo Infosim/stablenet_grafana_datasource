@@ -139,7 +139,7 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) 
 }
 
 func (c *ClientImpl) FetchMeasurementName(id int) (*string, error) {
-	url := c.buildJsonApiUrl("measurement", fmt.Sprintf("obid eq '%d'", id))
+	url := c.buildJsonApiUrl("measurements", fmt.Sprintf("obid eq '%d'", id))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving name for measurement %d failed: %v", id, err)

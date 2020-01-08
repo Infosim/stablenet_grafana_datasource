@@ -92,7 +92,15 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 			s.Logger.Error(e.Error())
 			return nil, e
 		}
-		allSeries = append(allSeries, series...)
+		measurementName, err := s.SnClient.FetchMeasurementName(measurementId)
+		if err != nil {
+			s.Logger.Error(err.Error())
+			return BuildErrorResult(fmt.Sprintf("could not fetch name of measurement %d. See Logs for more information", measurementId), query.RefId), nil
+		}
+		for _, singleSeries := range series {
+			singleSeries.Name = *measurementName + " " + singleSeries.Name
+			allSeries = append(allSeries, singleSeries)
+		}
 	}
 	result := datasource.QueryResult{
 		RefId:  query.RefId,
