@@ -1,19 +1,30 @@
-.min-width-10 {
-  min-width: 10rem;
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
+.generic-datasource-query-row .query-keyword {
+  width: 75px;
 }
 
-.min-width-12 {
-  min-width: 12rem;
+.sn-checkbox-width > label {
+  width: 30px!important;
 }
 
-.min-width-20 {
-  min-width: 20rem;
+.sn-single-metric-label{
+  width: 231px!important;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.gf-form-select-wrapper select.gf-form-input {
-  height: 2.64rem;
+.sn-indented-label {
+  float: left;
+  margin-left: 415px!important
 }
 
-.gf-form-select-wrapper--caret-indent.gf-form-select-wrapper::after {
-  right: 0.775rem
+.sn-unindented-label {
+  float: left;
 }
