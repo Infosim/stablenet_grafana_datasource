@@ -1,5 +1,5 @@
 {
-  "name": "StableNet® data source",
+  "name": "StableNet®",
   "id": "stablenet-datasource",
   "type": "datasource",
 
@@ -13,7 +13,7 @@
   "executable": "stablenet_backend_plugin",
 
   "info": {
-    "description": "StableNet® Datasource",
+    "description": "Data source for StableNet® Server",
     "author": {
       "name": "Infosim®",
       "url": "https://www.infosim.net"
