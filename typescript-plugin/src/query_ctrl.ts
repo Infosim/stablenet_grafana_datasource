@@ -5,10 +5,12 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import {QueryCtrl} from 'app/plugins/sdk';
-import './css/query-editor.css!'
+import { QueryCtrl } from 'app/plugins/sdk';
+import './css/query_editor.css!';
 
-export class GenericDatasourceQueryCtrl extends QueryCtrl {
+export class StableNetQueryCtrl extends QueryCtrl {
+    static templateUrl = 'partials/query.editor.html';
+
     constructor($scope, $injector) {
         super($scope, $injector);
         this.target.mode = this.target.mode || 0;
@@ -22,7 +24,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
         this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
         this.target.statisticLink = this.target.statisticLink || '';
-        //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid), 
+        //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid),
         //but we need the variable to make ng-repeat in query-editor.html (and thus the checkboxes) work
         this.target.metrics = this.target.metrics || [];
         //the following two do not belong in this.target either, but the ng-ifs in the optional tooltips have to be bound to something
@@ -30,22 +32,22 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.target.moreMeasurements = typeof this.target.moreMeasurements === 'undefined' ? false : this.target.moreMeasurements;
     }
 
-    getModes() {
+    getModes(): {text: string, value: number}[] {
         return [{text: 'Measurement', value: 0}, {text: 'Statistic Link', value: 10}];
     }
 
-    onModeChange(){
+    onModeChange(): void {
         this.target.includeMinStats = false;
         this.target.includeAvgStats = true;
         this.target.includeMaxStats = false;
     }
 
-    onDeviceQueryChange() {
+    onDeviceQueryChange(): void {
         this.datasource.queryDevices(this.target.deviceQuery, this.target.refId)
             .then(r => r.data)
             .then(r => r ? r.map(el => el.value) : [])
             .then(r => {
-                if (!r.includes(this.target.selectedDevice)){
+                if (!r.includes(this.target.selectedDevice)) {
                     this.target.selectedDevice = -1;
                     this.target.measurementQuery = '';
                     this.target.selectedMeasurement = '';
@@ -66,7 +68,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
             });
     }
 
-    onDeviceChange() {
+    onDeviceChange(): void {
         this.target.measurementQuery = '';
         this.target.selectedMeasurement = '';
         this.target.metricPrefix = '';
@@ -82,12 +84,12 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
             });
     }
 
-    onMeasurementRegexChange() {
+    onMeasurementRegexChange(): void {
         this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
             .then(r => r.data)
             .then(r => r ? r.map(el => el.value) : [])
             .then(r => {
-                if (!r.includes(this.target.selectedMeasurement)){
+                if (!r.includes(this.target.selectedMeasurement)) {
                     this.target.selectedMeasurement = '';
                     this.target.metrics = [];
                     this.target.chosenMetrics = {};
@@ -97,7 +99,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
             .then(() => this.onChangeInternal());
     }
 
-    onMeasurementChange() {
+    onMeasurementChange(): void {
         this.datasource.findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId)
             .then(res => this.target.metrics = res);
         this.target.chosenMetrics = {};
@@ -108,10 +110,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.onChangeInternal();
     }
 
-    onChangeInternal() {
+    onChangeInternal(): void {
         this.panelCtrl.refresh(); // Asks the panel to refresh data.
     }
 }
-
-GenericDatasourceQueryCtrl.templateUrl = 'partials/query.editor.html';
-
