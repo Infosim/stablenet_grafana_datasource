@@ -104,7 +104,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
         this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
             .then(r => r.data)
             .then(r => r.filter(m => m.value === this.target.selectedMeasurement)[0])
-            .then(r => this.target.metricPrefix = r.text)
+            .then(r => this.target.metricPrefix = r.text);
         this.onChangeInternal();
     }
 

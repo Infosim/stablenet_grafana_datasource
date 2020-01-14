@@ -5,8 +5,6 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import _ from "lodash";
-
 const BACKEND_URL = '/api/tsdb/query';
 
 export class GenericDatasource {
@@ -29,7 +27,7 @@ export class GenericDatasource {
                     }
                 ]
             }
-        }
+        };
 
         return this.backendSrv.request(options)
             .then(response => {
@@ -132,7 +130,7 @@ export class GenericDatasource {
             datasourceId: this.id,
             queryType: "metricNames",
             measurementObid: obid
-        })
+        });
 
         return this.doRequest(data)
             .then(result => {
@@ -221,25 +219,29 @@ export class GenericDatasource {
             url: BACKEND_URL,
             method: 'POST',
             data: data
-        }
+        };
         return this.backendSrv.datasourceRequest(options);
     }
 }
 
 export function handleTsdbResponse(response) {
     const res = [];
-    _.forEach(response.data.results, r => {
-        _.forEach(r.series, s => {
-            res.push({
-                target: s.name,
-                datapoints: s.points
+    Object.values(response.data.results).forEach(r => {
+        if(r.series){
+            r.series.forEach(s => {
+                res.push({
+                    target: s.name,
+                    datapoints: s.points
+                });
             });
-        });
-        _.forEach(r.tables, t => {
-            t.type = 'table';
-            t.refId = r.refId;
-            res.push(t);
-        });
+        }
+        if(r.tables){
+            r.tables.forEach(t => {
+                t.type = 'table';
+                t.refId = r.refId;
+                res.push(t);
+            });
+        }
     });
 
     response.data = res;
