@@ -5,7 +5,7 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import RocksetDatasource from './datasource';
+import StableNetDatasource from './datasource';
 import { StableNetQueryCtrl } from './query_ctrl';
 
 export class StableNetConfigCtrl {
@@ -31,7 +31,7 @@ class StableNetAnnotationsQueryCtrl {
 }
 
 export {
-  RocksetDatasource as Datasource,
+  StableNetDatasource as Datasource,
   StableNetQueryCtrl as QueryCtrl,
   StableNetConfigCtrl as ConfigCtrl,
   StableNetQueryOptionsCtrl as QueryOptionsCtrl,

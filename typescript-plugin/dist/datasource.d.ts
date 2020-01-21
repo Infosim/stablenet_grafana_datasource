@@ -1,31 +1,20 @@
 /// <reference path="../node_modules/grafana-sdk-mocks/app/headers/common.d.ts" />
 export default class RocksetDatasource {
+    private $q;
     private backendSrv;
     private templateSrv;
-    private $q;
-    apiKey: string;
-    backendsrv: any;
     headers: Object;
     id: number;
     name: string;
     url: string;
+    apiKey: string;
     /** @ngInject */
-    constructor(instanceSettings: any, backendSrv: any, templateSrv: any, $q: any);
-    parseTimeFromValue(value: any): any;
-    createTimeSeriesData(value: Object, timeSeriesColName: string): Object[];
-    createTableData(value: Object): Object;
-    processQueryResult(values: Object[], displayTypes: string[], timeSeriesCols: string[]): {
-        data: any[];
-    };
-    wrapSqlQuery(sqlQuery: string, timeSeriesCol: string, startTime: number, endTime: number, timeColType: string): string;
-    parseQueries(options: any, timeSeriesCols: string[], timeColTypes: string[]): Object[];
-    constructQueryRequests(queries: Object[]): any[];
-    parseDisplayTypes(targets: Object[]): any[];
-    parseTimeSeriesCols(targets: Object[]): string[];
-    parseTimeColTypes(targets: Object[]): string[];
-    query(options: any): any;
-    annotationQuery(options: any): void;
-    metricFindQuery(query: string): void;
-    doRequest(options: any): any;
+    constructor(instanceSettings: any, $q: any, backendSrv: any, templateSrv: any);
     testDatasource(): any;
+    queryDevices(queryString: any, refid: any): any;
+    findMeasurementsForDevice(obid: any, input: any, refid: any): any;
+    findMetricsForMeasurement(obid: any, refid: any): any;
+    query(options: any): void;
+    doRequest(data: any): any;
 }
+export declare function handleTsdbResponse(response: any): any;
