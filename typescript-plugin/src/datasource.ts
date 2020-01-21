@@ -19,11 +19,6 @@ export default class RocksetDatasource {
     /** @ngInject */
     constructor(instanceSettings, private $q, private  backendSrv, private templateSrv) {
         this.id = instanceSettings.id;
-
-        this.name = instanceSettings.name;
-        this.headers = {'Content-Type': 'application/json'};
-        this.headers['Authorization'] = `ApiKey ${instanceSettings.jsonData['apiKey']}`;
-        this.url = 'https://api.rs2.usw2.rockset.com';
     }
 
     testDatasource() {

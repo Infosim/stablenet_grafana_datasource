@@ -42,10 +42,6 @@ System.register([], function(exports_1) {
                     this.backendSrv = backendSrv;
                     this.templateSrv = templateSrv;
                     this.id = instanceSettings.id;
-                    this.name = instanceSettings.name;
-                    this.headers = { 'Content-Type': 'application/json' };
-                    this.headers['Authorization'] = "ApiKey " + instanceSettings.jsonData['apiKey'];
-                    this.url = 'https://api.rs2.usw2.rockset.com';
                 }
                 RocksetDatasource.prototype.testDatasource = function () {
                     var options = {
