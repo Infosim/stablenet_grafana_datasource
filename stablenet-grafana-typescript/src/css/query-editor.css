@@ -1,0 +1,30 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
+.generic-datasource-query-row .query-keyword {
+  width: 75px;
+}
+
+.sn-checkbox-width > label {
+  width: 30px!important;
+}
+
+.sn-single-metric-label{
+  width: 231px!important;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sn-indented-label {
+  float: left;
+  margin-left: 415px!important
+}
+
+.sn-unindented-label {
+  float: left;
+}

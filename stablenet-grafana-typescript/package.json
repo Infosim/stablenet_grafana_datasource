@@ -1,0 +1,21 @@
+{
+  "name": "grafana-influxdb-flux-datasource",
+  "version": "5.4.1",
+  "description": "Grafana data source for InfluxDB (Flux query support)",
+  "private": true,
+  "scripts": {
+    "build": "grafana-toolkit plugin:build",
+    "test": "grafana-toolkit plugin:test",
+    "dev": "grafana-toolkit plugin:dev",
+    "watch": "grafana-toolkit plugin:dev --watch"
+  },
+  "author": "Grafana Labs",
+  "license": "Apache",
+  "dependencies": {},
+  "devDependencies": {
+    "@grafana/toolkit": "6.5.3",
+    "@grafana/ui": "next",
+    "@grafana/data": "next",
+    "@types/grafana": "github:CorpGlory/types-grafana.git"
+  }
+}

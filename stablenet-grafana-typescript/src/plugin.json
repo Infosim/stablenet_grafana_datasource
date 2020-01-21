@@ -1,0 +1,36 @@
+{
+  "name": "StableNet® data source",
+  "id": "stablenet-datasource",
+  "type": "datasource",
+
+  "partials": {
+    "config": "public/app/plugins/datasource/simplejson/partials/config.html"
+  },
+
+  "metrics": true,
+  "annotations": false,
+  "backend": true,
+  "executable": "stablenet_backend_plugin",
+
+  "info": {
+    "description": "StableNet® Datasource",
+    "author": {
+      "name": "Infosim®",
+      "url": "https://www.infosim.net"
+    },
+    "logos": {
+      "small": "img/infosim_logo_small.png",
+      "large": "img/infosim_logo.png"
+    },
+    "links": [
+      {"name": "StableNet® by Infosim®", "url": "https://www.infosim.net/stablenet"}
+    ],
+    "version": "1.0.0",
+    "updated": "2019-12-20"
+  },
+
+  "dependencies": {
+    "grafanaVersion": "6.4.4",
+    "plugins": [ ]
+  }
+}
