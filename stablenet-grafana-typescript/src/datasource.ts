@@ -7,14 +7,14 @@
  */
 const BACKEND_URL = '/api/tsdb/query';
 
-export class GenericDatasource {
-  id: any;
+export class StableNetDatasource {
+  id: number;
 
   constructor(instanceSettings, $q, private backendSrv) {
     this.id = instanceSettings.id;
   }
 
-  testDatasource() {
+  testDatasource(): Promise<{ status: string; message: string; title: string }> {
     const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
@@ -46,7 +46,7 @@ export class GenericDatasource {
     });
   }
 
-  queryDevices(queryString, refid) {
+  queryDevices(queryString, refid): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> {
     const data = {
       queries: [
         {
@@ -73,7 +73,7 @@ export class GenericDatasource {
     });
   }
 
-  findMeasurementsForDevice(obid, input, refid) {
+  findMeasurementsForDevice(obid, input, refid): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> | Promise<never[]> {
     if (obid === 'none') {
       return Promise.resolve([]);
     }
@@ -111,7 +111,7 @@ export class GenericDatasource {
     });
   }
 
-  findMetricsForMeasurement(obid, refid) {
+  findMetricsForMeasurement(obid, refid): Promise<Array<{ text: string; value: string; measurementObid: number }>> | Promise<never[]> {
     if (obid === -1) {
       return Promise.resolve([]);
     }
@@ -209,7 +209,7 @@ export class GenericDatasource {
     return await this.doRequest(data).then(handleTsdbResponse);
   }
 
-  doRequest(data) {
+  doRequest(data): any {
     const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,

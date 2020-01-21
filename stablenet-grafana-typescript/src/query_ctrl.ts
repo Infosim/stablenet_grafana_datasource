@@ -9,7 +9,7 @@ import { QueryCtrl } from 'grafana/app/plugins/sdk';
 import './css/query-editor.css';
 
 /** @ngInject */
-export class GenericDatasourceQueryCtrl extends QueryCtrl {
+export class StableNetQueryCtrl extends QueryCtrl {
   static templateUrl = 'partials/query.editor.html';
   constructor($scope, $injector) {
     super($scope, $injector);
@@ -32,20 +32,20 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.moreMeasurements = typeof this.target.moreMeasurements === 'undefined' ? false : this.target.moreMeasurements;
   }
 
-  getModes() {
+  getModes(): Array<{ text: string; value: number }> {
     return [
       { text: 'Measurement', value: 0 },
       { text: 'Statistic Link', value: 10 },
     ];
   }
 
-  onModeChange() {
+  onModeChange(): void {
     this.target.includeMinStats = false;
     this.target.includeAvgStats = true;
     this.target.includeMaxStats = false;
   }
 
-  onDeviceQueryChange() {
+  onDeviceQueryChange(): void {
     this.datasource
       .queryDevices(this.target.deviceQuery, this.target.refId)
       .then(r => r.data)
@@ -64,14 +64,14 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
       .then(() => this.onChangeInternal());
   }
 
-  getDevices() {
+  getDevices(): Promise<{ text: string; value: number }> {
     return this.datasource.queryDevices(this.target.deviceQuery, this.target.refId).then(r => {
       this.target.moreDevices = r.hasMore;
       return r.data;
     });
   }
 
-  onDeviceChange() {
+  onDeviceChange(): void {
     this.target.measurementQuery = '';
     this.target.selectedMeasurement = '';
     this.target.metricPrefix = '';
@@ -79,14 +79,14 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.target.chosenMetrics = {};
   }
 
-  getMeasurements() {
+  getMeasurements(): Promise<{ text: string; value: number }> {
     return this.datasource.findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId).then(r => {
       this.target.moreMeasurements = r.hasMore;
       return r.data;
     });
   }
 
-  onMeasurementRegexChange() {
+  onMeasurementRegexChange(): void {
     this.datasource
       .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
       .then(r => r.data)
@@ -102,7 +102,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
       .then(() => this.onChangeInternal());
   }
 
-  onMeasurementChange() {
+  onMeasurementChange(): void {
     this.datasource.findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId).then(res => (this.target.metrics = res));
     this.target.chosenMetrics = {};
     this.datasource
@@ -113,7 +113,7 @@ export class GenericDatasourceQueryCtrl extends QueryCtrl {
     this.onChangeInternal();
   }
 
-  onChangeInternal() {
+  onChangeInternal(): void {
     this.panelCtrl.refresh(); // Asks the panel to refresh data.
   }
 }

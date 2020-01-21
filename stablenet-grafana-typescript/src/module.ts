@@ -5,10 +5,10 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { GenericDatasource } from './datasource';
-import { GenericDatasourceQueryCtrl } from './query_ctrl';
+import { StableNetDatasource } from './datasource';
+import { StableNetQueryCtrl } from './query_ctrl';
 
-export class GenericConfigCtrl {
+export class StableNetConfigCtrl {
   static templateUrl = 'partials/config.html';
 
   passwordExists: boolean;
@@ -23,18 +23,18 @@ export class GenericConfigCtrl {
   }
 }
 
-class GenericQueryOptionsCtrl {
+class StableNetQueryOptionsCtrl {
   static templateUrl = 'partials/query.options.html';
 }
 
-class GenericAnnotationsQueryCtrl {
+class StableNetAnnotationsQueryCtrl {
   static templateUrl = 'partials/annotations.editor.html';
 }
 
 export {
-  GenericDatasource as Datasource,
-  GenericDatasourceQueryCtrl as QueryCtrl,
-  GenericConfigCtrl as ConfigCtrl,
-  GenericQueryOptionsCtrl as QueryOptionsCtrl,
-  GenericAnnotationsQueryCtrl as AnnotationsQueryCtrl,
+  StableNetDatasource as Datasource,
+  StableNetQueryCtrl as QueryCtrl,
+  StableNetConfigCtrl as ConfigCtrl,
+  StableNetQueryOptionsCtrl as QueryOptionsCtrl,
+  StableNetAnnotationsQueryCtrl as AnnotationsQueryCtrl,
 };
