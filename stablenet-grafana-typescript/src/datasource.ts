@@ -15,7 +15,7 @@ export class GenericDatasource {
   }
 
   testDatasource() {
-    let options = {
+    const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
       method: 'POST',
@@ -47,7 +47,7 @@ export class GenericDatasource {
   }
 
   queryDevices(queryString, refid) {
-    let data = {
+    const data = {
       queries: [
         {
           refId: refid,
@@ -59,7 +59,7 @@ export class GenericDatasource {
     };
 
     return this.doRequest(data).then(result => {
-      let res = result.data.results[refid].meta.data.map(device => {
+      const res = result.data.results[refid].meta.data.map(device => {
         return {
           text: device.name,
           value: device.obid,
@@ -78,7 +78,7 @@ export class GenericDatasource {
       return Promise.resolve([]);
     }
 
-    let data: any = { queries: [] };
+    const data: any = { queries: [] };
 
     if (input === undefined) {
       data.queries.push({
@@ -98,7 +98,7 @@ export class GenericDatasource {
     }
 
     return this.doRequest(data).then(result => {
-      let res = result.data.results[refid].meta.data.map(measurement => {
+      const res = result.data.results[refid].meta.data.map(measurement => {
         return {
           text: measurement.name,
           value: measurement.obid,
@@ -116,7 +116,7 @@ export class GenericDatasource {
       return Promise.resolve([]);
     }
 
-    let data: any = {
+    const data: any = {
       queries: [],
     };
 
@@ -141,10 +141,10 @@ export class GenericDatasource {
   async query(options) {
     const from = new Date(options.range.from).getTime().toString();
     const to = new Date(options.range.to).getTime().toString();
-    let queries: any = [];
+    const queries: any = [];
 
     for (let i = 0; i < options.targets.length; i++) {
-      let target = options.targets[i];
+      const target = options.targets[i];
 
       if (target.mode === 10 && target.statisticLink !== '') {
         queries.push({
@@ -167,13 +167,13 @@ export class GenericDatasource {
         continue;
       }
 
-      let requestData: any = [];
-      let keys: any = [];
-      let e = Object.entries(target.chosenMetrics);
+      const requestData: any = [];
+      const keys: any = [];
+      const e = Object.entries(target.chosenMetrics);
 
-      for (let [key, value] of e) {
+      for (const [key, value] of e) {
         if (value) {
-          let text = target.metricPrefix + ' {MinMaxAvg} ' + target.metrics.filter(m => m.value === key)[0].text;
+          const text = target.metricPrefix + ' {MinMaxAvg} ' + target.metrics.filter(m => m.value === key)[0].text;
           keys.push({
             key: key,
             name: text,
@@ -182,7 +182,7 @@ export class GenericDatasource {
       }
 
       requestData.push({
-        measurementObid: parseInt(target.selectedMeasurement),
+        measurementObid: parseInt(target.selectedMeasurement, 10),
         metrics: keys,
       });
 
@@ -201,7 +201,7 @@ export class GenericDatasource {
       return { data: [] };
     }
 
-    let data = {
+    const data = {
       from: from,
       to: to,
       queries: queries,
@@ -210,7 +210,7 @@ export class GenericDatasource {
   }
 
   doRequest(data) {
-    let options = {
+    const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
       method: 'POST',

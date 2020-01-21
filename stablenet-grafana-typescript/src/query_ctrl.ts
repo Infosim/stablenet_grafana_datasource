@@ -8,6 +8,7 @@
 import { QueryCtrl } from 'grafana/app/plugins/sdk';
 import './css/query-editor.css';
 
+/** @ngInject */
 export class GenericDatasourceQueryCtrl extends QueryCtrl {
   static templateUrl = 'partials/query.editor.html';
   constructor($scope, $injector) {
