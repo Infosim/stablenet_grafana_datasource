@@ -13,7 +13,7 @@
   "executable": "stablenet_backend_plugin",
 
   "info": {
-    "description": "Data source for StableNet® Server",
+    "description": "Data Source for StableNet® Server",
     "author": {
       "name": "Infosim®",
       "url": "https://www.infosim.net"
