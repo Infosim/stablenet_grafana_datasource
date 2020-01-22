@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -169,9 +170,12 @@ type datasourceTestHandler struct {
 }
 
 func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, error) {
-	_, err := d.SnClient.FetchMeasurementsForDevice(nil, "")
-	if err != nil {
-		return BuildErrorResult("Cannot login into StableNet(R) with the provided credentials", query.RefId), nil
+	version, errStr := d.SnClient.QueryStableNetVersion()
+	if errStr != nil {
+		return BuildErrorResult(*errStr, query.RefId), nil
+	}
+	if !strings.HasPrefix(version.Version, "9.") {
+		return BuildErrorResult(fmt.Sprintf("The StableNet® version %s does not support Grafana®.", version.Version), query.RefId), nil
 	}
 	return &datasource.QueryResult{
 		Series: []*datasource.TimeSeries{},

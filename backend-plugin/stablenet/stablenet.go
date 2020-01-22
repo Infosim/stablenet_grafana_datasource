@@ -47,8 +47,13 @@ type ClientImpl struct {
 	client *resty.Client
 }
 
+// Queries StableNet® for its version. Attention: Unlike Go-conventions state,
+// this function returns a string point instead of an error in case the version cannot be fetched.
+// The reason is that the returned string is meant to be presented to the end user, while an error type string
+// should generally not be presented to the end user.
 func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 	var errorStr string
+	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
 	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
