@@ -10,14 +10,17 @@ package stablenet
 import (
 	"crypto/tls"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"net/http"
 	url2 "net/url"
 	"strings"
 	"time"
 )
 
 type Client interface {
+	QueryStableNetVersion() (*ServerVersion, *string)
 	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
 	FetchMeasurementName(int) (*string, error)
@@ -42,6 +45,31 @@ func NewClient(options *ConnectOptions) Client {
 type ClientImpl struct {
 	ConnectOptions
 	client *resty.Client
+}
+
+func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
+	var errorStr string
+	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
+	resp, err := c.client.R().Get(url)
+	if err != nil {
+		errorStr = fmt.Sprintf("Connecting StableNet® failed: %v", err.Error())
+		return nil, &errorStr
+	}
+	if resp.StatusCode() == http.StatusUnauthorized {
+		errorStr = fmt.Sprintf("The StableNet® server could be reached, but the credentials were invalid.")
+		return nil, &errorStr
+	}
+	if resp.StatusCode() != http.StatusOK {
+		errorStr = fmt.Sprintf("Log in StableNet® successfull, but the StableNet® version could not be queried. Status Code: %d", resp.StatusCode())
+		return nil, &errorStr
+	}
+	var result ServerInfo
+	err = xml.Unmarshal(resp.Body(), &result)
+	if err != nil {
+		errorStr = fmt.Sprintf("Log in StableNet® successfull, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
+		return nil, &errorStr
+	}
+	return &result.ServerVersion, nil
 }
 
 func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {

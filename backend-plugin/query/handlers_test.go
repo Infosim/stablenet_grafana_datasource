@@ -393,6 +393,10 @@ type mockSnClient struct {
 	mock.Mock
 }
 
+func (m *mockSnClient) QueryStableNetVersion() (*stablenet.ServerVersion, *string) {
+	panic("implement me")
+}
+
 func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult, error) {
 	args := m.Called(query)
 	if args.Get(0) != nil {
