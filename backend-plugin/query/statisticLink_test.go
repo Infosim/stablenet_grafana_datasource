@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sort"
 	"testing"
 	"time"
 )
@@ -131,15 +132,18 @@ func Test_statisticLinkHandler2_Successful(t *testing.T) {
 	require.NoError(t, err, "no error expected")
 	assert.Equal(t, "A", got.RefId, "refId is wrong")
 	series := got.Series
+	sort.Slice(series, func(i, j int) bool {
+		return len(series[i].Name) < len(series[j].Name)
+	})
 	require.Equal(t, 3, len(series), "number of series is wrong")
 
-	assert.Equal(t, "ThinkStation Host Avg Uptime", series[0].Name, "name of first series wrong")
+	assert.Equal(t, "ThinkStation Ping Avg Ping", series[0].Name, "name of first series wrong")
 	assert.Equal(t, 1, len(series[0].Points), "number of data points of first series wrong")
-	assert.Equal(t, 6.0, series[0].Points[0].Value, "value of data of first series wrong")
+	assert.Equal(t, 350.0, series[0].Points[0].Value, "value of data of first series wrong")
 	assert.Equal(t, "ThinkStation Host Avg Users", series[1].Name, "name of second series wrong")
 	assert.Equal(t, 1, len(series[1].Points), "number of data points of second series wrong")
 	assert.Equal(t, 1.0, series[1].Points[0].Value, "value of data of second series wrong")
-	assert.Equal(t, "ThinkStation Ping Avg Ping", series[2].Name, "name of third series wrong")
+	assert.Equal(t, "ThinkStation Host Avg Uptime", series[2].Name, "name of third series wrong")
 	assert.Equal(t, 1, len(series[2].Points), "number of data points of third series wrong")
-	assert.Equal(t, 350.0, series[2].Points[0].Value, "value of data of third series wrong")
+	assert.Equal(t, 6.0, series[2].Points[0].Value, "value of data of third series wrong")
 }

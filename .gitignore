@@ -19,10 +19,10 @@ docs/changed-files
 public/css/*.min.css
 
 # Editor junk
-*.sublime-workspace
-*.swp
-.idea/
-*.iml
+**/*.sublime-workspace
+**/*.swp
+**/.idea
+**/*.iml
 
 /data/*
 /bin/*
@@ -34,7 +34,6 @@ grafana
 .notouch
 
 # Test artifacts
-/dist/test/
-/dist/
-/backend-plugin/coverage.out
-/stablenet-grafana-plugin.zip
+**/dist/
+**/coverage.out
+**/stablenet-grafana-plugin.zip
