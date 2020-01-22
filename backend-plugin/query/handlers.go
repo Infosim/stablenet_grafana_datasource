@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
+	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -174,7 +174,8 @@ func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, er
 	if errStr != nil {
 		return BuildErrorResult(*errStr, query.RefId), nil
 	}
-	if !strings.HasPrefix(version.Version, "9.") {
+	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
+	if !versionRegex.MatchString(version.Version) {
 		return BuildErrorResult(fmt.Sprintf("The StableNet® version %s does not support Grafana®.", version.Version), query.RefId), nil
 	}
 	return &datasource.QueryResult{
