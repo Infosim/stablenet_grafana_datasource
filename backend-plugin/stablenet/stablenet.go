@@ -71,7 +71,7 @@ func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 	var result ServerInfo
 	err = xml.Unmarshal(resp.Body(), &result)
 	if err != nil {
-		errorStr = fmt.Sprintf("Log in StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
+		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
 		return nil, &errorStr
 	}
 	return &result.ServerVersion, nil
