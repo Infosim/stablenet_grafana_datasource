@@ -20,5 +20,6 @@ deploy:
 ship:
 	cp -r ./dist ./stablenet-grafana-plugin
 	./build_docu.sh /home/fafeitsch/code/doc/stablenet-documents/ 1
-	zip -r stablenet-grafana-plugin stablenet-grafana-plugin
+	rm -f ./stablenet-grafana-plugin.zip
+	zip -x *.map -r stablenet-grafana-plugin stablenet-grafana-plugin
 	rm -r ./stablenet-grafana-plugin
