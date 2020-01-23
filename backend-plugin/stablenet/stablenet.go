@@ -57,7 +57,7 @@ func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		errorStr = fmt.Sprintf("Connecting StableNet® failed: %v", err.Error())
+		errorStr = fmt.Sprintf("Connecting to StableNet® failed: %v", err.Error())
 		return nil, &errorStr
 	}
 	if resp.StatusCode() == http.StatusUnauthorized {
@@ -65,13 +65,13 @@ func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 		return nil, &errorStr
 	}
 	if resp.StatusCode() != http.StatusOK {
-		errorStr = fmt.Sprintf("Log in StableNet® successfull, but the StableNet® version could not be queried. Status Code: %d", resp.StatusCode())
+		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: %d", resp.StatusCode())
 		return nil, &errorStr
 	}
 	var result ServerInfo
 	err = xml.Unmarshal(resp.Body(), &result)
 	if err != nil {
-		errorStr = fmt.Sprintf("Log in StableNet® successfull, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
+		errorStr = fmt.Sprintf("Log in StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
 		return nil, &errorStr
 	}
 	return &result.ServerVersion, nil
