@@ -57,6 +57,7 @@ func TestExtractMetricKeysForMeasurement(t *testing.T) {
 		{name: "one measurement, one metric", link: "https://localhost:5443/PlotServlet?id=1643&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&value0=1002", wanted: map[int][]string{1643: {"1002"}}},
 		{name: "one measurement, several metrics", link: "https://localhost:5443/PlotServlet?id=1643&chart=5504&last=0,1440&offset=0,0&tz=Europe%2FBerlin&value0=1002&value1=1000&value2=1001", wanted: map[int][]string{1643: {"1002", "1000", "1001"}}},
 		{name: "several measurements", link: "https://localhost:5443/PlotServlet?multicharttype=0&dns=1&log=0&width=1252&height=1126&quality=-1.0&0last=0,1440&0offset=0,0&0interval=60000&0id=1643&0chart=5504&0value0=1000&0value1=1001&0value2=1002&1last=0,1440&1offset=0,0&1interval=60000&1id=3889&1chart=5504&1value0=1", wanted: map[int][]string{1643: {"1000", "1001", "1002"}, 3889: {"1"}}},
+		{name: "ping measurements w/o valueIds", link: "https://localhost:5443/PlotServlet?multicharttype=0&dns=1&log=0&width=1252&height=1126&quality=-1.0&0last=0,1440&0offset=0,0&0interval=60000&0id=3088&0chart=100&1last=0,1440&1offset=0,0&1interval=60000&1id=7228&1chart=100&tz=Europe/Berlin", wanted: map[int][]string{3088: {}, 7228: {}}},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -82,6 +83,7 @@ func TestFilterWantedMetrics(t *testing.T) {
 	}{
 		{name: "Wanted Metrics 1", metrics: []stablenet.Metric{{Name: "Uptime", Key: "SNMP1001"}, {Name: "Processes", Key: "SNMP1000"}, {Name: "Users", Key: "SNMP1002"}}, wantedMetrics: []string{"1001", "1002"}, wanted: []int{0, 2}},
 		{name: "Wanted Metrics 2", metrics: []stablenet.Metric{{Name: "Uptime", Key: "SNMP1010"}, {Name: "Processes", Key: "SNMP1020"}}, wantedMetrics: []string{"1000"}, wanted: []int{}},
+		{name: "Wanted Metrics is empty", metrics: []stablenet.Metric{{Name: "Uptime", Key: "SNMP1010"}, {Name: "Processes", Key: "SNMP1020"}}, wantedMetrics: []string{}, wanted: []int{0, 1}},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
