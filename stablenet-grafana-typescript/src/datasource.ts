@@ -71,20 +71,19 @@ export class StableNetDatasource {
       ],
     };
 
-    return this.doRequest(data)
-      .then(result => {
-        const res: Array<{ text: string; value: number }> = result.data.results[refid].meta.data.map(device => {
-          return {
-            text: device.name,
-            value: device.obid,
-          };
-        });
-        res.unshift({
-          text: 'none',
-          value: -1,
-        });
-        return { data: res, hasMore: result.data.results[refid].meta.hasMore };
+    return this.doRequest(data).then(result => {
+      const res: Array<{ text: string; value: number }> = result.data.results[refid].meta.data.map(device => {
+        return {
+          text: device.name,
+          value: device.obid,
+        };
       });
+      res.unshift({
+        text: 'none',
+        value: -1,
+      });
+      return { data: res, hasMore: result.data.results[refid].meta.hasMore };
+    });
   }
 
   findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> {
@@ -145,10 +144,28 @@ export class StableNetDatasource {
     });
   }
 
-  async query(options) {
+  async query(
+    options: any
+  ): Promise<{
+    data: Array<{ target: string; datapoints: Array<[number, number]> }> | never[];
+    status?: number;
+    headers?: any;
+    config?: any;
+    statusText?: string;
+    xhrStatus?: string;
+  }> {
     const from: string = new Date(options.range.from).getTime().toString();
     const to: string = new Date(options.range.to).getTime().toString();
-    const queries: any = [];
+    const queries: Array<{
+      refId: string;
+      datasourceId: number;
+      queryType: string;
+      statisticLink?: string;
+      requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
+      includeMinStats: boolean;
+      includeAvgStats: boolean;
+      includeMaxStats: boolean;
+    }> = [];
 
     for (let i = 0; i < options.targets.length; i++) {
       const target: {
@@ -176,8 +193,11 @@ export class StableNetDatasource {
           datasourceId: this.id,
           queryType: 'statisticLink',
           statisticLink: target.statisticLink,
+          //@ts-ignore
           includeMinStats: target.includeMinStats,
+          //@ts-ignore
           includeAvgStats: target.includeAvgStats,
+          //@ts-ignore
           includeMaxStats: target.includeMaxStats,
         });
         continue;
@@ -191,8 +211,8 @@ export class StableNetDatasource {
         continue;
       }
 
-      const requestData: any = [];
-      const keys: any = [];
+      const keys: Array<{ key: string; name: string }> = [];
+      const requestData: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }> = [];
       const e: Array<[string, boolean]> = Object.entries(target.chosenMetrics);
 
       for (const [key, value] of e) {
@@ -207,6 +227,7 @@ export class StableNetDatasource {
       }
 
       requestData.push({
+        // @ts-ignore
         measurementObid: target.selectedMeasurement,
         metrics: keys,
       });
@@ -216,8 +237,11 @@ export class StableNetDatasource {
         datasourceId: this.id,
         queryType: 'metricData',
         requestData: requestData,
+        //@ts-ignore
         includeMinStats: target.includeMinStats,
+        //@ts-ignore
         includeAvgStats: target.includeAvgStats,
+        //@ts-ignore
         includeMaxStats: target.includeMaxStats,
       });
     }
@@ -226,7 +250,20 @@ export class StableNetDatasource {
       return { data: [] };
     }
 
-    const data = {
+    const data: {
+      from: string;
+      to: string;
+      queries: Array<{
+        refId: string;
+        datasourceId: number;
+        queryType: string;
+        statisticLink?: string;
+        requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
+        includeMinStats: boolean;
+        includeAvgStats: boolean;
+        includeMaxStats: boolean;
+      }>;
+    } = {
       from: from,
       to: to,
       queries: queries,
@@ -234,7 +271,11 @@ export class StableNetDatasource {
     return await this.doRequest(data).then(handleTsdbResponse);
   }
 
-  doRequest(data: any): any {
+  private doRequest(data: {
+    from?: string;
+    to?: string;
+    queries: any[];
+  }): Promise<{ data: { results: object }; status: number; headers?: any; config: any; statusText: string; xhrStatus: string }> {
     const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
@@ -245,7 +286,21 @@ export class StableNetDatasource {
   }
 }
 
-export function handleTsdbResponse(response) {
+export function handleTsdbResponse(response: {
+  data: any;
+  status: number;
+  headers?: any;
+  config: any;
+  statusText: string;
+  xhrStatus: string;
+}): {
+  data: Array<{ target: string; datapoints: Array<[number, number]> }>;
+  status: number;
+  headers?: any;
+  config: any;
+  statusText: string;
+  xhrStatus: string;
+} {
   const res: any = [];
   Object.values(response.data.results).forEach((r: any) => {
     if (r.series) {

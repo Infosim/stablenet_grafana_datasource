@@ -144,7 +144,6 @@ export class GenericDatasource {
     }
 
     async query(options) {
-        console.log(options)
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];
@@ -157,10 +156,10 @@ export class GenericDatasource {
                     refId: target.refId,
                     datasourceId: this.id,
                     queryType: "statisticLink",
-                    statisticLink: target.statisticLink,
                     includeMinStats: target.includeMinStats,
                     includeAvgStats: target.includeAvgStats,
-                    includeMaxStats: target.includeMaxStats
+                    includeMaxStats: target.includeMaxStats,
+                    statisticLink: target.statisticLink
                 });
                 continue;
             }
