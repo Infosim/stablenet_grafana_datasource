@@ -8,16 +8,59 @@
 package stablenet
 
 import (
+	"backend-plugin/util"
+	"errors"
 	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/jarcoal/httpmock"
 	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestClientImpl_QueryStableNetVersion(t *testing.T) {
+	versionXml := "<info><serverversion version=\"8.6.0\" /></info>"
+	tests := []struct {
+		name           string
+		returnedBody   string
+		returnedStatus int
+		httpError      error
+		wantVersion    *ServerVersion
+		wantErrStr     *string
+	}{
+		{name: "success", returnedBody: versionXml, returnedStatus: http.StatusOK, wantVersion: &ServerVersion{Version: "8.6.0"}, wantErrStr: nil},
+		{name: "connection error", httpError: errors.New("server running low on schnitzels"), wantErrStr: util.StringPointer("Connecting to StableNet® failed: Get https://127.0.0.1:443/rest/info: server running low on schnitzels")},
+		{name: "authentication error", returnedBody: "Forbidden", returnedStatus: http.StatusUnauthorized, wantErrStr: util.StringPointer("The StableNet® server could be reached, but the credentials were invalid.")},
+		{name: "status error", returnedBody: "Internal Server Error", returnedStatus: http.StatusInternalServerError, wantErrStr: util.StringPointer("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: 500")},
+		{name: "unmarshal error", returnedBody: "this is no xml", returnedStatus: http.StatusOK, wantErrStr: util.StringPointer("Log in to StableNet® successful, but the StableNet® answer \"this is no xml\" could not be parsed: EOF")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			httpmock.Activate()
+			defer httpmock.Deactivate()
+			if tt.httpError == nil {
+				httpmock.RegisterResponder("GET", "https://127.0.0.1:443/rest/info", httpmock.NewStringResponder(tt.returnedStatus, tt.returnedBody))
+			} else {
+				httpmock.RegisterResponder("GET", "https://127.0.0.1:443/rest/info", httpmock.NewErrorResponder(tt.httpError))
+			}
+			client := NewClient(&ConnectOptions{Port: 443, Host: "127.0.0.1"})
+			clientImpl := client.(*ClientImpl)
+			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+			actual, errStr := client.QueryStableNetVersion()
+			testify.Equal(t, tt.wantVersion, actual, "queried server version wrong")
+			if tt.wantErrStr != nil {
+				testify.Equal(t, *tt.wantErrStr, *errStr, "returned error string wrong")
+			} else {
+				testify.Nil(t, errStr, "returned error string should be nil")
+			}
+			httpmock.Reset()
+		})
+	}
+}
 
 func TestClientImpl_QueryDevices(t *testing.T) {
 	devices, err := ioutil.ReadFile("./test-data/devices.json")
@@ -28,8 +71,8 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 		filter  string
 		mockUrl string
 	}{
-		{name: "no filter", filter: "", mockUrl: "https://127.0.0.1:5443/api/1/devices?$top=100"},
-		{name: "one filter", filter: "lab", mockUrl: "https://127.0.0.1:5443/api/1/devices?$top=100&$filter=name+ct+%27lab%27"},
+		{name: "no filter", filter: "", mockUrl: "https://127.0.0.1:5443/api/1/devices?$top=100&$orderBy=name"},
+		{name: "one filter", filter: "lab", mockUrl: "https://127.0.0.1:5443/api/1/devices?$top=100&$orderBy=name&$filter=name+ct+%27lab%27"},
 	}
 
 	for _, tt := range tests {
@@ -55,7 +98,7 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 }
 
 func TestClientImpl_QueryDevice_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/devices?$top=100&$filter=name+ct+%27lab%27"
+	url := "https://127.0.0.1:5443/api/1/devices?$top=100&$orderBy=name&$filter=name+ct+%27lab%27"
 	shouldReturnError := func(client Client) (interface{}, error) {
 		return client.QueryDevices("lab")
 	}
@@ -74,10 +117,10 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 		nameFilter string
 		mockUrl    string
 	}{
-		{name: "no filter", deviceObid: nil, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100"},
-		{name: "device filter", deviceObid: &deviceId, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=destDeviceId+eq+%271024%27"},
-		{name: "name filter", deviceObid: nil, nameFilter: "Host", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=name+ct+%27Host%27"},
-		{name: "device and name filter", deviceObid: &deviceId, nameFilter: "Host", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"},
+		{name: "no filter", deviceObid: nil, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name"},
+		{name: "device filter", deviceObid: &deviceId, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"},
+		{name: "name filter", deviceObid: nil, nameFilter: "Host", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=name+ct+%27Host%27"},
+		{name: "device and name filter", deviceObid: &deviceId, nameFilter: "Host", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -99,7 +142,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 }
 
 func TestClientImpl_FetchMeasurementsForDevice_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"
 	deviceId := 1024
 	shouldReturnError := func(client Client) (interface{}, error) {
 		return client.FetchMeasurementsForDevice(&deviceId, "Host")
@@ -144,7 +187,7 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 }
 
 func TestClientImpl_FetchMeasurementName(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=obid+eq+%271643%27"
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=obid+eq+%271643%27"
 	httpmock.Activate()
 	defer httpmock.Deactivate()
 
@@ -262,7 +305,7 @@ func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error)
 }
 
 func TestClientImpl_FetchMeasurementName_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$filter=obid+eq+%271643%27"
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=obid+eq+%271643%27"
 	shouldReturnError := func(client Client) (i interface{}, e error) {
 		return client.FetchMeasurementName(1643)
 	}
@@ -304,11 +347,13 @@ func TestClientImpl_buildJsonApiUrl(t *testing.T) {
 	tests := []struct {
 		name     string
 		endpoint string
+		orderBy  string
 		filters  []string
 		want     string
 	}{
 		{name: "no filters", endpoint: "devices", filters: []string{}, want: "https://127.0.0.1:5443/api/1/devices?$top=100"},
 		{name: "two filters", endpoint: "measurement/1234/metrics", filters: []string{"destDeviceId eq '1024'", "name ct 'ether'"}, want: "https://127.0.0.1:5443/api/1/measurement/1234/metrics?$top=100&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27ether%27"},
+		{name: "two filter with order by", endpoint: "measurement/1234/metrics", orderBy: "description", filters: []string{"destDeviceId eq '1024'", "name ct 'ether'"}, want: "https://127.0.0.1:5443/api/1/measurement/1234/metrics?$top=100&$orderBy=description&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27ether%27"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -318,7 +363,7 @@ func TestClientImpl_buildJsonApiUrl(t *testing.T) {
 					Port: 5443,
 				},
 			}
-			got := c.buildJsonApiUrl(tt.endpoint, tt.filters...)
+			got := c.buildJsonApiUrl(tt.endpoint, tt.orderBy, tt.filters...)
 			require.Equal(t, tt.want, got, "constructed url not correct")
 		})
 	}

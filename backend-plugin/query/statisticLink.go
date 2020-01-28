@@ -32,24 +32,35 @@ func extractMetricKeysForMeasurements(link string) map[int][]string {
 	measurementIds := findMeasurementIdsInLink(link)
 	keyRegex := regexp.MustCompile("[?&](\\d*)value\\d*=(\\d+)")
 	keyMatches := keyRegex.FindAllStringSubmatch(link, -1)
-	result := make(map[int][]string)
+	valueKeys := make(map[int][]string)
 	for _, match := range keyMatches {
 		index, _ := strconv.Atoi(match[1])
-		measurementId, ok := measurementIds[index]
-		if !ok {
-			continue
-		}
-		list, isPresent := result[measurementId]
+		list, isPresent := valueKeys[index]
 		if !isPresent {
 			list = make([]string, 0, 0)
 		}
 		list = append(list, match[2])
-		result[measurementId] = list
+		valueKeys[index] = list
+	}
+	result := make(map[int][]string)
+	for index, measurementId := range measurementIds {
+		if _, ok := result[measurementId]; !ok {
+			result[measurementId] = make([]string, 0, 0)
+		}
+		list, isPresent := valueKeys[index]
+		if !isPresent {
+			result[measurementId] = make([]string, 0, 0)
+		} else {
+			result[measurementId] = list
+		}
 	}
 	return result
 }
 
 func filterWantedMetrics(fromLink []string, realMetrics []stablenet.Metric) []stablenet.Metric {
+	if len(fromLink) == 0 {
+		return realMetrics
+	}
 	result := make([]stablenet.Metric, 0, 0)
 	for _, realMetric := range realMetrics {
 		for _, requestedMetric := range fromLink {
@@ -72,7 +83,7 @@ func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, err
 	}
 	requested := extractMetricKeysForMeasurements(link)
 	if len(requested) == 0 {
-		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry a measurement id or value ids", link), query.RefId), nil
+		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry at least a measurement id", link), query.RefId), nil
 	}
 	allSeries := make([]*datasource.TimeSeries, 0, 0)
 	for measurementId, metricKeys := range requested {

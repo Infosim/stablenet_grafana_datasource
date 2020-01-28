@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -169,9 +170,13 @@ type datasourceTestHandler struct {
 }
 
 func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, error) {
-	_, err := d.SnClient.FetchMeasurementsForDevice(nil, "")
-	if err != nil {
-		return BuildErrorResult("Cannot login into StableNet(R) with the provided credentials", query.RefId), nil
+	version, errStr := d.SnClient.QueryStableNetVersion()
+	if errStr != nil {
+		return BuildErrorResult(*errStr, query.RefId), nil
+	}
+	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
+	if !versionRegex.MatchString(version.Version) {
+		return BuildErrorResult(fmt.Sprintf("The StableNet® version %s does not support Grafana®.", version.Version), query.RefId), nil
 	}
 	return &datasource.QueryResult{
 		Series: []*datasource.TimeSeries{},

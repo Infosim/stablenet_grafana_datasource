@@ -8,6 +8,7 @@
 package stablenet
 
 import (
+	"backend-plugin/util"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,38 +16,13 @@ import (
 	"time"
 )
 
-//func Test_parseSingleTimestamp_Errors(t *testing.T) {
-//	tests := []struct {
-//		name        string
-//		input       map[string]string
-//		wantedError string
-//	}{
-//		{name: "missing timestamp", input: map[string]string{}, wantedError: "dataset did not contain a value for TIMESTAMP"},
-//		{name: "missing interval", input: map[string]string{"TIMESTAMP": "2019-11-15 11:56:42 +0100"}, wantedError: "dataset did not contain a value for INTERVAL"},
-//		{name: "wrong timestamp", input: map[string]string{"TIMESTAMP": "15.11.2019 11 Uhr 56", "INTERVAL": "00:05:00"}, wantedError: "invalid timestamp format: parsing time \"15.11.2019 11 Uhr 56\" as \"2006-01-02 15:04:05 -0700\": cannot parse \"1.2019 11 Uhr 56\" as \"2006\""},
-//		{name: "unparsable float", input: map[string]string{"TIMESTAMP": "2019-11-15 11:56:42 +0100", "time": "no float", "INTERVAL": "00:05:00"}, wantedError: "cannot parse value for \"no float\": strconv.ParseFloat: parsing \"nofloat\": invalid syntax"},
-//	}
-//	for _, test := range tests {
-//		t.Run(test.name, func(t *testing.T) {
-//			actual, err := parseSingleTimestamp(test.input)
-//			require.Nil(t, actual, "there should be now result because an error should be returned")
-//			assert.EqualError(t, err, test.wantedError, "error message is not correct")
-//		})
-//	}
-//}
-
-func pointer(value float64) *float64 {
-	result := value
-	return &result
-}
-
 func Test_parseSingleTimestamp(t *testing.T) {
 	input := timestampResponse{
 		Interval: 60000,
 		Row: []measurementData{
-			{Min: pointer(1200), Avg: pointer(1277), Max: pointer(1300)},
-			{Min: pointer(0), Avg: pointer(0), Max: pointer(0)},
-			{Min: pointer(1800), Avg: pointer(1949), Max: pointer(2000)},
+			{Min: util.FloatPointer(1200), Avg: util.FloatPointer(1277), Max: util.FloatPointer(1300)},
+			{Min: util.FloatPointer(0), Avg: util.FloatPointer(0), Max: util.FloatPointer(0)},
+			{Min: util.FloatPointer(1800), Avg: util.FloatPointer(1949), Max: util.FloatPointer(2000)},
 		},
 		TimeStamp: 1574839297028,
 	}

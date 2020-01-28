@@ -66,3 +66,11 @@ func (s MetricDataSeries) AvgValues() []*datasource.Point {
 		return data.Avg
 	})
 }
+
+type ServerInfo struct {
+	ServerVersion ServerVersion `xml:"serverversion"`
+}
+
+type ServerVersion struct {
+	Version string `xml:"version,attr"`
+}

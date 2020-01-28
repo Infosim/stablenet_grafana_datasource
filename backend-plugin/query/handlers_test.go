@@ -9,6 +9,7 @@ package query
 
 import (
 	"backend-plugin/stablenet"
+	"backend-plugin/util"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -126,7 +127,6 @@ func TestHandlersSuccessfulResponse(t *testing.T) {
 		{name: "measurement query", handlerServerTestCase: measurementHandlerTest()},
 		{name: "metric query", handlerServerTestCase: metricNameHandlerTest()},
 		{name: "metric data", handlerServerTestCase: metricDataHandlerTest()},
-		/**{name: "statistic link", handlerServerTestCase: statisticLinkHandlerTest()},**/
 		{name: "datasource test", handlerServerTestCase: datasourceTestHandlerTest()},
 	}
 	for _, tt := range tests {
@@ -260,13 +260,12 @@ type handlerServerTestCase struct {
 }
 
 func datasourceTestHandlerTest() *handlerServerTestCase {
-	clientReturn := &stablenet.MeasurementQueryResult{HasMore: false, Measurements: []stablenet.Measurement{}}
-	var nilInt *int
+	clientReturn := &stablenet.ServerVersion{Version: "9.0.1"}
 	return &handlerServerTestCase{
 		handler:       func(h *StableNetHandler) Handler { return datasourceTestHandler{StableNetHandler: h} },
 		queryArgs:     []arg{},
-		clientMethod:  "FetchMeasurementsForDevice",
-		clientArgs:    []arg{{value: nilInt}, {value: ""}},
+		clientMethod:  "QueryStableNetVersion",
+		clientArgs:    []arg{},
 		clientReturn:  clientReturn,
 		successResult: &datasource.QueryResult{},
 	}
@@ -370,13 +369,22 @@ func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource
 
 func TestDatasourceTestHandler_Process_Error(t *testing.T) {
 	rawHandler, _ := setUpHandlerAndLogReceiver()
-	var nilInt *int
-	rawHandler.SnClient.(*mockSnClient).On("FetchMeasurementsForDevice", nilInt, "").Return(nil, errors.New("login not possible"))
+	rawHandler.SnClient.(*mockSnClient).On("QueryStableNetVersion").Return(nil, util.StringPointer("login not possible"))
 	handler := datasourceTestHandler{StableNetHandler: rawHandler}
 	result, err := handler.Process(Query{})
 	assert.NoError(t, err, "no error is expected to be thrown")
 	require.NotNil(t, result, "the result must not be nil")
-	assert.Equal(t, "Cannot login into StableNet(R) with the provided credentials", result.Error)
+	assert.Equal(t, "login not possible", result.Error)
+}
+
+func TestDatasourceTestHandler_Process_Wrong_Version(t *testing.T) {
+	rawHandler, _ := setUpHandlerAndLogReceiver()
+	rawHandler.SnClient.(*mockSnClient).On("QueryStableNetVersion").Return(&stablenet.ServerVersion{Version: "8.6.0"}, nil)
+	handler := datasourceTestHandler{StableNetHandler: rawHandler}
+	result, err := handler.Process(Query{})
+	assert.NoError(t, err, "no error is expected to be thrown")
+	require.NotNil(t, result, "the result must not be nil")
+	assert.Equal(t, "The StableNet® version 8.6.0 does not support Grafana®.", result.Error)
 }
 
 func setUpHandlerAndLogReceiver() (*StableNetHandler, *bytes.Buffer) {
@@ -391,6 +399,14 @@ func setUpHandlerAndLogReceiver() (*StableNetHandler, *bytes.Buffer) {
 
 type mockSnClient struct {
 	mock.Mock
+}
+
+func (m *mockSnClient) QueryStableNetVersion() (*stablenet.ServerVersion, *string) {
+	errStr := m.Called().Get(1)
+	if errStr != nil {
+		return nil, errStr.(*string)
+	}
+	return m.Called().Get(0).(*stablenet.ServerVersion), nil
 }
 
 func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult, error) {

@@ -10,14 +10,17 @@ package stablenet
 import (
 	"crypto/tls"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"net/http"
 	url2 "net/url"
 	"strings"
 	"time"
 )
 
 type Client interface {
+	QueryStableNetVersion() (*ServerVersion, *string)
 	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
 	FetchMeasurementName(int) (*string, error)
@@ -44,6 +47,36 @@ type ClientImpl struct {
 	client *resty.Client
 }
 
+// Queries StableNet® for its version. Attention: Unlike Go-conventions state,
+// this function returns a string point instead of an error in case the version cannot be fetched.
+// The reason is that the returned string is meant to be presented to the end user, while an error type string
+// should generally not be presented to the end user.
+func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
+	var errorStr string
+	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
+	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
+	resp, err := c.client.R().Get(url)
+	if err != nil {
+		errorStr = fmt.Sprintf("Connecting to StableNet® failed: %v", err.Error())
+		return nil, &errorStr
+	}
+	if resp.StatusCode() == http.StatusUnauthorized {
+		errorStr = fmt.Sprintf("The StableNet® server could be reached, but the credentials were invalid.")
+		return nil, &errorStr
+	}
+	if resp.StatusCode() != http.StatusOK {
+		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: %d", resp.StatusCode())
+		return nil, &errorStr
+	}
+	var result ServerInfo
+	err = xml.Unmarshal(resp.Body(), &result)
+	if err != nil {
+		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
+		return nil, &errorStr
+	}
+	return &result.ServerVersion, nil
+}
+
 func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {
 	return fmt.Errorf("%s: status code: %d, response: %s", msg, resp.StatusCode(), string(resp.Body()))
 }
@@ -57,9 +90,9 @@ func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
 	var url string
 	if len(filter) != 0 {
 		filterParam := fmt.Sprintf("name ct '%s'", filter)
-		url = c.buildJsonApiUrl("devices", filterParam)
+		url = c.buildJsonApiUrl("devices", "name", filterParam)
 	} else {
-		url = c.buildJsonApiUrl("devices")
+		url = c.buildJsonApiUrl("devices", "name")
 	}
 	resp, err := c.client.R().Get(url)
 	if err != nil {
@@ -76,8 +109,11 @@ func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
 	return &result, nil
 }
 
-func (c *ClientImpl) buildJsonApiUrl(endpoint string, filters ...string) string {
+func (c *ClientImpl) buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
+	if len(orderBy) != 0 {
+		url = fmt.Sprintf("%s&$orderBy=%s", url, orderBy)
+	}
 	nonEmpty := make([]string, 0, len(filters))
 	for _, f := range filters {
 		if len(f) > 0 {
@@ -122,7 +158,7 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) 
 	if len(filter) != 0 {
 		nameFilter = fmt.Sprintf("name ct '%s'", filter)
 	}
-	url := c.buildJsonApiUrl("measurements", deviceFilter, nameFilter)
+	url := c.buildJsonApiUrl("measurements", "name", deviceFilter, nameFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving measurements for device filter \"%s\" and name filter \"%s\" failed: %v", deviceFilter, nameFilter, err)
@@ -139,7 +175,7 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) 
 }
 
 func (c *ClientImpl) FetchMeasurementName(id int) (*string, error) {
-	url := c.buildJsonApiUrl("measurements", fmt.Sprintf("obid eq '%d'", id))
+	url := c.buildJsonApiUrl("measurements", "name", fmt.Sprintf("obid eq '%d'", id))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving name for measurement %d failed: %v", id, err)
@@ -164,7 +200,8 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter stri
 		nameFilter = fmt.Sprintf("name ct '%s'", filter)
 	}
 	endpoint := fmt.Sprintf("measurements/%d/metrics", measurementObid)
-	url := c.buildJsonApiUrl(endpoint, nameFilter)
+	//orderby is empty because it' currently not supported by the endpoint
+	url := c.buildJsonApiUrl(endpoint, "", nameFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metrics for measurement %d failed: %v", measurementObid, err)
