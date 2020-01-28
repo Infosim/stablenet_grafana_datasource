@@ -11,7 +11,7 @@ import './css/query-editor.css';
 /** @ngInject */
 export class StableNetQueryCtrl extends QueryCtrl {
   static templateUrl = 'partials/query.editor.html';
-  constructor($scope, $injector) {
+  constructor($scope: any, $injector: any) {
     super($scope, $injector);
     this.target.mode = this.target.mode || 0;
     this.target.deviceQuery = this.target.deviceQuery || '';

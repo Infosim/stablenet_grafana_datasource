@@ -15,7 +15,12 @@ export class StableNetDatasource {
   }
 
   testDatasource(): Promise<{ status: string; message: string; title: string }> {
-    const options = {
+    const options: {
+      headers: object;
+      url: string;
+      method: string;
+      data: { queries: Array<{ datasourceId: number; queryType: string }> };
+    } = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
       method: 'POST',
@@ -29,25 +34,33 @@ export class StableNetDatasource {
       },
     };
 
-    return this.backendSrv.request(options).then(response => {
-      if (response.message !== null) {
+    return this.backendSrv
+      .request(options)
+      .then(() => {
         return {
           status: 'success',
           message: 'Data source is working and can connect to StableNet®.',
           title: 'Success',
         };
-      } else {
+      })
+      .catch(err => {
         return {
           status: 'error',
-          message: 'Datasource cannot connect to StableNet®.',
+          message: err.data.message,
           title: 'Failure',
         };
-      }
-    });
+      });
   }
 
-  queryDevices(queryString, refid): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> {
-    const data = {
+  queryDevices(queryString: string, refid: string): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> {
+    const data: {
+      queries: Array<{
+        refId: string;
+        datasourceId: number;
+        queryType: string;
+        filter: string;
+      }>;
+    } = {
       queries: [
         {
           refId: refid,
@@ -58,47 +71,45 @@ export class StableNetDatasource {
       ],
     };
 
-    return this.doRequest(data).then(result => {
-      const res = result.data.results[refid].meta.data.map(device => {
-        return {
-          text: device.name,
-          value: device.obid,
-        };
+    return this.doRequest(data)
+      .then(result => {
+        const res: Array<{ text: string; value: number }> = result.data.results[refid].meta.data.map(device => {
+          return {
+            text: device.name,
+            value: device.obid,
+          };
+        });
+        res.unshift({
+          text: 'none',
+          value: -1,
+        });
+        return { data: res, hasMore: result.data.results[refid].meta.hasMore };
       });
-      res.unshift({
-        text: 'none',
-        value: -1,
-      });
-      return { data: res, hasMore: result.data.results[refid].meta.hasMore };
-    });
   }
 
-  findMeasurementsForDevice(obid, input, refid): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> | Promise<never[]> {
-    if (obid === 'none') {
-      return Promise.resolve([]);
-    }
-
-    const data: any = { queries: [] };
-
-    if (input === undefined) {
-      data.queries.push({
-        refId: refid,
-        datasourceId: this.id, // Required
-        queryType: 'measurements',
-        deviceObid: obid,
-      });
-    } else {
-      data.queries.push({
-        refId: refid,
-        datasourceId: this.id, // Required
-        queryType: 'measurements',
-        deviceObid: obid,
-        filter: input,
-      });
-    }
+  findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<{ data: Array<{ text: string; value: number }>; hasMore: boolean }> {
+    const data: {
+      queries: Array<{
+        refId: string;
+        datasourceId: number;
+        queryType: string;
+        deviceObid: number;
+        filter: string;
+      }>;
+    } = {
+      queries: [
+        {
+          refId: refid,
+          datasourceId: this.id, // Required
+          queryType: 'measurements',
+          deviceObid: obid,
+          filter: input,
+        },
+      ],
+    };
 
     return this.doRequest(data).then(result => {
-      const res = result.data.results[refid].meta.data.map(measurement => {
+      const res: Array<{ text: string; value: number }> = result.data.results[refid].meta.data.map(measurement => {
         return {
           text: measurement.name,
           value: measurement.obid,
@@ -111,21 +122,17 @@ export class StableNetDatasource {
     });
   }
 
-  findMetricsForMeasurement(obid, refid): Promise<Array<{ text: string; value: string; measurementObid: number }>> | Promise<never[]> {
-    if (obid === -1) {
-      return Promise.resolve([]);
-    }
-
-    const data: any = {
-      queries: [],
+  findMetricsForMeasurement(obid: number, refid: string): Promise<Array<{ text: string; value: string; measurementObid: number }>> {
+    const data: { queries: Array<{ refId: string; datasourceId: number; queryType: string; measurementObid: number }> } = {
+      queries: [
+        {
+          refId: refid,
+          datasourceId: this.id,
+          queryType: 'metricNames',
+          measurementObid: obid,
+        },
+      ],
     };
-
-    data.queries.push({
-      refId: refid,
-      datasourceId: this.id,
-      queryType: 'metricNames',
-      measurementObid: obid,
-    });
 
     return this.doRequest(data).then(result => {
       return result.data.results[refid].meta.map(metric => {
@@ -139,12 +146,29 @@ export class StableNetDatasource {
   }
 
   async query(options) {
-    const from = new Date(options.range.from).getTime().toString();
-    const to = new Date(options.range.to).getTime().toString();
+    const from: string = new Date(options.range.from).getTime().toString();
+    const to: string = new Date(options.range.to).getTime().toString();
     const queries: any = [];
 
     for (let i = 0; i < options.targets.length; i++) {
-      const target = options.targets[i];
+      const target: {
+        refId: string;
+        mode?: number;
+        deviceQuery?: string;
+        selectedDevice?: number;
+        measurementQuery?: string;
+        selectedMeasurement?: number;
+        chosenMetrics?: object;
+        metricPrefix?: string;
+        includeMinStats?: boolean;
+        includeAvgStats?: boolean;
+        includeMaxStats?: boolean;
+        statisticLink?: string;
+        metrics?: Array<{ text: string; value: string; measurementObid: number; $$hashKey: string }>;
+        moreDevices?: boolean;
+        moreMeasurements?: boolean;
+        datasource: any;
+      } = options.targets[i];
 
       if (target.mode === 10 && target.statisticLink !== '') {
         queries.push({
@@ -169,11 +193,12 @@ export class StableNetDatasource {
 
       const requestData: any = [];
       const keys: any = [];
-      const e = Object.entries(target.chosenMetrics);
+      const e: Array<[string, boolean]> = Object.entries(target.chosenMetrics);
 
       for (const [key, value] of e) {
         if (value) {
-          const text = target.metricPrefix + ' {MinMaxAvg} ' + target.metrics.filter(m => m.value === key)[0].text;
+          // @ts-ignore
+          const text: string = target.metricPrefix + ' {MinMaxAvg} ' + target.metrics.filter(m => m.value === key)[0].text;
           keys.push({
             key: key,
             name: text,
@@ -182,7 +207,7 @@ export class StableNetDatasource {
       }
 
       requestData.push({
-        measurementObid: parseInt(target.selectedMeasurement, 10),
+        measurementObid: target.selectedMeasurement,
         metrics: keys,
       });
 
@@ -209,7 +234,7 @@ export class StableNetDatasource {
     return await this.doRequest(data).then(handleTsdbResponse);
   }
 
-  doRequest(data): any {
+  doRequest(data: any): any {
     const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,

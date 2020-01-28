@@ -30,19 +30,18 @@ export class GenericDatasource {
         };
 
         return this.backendSrv.request(options)
-            .then(response => {
-                if (response.message !== null) {
-                    return {
-                        status: "success",
-                        message: "Data source is working and can connect to StableNet®.",
-                        title: "Success"
-                    };
-                } else {
-                    return {
-                        status: "error",
-                        message: "Datasource cannot connect to StableNet®.",
-                        title: "Failure"
-                    };
+            .then((response) => {
+                return {
+                    status: "success",
+                    message: "Data source is working and can connect to StableNet®.",
+                    title: "Success"
+                };
+            })
+            .catch(err => {
+                return {
+                    status: "error",
+                    message: err.data.message,
+                    title: "Failure"
                 }
             });
     }
@@ -145,6 +144,7 @@ export class GenericDatasource {
     }
 
     async query(options) {
+        console.log(options)
         const from = new Date(options.range.from).getTime().toString();
         const to = new Date(options.range.to).getTime().toString();
         let queries = [];
