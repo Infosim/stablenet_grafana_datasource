@@ -25,7 +25,7 @@ type Client interface {
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
 	FetchMeasurementName(int) (*string, error)
 	FetchMetricsForMeasurement(int, string) ([]Metric, error)
-	FetchDataForMetrics(int, []string, time.Time, time.Time) (map[string]MetricDataSeries, error)
+	FetchDataForMetrics(DataQueryOptions) (map[string]MetricDataSeries, error)
 }
 
 type ConnectOptions struct {
@@ -217,27 +217,20 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter stri
 	return responseData, nil
 }
 
-func (c *ClientImpl) FetchDataForMetrics(measurementObid int, metricKeys []string, startTime time.Time, endTime time.Time) (map[string]MetricDataSeries, error) {
-	startMillis := startTime.UnixNano() / int64(time.Millisecond)
-	endMillis := endTime.UnixNano() / int64(time.Millisecond)
-	query := struct {
-		Start   int64    `json:"start"`
-		End     int64    `json:"end"`
-		Metrics []string `json:"metrics"`
-		Raw     bool     `json:"raw"`
-	}{
-		Start: startMillis, End: endMillis, Metrics: metricKeys, Raw: false,
-	}
-	endpoint := fmt.Sprintf("measurements/%d/data", measurementObid)
+func (c *ClientImpl) FetchDataForMetrics(options DataQueryOptions) (map[string]MetricDataSeries, error) {
+	startMillis := options.Start.UnixNano() / int64(time.Millisecond)
+	endMillis := options.End.UnixNano() / int64(time.Millisecond)
+	query := DataQuery{Start: startMillis, End: endMillis, Metrics: options.Metrics, Raw: false, Average: options.Average}
+	endpoint := fmt.Sprintf("measurements/%d/data", options.MeasurementObid)
 	url := c.buildJsonApiUrlWithLimit(endpoint, false)
 	resp, err := c.client.R().SetHeader("Content-Type", "application/json").SetBody(query).Post(url)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", measurementObid, err)
+		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", options.MeasurementObid, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", measurementObid), resp)
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", options.MeasurementObid), resp)
 	}
-	return parseStatisticByteSlice(resp.Body(), metricKeys)
+	return parseStatisticByteSlice(resp.Body(), options.Metrics)
 }
 
 func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]MetricDataSeries, error) {

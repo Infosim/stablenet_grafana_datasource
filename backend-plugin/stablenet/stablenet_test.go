@@ -223,7 +223,14 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 	clientImpl := client.(*ClientImpl)
 	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-	actual, err := client.FetchDataForMetrics(5555, []string{"System Processes", "System Users", "System Uptime"}, start, end)
+	options := DataQueryOptions{
+		MeasurementObid: 5555,
+		Metrics:         []string{"System Processes", "System Users", "System Uptime"},
+		Start:           start,
+		End:             end,
+		Average:         250,
+	}
+	actual, err := client.FetchDataForMetrics(options)
 	require.NoError(t, err)
 	systemProcesses := actual["System Processes"]
 	systemUsers := actual["System Users"]
@@ -249,8 +256,14 @@ func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
 	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data?top=-1")
+	options := DataQueryOptions{
+		MeasurementObid: 5555,
+		Metrics:         []string{"1", "2", "3"},
+		Start:           start,
+		End:             end,
+	}
 	shouldReturnError := func(client Client) (i interface{}, e error) {
-		return client.FetchDataForMetrics(5555, []string{"1", "2", "3"}, start, end)
+		return client.FetchDataForMetrics(options)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "POST", url))
 	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "POST", url, "metric data for measurement 5555"))

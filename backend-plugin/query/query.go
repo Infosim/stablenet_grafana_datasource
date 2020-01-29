@@ -41,9 +41,9 @@ func (m metricsRequest) metricKeys() []string {
 	return result
 }
 
-func (m metricsRequest) keyNameMap() map[string]string{
+func (m metricsRequest) keyNameMap() map[string]string {
 	result := make(map[string]string)
-	for _, metric := range m{
+	for _, metric := range m {
 		result[metric.Key] = metric.Name
 	}
 	return result
@@ -130,7 +130,14 @@ type StableNetHandler struct {
 }
 
 func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metrics metricsRequest) ([]*datasource.TimeSeries, error) {
-	data, err := s.SnClient.FetchDataForMetrics(measurementObid, metrics.metricKeys(), query.StartTime, query.EndTime)
+	options := stablenet.DataQueryOptions{
+		MeasurementObid: measurementObid,
+		Metrics:         metrics.metricKeys(),
+		Start:           query.StartTime,
+		End:             query.EndTime,
+		Average:         query.IntervalMs,
+	}
+	data, err := s.SnClient.FetchDataForMetrics(options)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
@@ -170,8 +177,8 @@ func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metric
 
 const modifierString = "{MinMaxAvg}"
 
-func insertModifierIntoName(name string, modifier string) string{
-	if strings.Contains(name, modifierString){
+func insertModifierIntoName(name string, modifier string) string {
+	if strings.Contains(name, modifierString) {
 		return strings.Replace(name, modifierString, modifier, 1)
 	}
 	return modifier + " " + name

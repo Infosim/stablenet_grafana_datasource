@@ -116,11 +116,26 @@ func Test_statisticLinkHandler2_Successful(t *testing.T) {
 	name1643 := "ThinkStation Host"
 	name3886 := "ThinkStation Ping"
 
+	options1 := stablenet.DataQueryOptions{
+		MeasurementObid: 1643,
+		Metrics:         []string{"SNMP1000", "SNMP1002"},
+		Start:           startTime,
+		End:             endTime,
+		Average:         250,
+	}
+	options2 := stablenet.DataQueryOptions{
+		MeasurementObid: 3886,
+		Metrics:         []string{"PING1"},
+		Start:           startTime,
+		End:             endTime,
+		Average:         250,
+	}
+
 	client := new(mockSnClient)
 	client.On("FetchMetricsForMeasurement", 1643, "").Return(metrics1643, nil)
 	client.On("FetchMetricsForMeasurement", 3886, "").Return(metrics3886, nil)
-	client.On("FetchDataForMetrics", 1643, []string{"SNMP1000", "SNMP1002"}, startTime, endTime).Return(data1643, nil)
-	client.On("FetchDataForMetrics", 3886, []string{"PING1"}, startTime, endTime).Return(data3886, nil)
+	client.On("FetchDataForMetrics", options1).Return(data1643, nil)
+	client.On("FetchDataForMetrics", options2).Return(data3886, nil)
 	client.On("FetchMeasurementName", 1643).Return(&name1643, nil)
 	client.On("FetchMeasurementName", 3886).Return(&name3886, nil)
 
@@ -129,7 +144,7 @@ func Test_statisticLinkHandler2_Successful(t *testing.T) {
 	logReceiver := bufio.NewWriter(&logData)
 	snHandler := StableNetHandler{SnClient: client, Logger: hclog.New(&hclog.LoggerOptions{Output: logReceiver, TimeFormat: "no time"})}
 	handler := statisticLinkHandler{StableNetHandler: &snHandler}
-	query := Query{Query: datasource.Query{RefId: "A", ModelJson: "{\"includeAvgStats\": true, \"statisticLink\": \"" + link + "\"}"}, StartTime: startTime, EndTime: endTime}
+	query := Query{Query: datasource.Query{RefId: "A", ModelJson: "{\"includeAvgStats\": true, \"statisticLink\": \"" + link + "\"}", IntervalMs: 250}, StartTime: startTime, EndTime: endTime}
 	got, err := handler.Process(query)
 	require.NoError(t, err, "no error expected")
 	assert.Equal(t, "A", got.RefId, "refId is wrong")
