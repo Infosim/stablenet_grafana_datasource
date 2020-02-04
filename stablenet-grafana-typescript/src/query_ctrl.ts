@@ -8,10 +8,12 @@
 import { QueryCtrl } from 'grafana/app/plugins/sdk';
 import './css/query-editor.css';
 import { StableNetDatasource } from './datasource';
+import { TextValue } from './returnTypes';
 
 /** @ngInject */
 export class StableNetQueryCtrl extends QueryCtrl {
   static templateUrl = 'partials/query.editor.html';
+
   constructor($scope: any, $injector: any) {
     super($scope, $injector);
     this.target.mode = this.target.mode || 0;
@@ -33,7 +35,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
     this.target.moreMeasurements = typeof this.target.moreMeasurements === 'undefined' ? false : this.target.moreMeasurements;
   }
 
-  getModes(): Array<{ text: string; value: number }> {
+  getModes(): TextValue[] {
     return [
       { text: 'Measurement', value: 0 },
       { text: 'Statistic Link', value: 10 },
@@ -65,7 +67,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
       .then(() => this.onChangeInternal());
   }
 
-  getDevices(): Promise<Array<{ text: string; value: number }>> {
+  getDevices(): Promise<TextValue[]> {
     return (this.datasource as StableNetDatasource).queryDevices(this.target.deviceQuery, this.target.refId).then(r => {
       this.target.moreDevices = r.hasMore;
       return r.data;
@@ -80,7 +82,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
     this.target.chosenMetrics = {};
   }
 
-  getMeasurements(): Promise<Array<{ text: string; value: number }>> {
+  getMeasurements(): Promise<TextValue[]> {
     return (this.datasource as StableNetDatasource)
       .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
       .then(r => {
