@@ -5,6 +5,8 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
+import { SingleQuery, QueryResult, QueryOptionsEmpty, QueryOptions, isQOE, Target } from './types';
+
 const BACKEND_URL = '/api/tsdb/query';
 
 export class StableNetDatasource {
@@ -144,48 +146,19 @@ export class StableNetDatasource {
     });
   }
 
-  async query(
-    options: any
-  ): Promise<{
-    data: Array<{ target: string; datapoints: Array<[number, number]> }> | never[];
-    status?: number;
-    headers?: any;
-    config?: any;
-    statusText?: string;
-    xhrStatus?: string;
-  }> {
+  async query(options: QueryOptionsEmpty): Promise<QueryResult>;
+  async query(options: QueryOptions): Promise<QueryResult>;
+  async query(options: QueryOptions | QueryOptionsEmpty): Promise<QueryResult> {
     const from: string = new Date(options.range.from).getTime().toString();
     const to: string = new Date(options.range.to).getTime().toString();
-    const queries: Array<{
-      refId: string;
-      datasourceId: number;
-      queryType: string;
-      statisticLink?: string;
-      requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
-      includeMinStats: boolean;
-      includeAvgStats: boolean;
-      includeMaxStats: boolean;
-    }> = [];
+    const queries: SingleQuery[] = [];
+
+    if (isQOE(options)) {
+      return { data: [] };
+    }
 
     for (let i = 0; i < options.targets.length; i++) {
-      const target: {
-        refId: string;
-        mode?: number;
-        deviceQuery?: string;
-        selectedDevice?: number;
-        measurementQuery?: string;
-        selectedMeasurement?: number;
-        chosenMetrics?: object;
-        metricPrefix?: string;
-        includeMinStats?: boolean;
-        includeAvgStats?: boolean;
-        includeMaxStats?: boolean;
-        statisticLink?: string;
-        metrics?: Array<{ text: string; value: string; measurementObid: number; $$hashKey: string }>;
-        moreDevices?: boolean;
-        moreMeasurements?: boolean;
-        datasource: any;
-      } = options.targets[i];
+      const target: Target = options.targets[i];
 
       if (target.mode === 10 && target.statisticLink !== '') {
         queries.push({
@@ -193,11 +166,8 @@ export class StableNetDatasource {
           datasourceId: this.id,
           queryType: 'statisticLink',
           statisticLink: target.statisticLink,
-          //@ts-ignore
           includeMinStats: target.includeMinStats,
-          //@ts-ignore
           includeAvgStats: target.includeAvgStats,
-          //@ts-ignore
           includeMaxStats: target.includeMaxStats,
         });
         continue;
@@ -217,7 +187,6 @@ export class StableNetDatasource {
 
       for (const [key, value] of e) {
         if (value) {
-          // @ts-ignore
           const text: string = target.metricPrefix + ' {MinMaxAvg} ' + target.metrics.filter(m => m.value === key)[0].text;
           keys.push({
             key: key,
@@ -227,7 +196,6 @@ export class StableNetDatasource {
       }
 
       requestData.push({
-        // @ts-ignore
         measurementObid: target.selectedMeasurement,
         metrics: keys,
       });
@@ -237,11 +205,8 @@ export class StableNetDatasource {
         datasourceId: this.id,
         queryType: 'metricData',
         requestData: requestData,
-        //@ts-ignore
         includeMinStats: target.includeMinStats,
-        //@ts-ignore
         includeAvgStats: target.includeAvgStats,
-        //@ts-ignore
         includeMaxStats: target.includeMaxStats,
       });
     }
@@ -253,16 +218,7 @@ export class StableNetDatasource {
     const data: {
       from: string;
       to: string;
-      queries: Array<{
-        refId: string;
-        datasourceId: number;
-        queryType: string;
-        statisticLink?: string;
-        requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
-        includeMinStats: boolean;
-        includeAvgStats: boolean;
-        includeMaxStats: boolean;
-      }>;
+      queries: SingleQuery[];
     } = {
       from: from,
       to: to,
