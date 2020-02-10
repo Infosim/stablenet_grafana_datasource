@@ -14,7 +14,7 @@ export interface TestResult {
   title: string;
 }
 
-export interface FindResult {
+export interface QueryResult {
   data: TextValue[];
   hasMore: boolean;
 }
@@ -35,6 +35,16 @@ interface RequestResult {
   xhrStatus: string;
 }
 
+export interface MeasurementQueryResult {
+  hasMore: boolean;
+  data: { name: string; obid: number };
+}
+
+export interface MetricType {
+  key: string;
+  name: string;
+}
+
 /**
  * An alternative return type of "doRequest()" when it is NOT called from "query()".
  * Cannot use now as only the "findMetricsForMeasurements()" path for some reason returns
@@ -43,20 +53,26 @@ interface RequestResult {
  * result.data.results[refId].meta.data
  * ...as an Array. See what Backend can do.
  */
-export interface RequestResultStandard extends RequestResult {
+export interface RequestResultStandard<T> extends RequestResult {
   data: {
     results: {
       [x: string]: {
         refId: string;
         tables: null;
         series: never[];
-        meta: {
-          hasMore: boolean;
-          data: Array<{ name: string; obid: number }> | Array<{ key: string; name: string }>;
-        };
+        meta: T;
       };
     };
   };
+}
+
+export interface GenericResponse {
+  data: { results: object };
+  status: number;
+  headers: any;
+  config: any;
+  statusText: string;
+  xhrStatus: string;
 }
 
 export interface TSDBArg extends RequestResult {

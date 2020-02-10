@@ -5,17 +5,19 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import {
-  FindMeasurementOptions,
-  FindMetricsOptions,
-  QueryDeviceOptions,
-  RequestArgQuery,
-  RequestArgStandard,
-  SingleQuery,
-  TestOptions,
-} from './types';
 import { isQOE, QueryOptions, QueryOptionsEmpty, Target } from './queryInterfaces';
-import { FindResult, MetricResult, QueryResultEmpty, TargetDatapoints, TestResult, TextValue, TSDBArg, TSDBResult } from './returnTypes';
+import {
+  GenericResponse,
+  MetricResult,
+  QueryResult,
+  QueryResultEmpty,
+  TargetDatapoints,
+  TestResult,
+  TextValue,
+  TSDBArg,
+  TSDBResult,
+} from './returnTypes';
+import { DeviceQuery, MeasurementQuery, MetricQuery, Query, SingleQuery, TestOptions } from './types';
 
 const BACKEND_URL = '/api/tsdb/query';
 
@@ -60,19 +62,9 @@ export class StableNetDatasource {
       });
   }
 
-  queryDevices(queryString: string, refid: string): Promise<FindResult> {
-    const data: { queries: QueryDeviceOptions[] } = {
-      queries: [
-        {
-          refId: refid,
-          datasourceId: this.id, // Required
-          queryType: 'devices',
-          filter: queryString,
-        },
-      ],
-    };
-
-    return this.doRequest(data).then(result => {
+  queryDevices(queryString: string, refid: string): Promise<QueryResult> {
+    const data: Query<DeviceQuery> = this.createDeviceQuery(queryString, refid);
+    return this.doRequest<GenericResponse>(data).then(result => {
       const res: TextValue[] = result.data.results[refid].meta.data.map(device => {
         return {
           text: device.name,
@@ -87,20 +79,21 @@ export class StableNetDatasource {
     });
   }
 
-  findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<FindResult> {
-    const data: { queries: FindMeasurementOptions[] } = {
-      queries: [
-        {
-          refId: refid,
-          datasourceId: this.id, // Required
-          queryType: 'measurements',
-          deviceObid: obid,
-          filter: input,
-        },
-      ],
+  private createDeviceQuery(queryString: string, refid: string): Query<DeviceQuery> {
+    const query: DeviceQuery = {
+      filter: queryString,
+      datasourceId: this.id,
+      queryType: 'devices',
+      refId: refid,
     };
+    return {
+      queries: [query],
+    };
+  }
 
-    return this.doRequest(data).then(result => {
+  findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
+    const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
+    return this.doRequest<GenericResponse>(data).then(result => {
       const res: TextValue[] = result.data.results[refid].meta.data.map(measurement => {
         return {
           text: measurement.name,
@@ -114,19 +107,22 @@ export class StableNetDatasource {
     });
   }
 
-  findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
-    const data: { queries: FindMetricsOptions[] } = {
-      queries: [
-        {
-          refId: refid,
-          datasourceId: this.id,
-          queryType: 'metricNames',
-          measurementObid: obid,
-        },
-      ],
+  private createMeasurementQuery(deviceObid: number, input: string, refid: string): Query<MeasurementQuery> {
+    const data: MeasurementQuery = {
+      refId: refid,
+      datasourceId: this.id,
+      queryType: 'measurements',
+      deviceObid: deviceObid,
+      filter: input,
     };
+    return {
+      queries: [data],
+    };
+  }
 
-    return this.doRequest(data).then(result => {
+  findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
+    const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
+    return this.doRequest<GenericResponse>(data).then(result => {
       return result.data.results[refid].meta.map(metric => {
         return {
           text: metric.name,
@@ -135,6 +131,18 @@ export class StableNetDatasource {
         };
       });
     });
+  }
+
+  private createMetricQuery(mesurementObid: number, refid: string): Query<MetricQuery> {
+    const data: MetricQuery = {
+      refId: refid,
+      datasourceId: this.id,
+      queryType: 'metricNames',
+      measurementObid: mesurementObid,
+    };
+    return {
+      queries: [data],
+    };
   }
 
   async query(options: QueryOptionsEmpty): Promise<QueryResultEmpty>;
@@ -206,19 +214,15 @@ export class StableNetDatasource {
       return { data: [] };
     }
 
-    const data: RequestArgQuery = {
+    const data: Query<SingleQuery> = {
       from: from,
       to: to,
       queries: queries,
     };
-    return await this.doRequest(data).then(handleTsdbResponse);
+    return await this.doRequest<TSDBArg>(data).then(handleTsdbResponse);
   }
 
-  private doRequest(data: RequestArgStandard); //for the queryDevices(), findMeasurements() and findMetrics() functions
-  private doRequest(data: RequestArgQuery): Promise<TSDBArg>;
-  private doRequest(
-    data: RequestArgQuery | RequestArgStandard
-  ): Promise<{ data: { results: object }; status: number; headers: any; config: any; statusText: string; xhrStatus: string }> {
+  private doRequest<RETURN>(data: Query<any>): Promise<RETURN> {
     const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
