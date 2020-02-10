@@ -74,3 +74,19 @@ type ServerInfo struct {
 type ServerVersion struct {
 	Version string `xml:"version,attr"`
 }
+
+type DataQuery struct {
+	Start   int64    `json:"start"`
+	End     int64    `json:"end"`
+	Metrics []string `json:"metrics"`
+	Raw     bool     `json:"raw"`
+	Average int64    `json:"average"`
+}
+
+type DataQueryOptions struct {
+	MeasurementObid int
+	Metrics         []string
+	Start           time.Time
+	End             time.Time
+	Average         int64
+}

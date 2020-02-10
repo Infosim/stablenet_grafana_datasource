@@ -231,7 +231,7 @@ func TestHandlersClientErrors(t *testing.T) {
 		{name: "metrics for measurement", handler: metricNameHandler{}, json: "{}", wantErr: "could not extract measurementObid from query"},
 		{name: "metric data", handler: metricDataHandler{}, json: "{}", wantErr: "could not extract measurement requests from query: dataRequest not present in the modelJson"},
 		{name: "statisticLinkHandler", handler: statisticLinkHandler{}, json: "{}", wantErr: "could not extract statisticLink parameter from query"},
-		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry a measurement id or value ids"},
+		{name: "statisticLinkHandler no measurement id", handler: statisticLinkHandler{}, json: "{\"statisticLink\":\"hello\"}", wantErr: "the link \"hello\" does not carry at least a measurement id"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -322,7 +322,7 @@ func metricDataHandlerTest() *handlerServerTestCase {
 		{MeasurementObid: 1111, Metrics: metricsRequest(metricReq)},
 	}
 	queryArgs := []arg{{name: "requestData", value: requestData}, {name: "includeMinStats", value: true}, {name: "includeMaxStats", value: true}}
-	clientArgs := []arg{{value: 1111}, {value: []string{"123"}}, {value: time.Time{}}, {value: time.Time{}}}
+	clientArgs := []arg{{value: stablenet.DataQueryOptions{MeasurementObid: 1111, Metrics: []string{"123"}, Start: time.Time{}, End: time.Time{}}}}
 	clientReturn, timeSeries := sampleStatisticData()
 	return &handlerServerTestCase{
 		handler:       func(h *StableNetHandler) Handler { return metricDataHandler{StableNetHandler: h} },
@@ -442,8 +442,8 @@ func (m *mockSnClient) FetchMetricsForMeasurement(measurementObid int, filter st
 	return nil, args.Error(1)
 }
 
-func (m *mockSnClient) FetchDataForMetrics(measurementObid int, metricKeys []string, start time.Time, end time.Time) (map[string]stablenet.MetricDataSeries, error) {
-	args := m.Called(measurementObid, metricKeys, start, end)
+func (m *mockSnClient) FetchDataForMetrics(options stablenet.DataQueryOptions) (map[string]stablenet.MetricDataSeries, error) {
+	args := m.Called(options)
 	if args.Get(0) != nil {
 		return args.Get(0).(map[string]stablenet.MetricDataSeries), args.Error(1)
 	}
