@@ -7,10 +7,12 @@
  */
 import { isQOE, QueryOptions, QueryOptionsEmpty, Target } from './queryInterfaces';
 import {
+  EntityQueryResult,
   GenericResponse,
   MetricResult,
+  MetricType,
   QueryResult,
-  QueryResultEmpty,
+  EmptyQueryResult,
   TargetDatapoints,
   TestResult,
   TextValue,
@@ -64,16 +66,16 @@ export class StableNetDatasource {
 
   queryDevices(queryString: string, refid: string): Promise<QueryResult> {
     const data: Query<DeviceQuery> = this.createDeviceQuery(queryString, refid);
-    return this.doRequest<GenericResponse>(data).then(result => {
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
       const res: TextValue[] = result.data.results[refid].meta.data.map(device => {
         return {
           text: device.name,
-          value: device.obid,
+          value: device.obid.toString(),
         };
       });
       res.unshift({
         text: 'none',
-        value: -1,
+        value: '-1',
       });
       return { data: res, hasMore: result.data.results[refid].meta.hasMore };
     });
@@ -93,11 +95,11 @@ export class StableNetDatasource {
 
   findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
     const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
-    return this.doRequest<GenericResponse>(data).then(result => {
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
       const res: TextValue[] = result.data.results[refid].meta.data.map(measurement => {
         return {
           text: measurement.name,
-          value: measurement.obid,
+          value: measurement.obid.toString(),
         };
       });
       return {
@@ -122,13 +124,14 @@ export class StableNetDatasource {
 
   findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
     const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
-    return this.doRequest<GenericResponse>(data).then(result => {
+    return this.doRequest<GenericResponse<MetricType[]>>(data).then(result => {
       return result.data.results[refid].meta.map(metric => {
-        return {
-          text: metric.name,
-          value: metric.key,
+        const m: MetricResult = {
           measurementObid: obid,
+          value: metric.key,
+          text: metric.name,
         };
+        return m;
       });
     });
   }
@@ -145,9 +148,9 @@ export class StableNetDatasource {
     };
   }
 
-  async query(options: QueryOptionsEmpty): Promise<QueryResultEmpty>;
+  async query(options: QueryOptionsEmpty): Promise<EmptyQueryResult>;
   async query(options: QueryOptions): Promise<TSDBResult>;
-  async query(options: QueryOptions | QueryOptionsEmpty): Promise<TSDBResult | QueryResultEmpty> {
+  async query(options: QueryOptions | QueryOptionsEmpty): Promise<TSDBResult | EmptyQueryResult> {
     const from: string = new Date(options.range.from).getTime().toString();
     const to: string = new Date(options.range.to).getTime().toString();
     const queries: SingleQuery[] = [];

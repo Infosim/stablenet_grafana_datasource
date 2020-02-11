@@ -1,6 +1,6 @@
 export interface TextValue {
   text: string;
-  value: number;
+  value: string;
 }
 
 export interface TargetDatapoints {
@@ -23,7 +23,7 @@ export interface MetricResult extends TextValue {
   measurementObid: number;
 }
 
-export interface QueryResultEmpty {
+export interface EmptyQueryResult {
   data: never[];
 }
 
@@ -35,9 +35,9 @@ interface RequestResult {
   xhrStatus: string;
 }
 
-export interface MeasurementQueryResult {
+export interface EntityQueryResult {
   hasMore: boolean;
-  data: { name: string; obid: number };
+  data: Array<{ name: string; obid: number }>;
 }
 
 export interface MetricType {
@@ -45,15 +45,7 @@ export interface MetricType {
   name: string;
 }
 
-/**
- * An alternative return type of "doRequest()" when it is NOT called from "query()".
- * Cannot use now as only the "findMetricsForMeasurements()" path for some reason returns
- * result.data.results[refId].meta
- * instead of
- * result.data.results[refId].meta.data
- * ...as an Array. See what Backend can do.
- */
-export interface RequestResultStandard<T> extends RequestResult {
+export interface GenericResponse<T> extends RequestResult {
   data: {
     results: {
       [x: string]: {
@@ -64,15 +56,6 @@ export interface RequestResultStandard<T> extends RequestResult {
       };
     };
   };
-}
-
-export interface GenericResponse {
-  data: { results: object };
-  status: number;
-  headers: any;
-  config: any;
-  statusText: string;
-  xhrStatus: string;
 }
 
 export interface TSDBArg extends RequestResult {
