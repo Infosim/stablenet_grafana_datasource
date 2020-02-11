@@ -43,3 +43,8 @@ export interface RequestArgQuery {
   to: string;
   queries: SingleQuery[];
 }
+
+export interface StringPair {
+  key: string;
+  name: string;
+}

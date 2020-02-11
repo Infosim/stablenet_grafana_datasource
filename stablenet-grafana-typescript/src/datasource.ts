@@ -5,7 +5,8 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { isQOE, QueryOptions, QueryOptionsEmpty, Target } from './queryInterfaces';
+import { WrappedTarget } from './data_query_assembler';
+import { isQOE, QueryOptions, QueryOptionsEmpty } from './queryInterfaces';
 import {
   EntityQueryResult,
   GenericResponse,
@@ -70,12 +71,12 @@ export class StableNetDatasource {
       const res: TextValue[] = result.data.results[refid].meta.data.map(device => {
         return {
           text: device.name,
-          value: device.obid.toString(),
+          value: device.obid,
         };
       });
       res.unshift({
         text: 'none',
-        value: '-1',
+        value: -1,
       });
       return { data: res, hasMore: result.data.results[refid].meta.hasMore };
     });
@@ -99,7 +100,7 @@ export class StableNetDatasource {
       const res: TextValue[] = result.data.results[refid].meta.data.map(measurement => {
         return {
           text: measurement.name,
-          value: measurement.obid.toString(),
+          value: measurement.obid,
         };
       });
       return {
@@ -128,7 +129,7 @@ export class StableNetDatasource {
       return result.data.results[refid].meta.map(metric => {
         const m: MetricResult = {
           measurementObid: obid,
-          value: metric.key,
+          key: metric.key,
           text: metric.name,
         };
         return m;
@@ -154,63 +155,23 @@ export class StableNetDatasource {
     const from: string = new Date(options.range.from).getTime().toString();
     const to: string = new Date(options.range.to).getTime().toString();
     const queries: SingleQuery[] = [];
-
     if (isQOE(options)) {
+      console.log('is empty');
       return { data: [] };
     }
 
     for (let i = 0; i < options.targets.length; i++) {
-      const target: Target = options.targets[i];
+      const target: WrappedTarget = new WrappedTarget(options.targets[i], this.id);
 
-      if (target.mode === 10 && target.statisticLink !== '') {
-        queries.push({
-          refId: target.refId,
-          datasourceId: this.id,
-          queryType: 'statisticLink',
-          statisticLink: target.statisticLink,
-          includeMinStats: target.includeMinStats,
-          includeAvgStats: target.includeAvgStats,
-          includeMaxStats: target.includeMaxStats,
-        });
+      if (target.isValidStatisticLinkMode()) {
+        queries.push(target.toStatisticLinkQuery());
         continue;
       }
 
-      if (
-        !target.chosenMetrics ||
-        Object.entries(target.chosenMetrics).length === 0 ||
-        Object.values(target.chosenMetrics).filter(v => v).length === 0
-      ) {
+      if (target.hasEmptyMetrics()) {
         continue;
       }
-
-      const keys: Array<{ key: string; name: string }> = [];
-      const requestData: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }> = [];
-      const e: Array<[string, boolean]> = Object.entries(target.chosenMetrics);
-
-      for (const [key, value] of e) {
-        if (value) {
-          const text: string = target.metricPrefix + ' {MinMaxAvg} ' + target.metrics.filter(m => m.value === key)[0].text;
-          keys.push({
-            key: key,
-            name: text,
-          });
-        }
-      }
-
-      requestData.push({
-        measurementObid: target.selectedMeasurement,
-        metrics: keys,
-      });
-
-      queries.push({
-        refId: target.refId,
-        datasourceId: this.id,
-        queryType: 'metricData',
-        requestData: requestData,
-        includeMinStats: target.includeMinStats,
-        includeAvgStats: target.includeAvgStats,
-        includeMaxStats: target.includeMaxStats,
-      });
+      queries.push(target.toDeviceQuery());
     }
 
     if (queries.length === 0) {
@@ -222,6 +183,7 @@ export class StableNetDatasource {
       to: to,
       queries: queries,
     };
+
     return await this.doRequest<TSDBArg>(data).then(handleTsdbResponse);
   }
 

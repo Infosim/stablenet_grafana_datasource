@@ -1,6 +1,6 @@
 export interface TextValue {
   text: string;
-  value: string;
+  value: number;
 }
 
 export interface TargetDatapoints {
@@ -19,7 +19,9 @@ export interface QueryResult {
   hasMore: boolean;
 }
 
-export interface MetricResult extends TextValue {
+export interface MetricResult {
+  key: string;
+  text: string;
   measurementObid: number;
 }
 

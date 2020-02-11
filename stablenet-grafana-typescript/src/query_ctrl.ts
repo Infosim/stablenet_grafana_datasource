@@ -37,8 +37,8 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   getModes(): TextValue[] {
     return [
-      { text: 'Measurement', value: '0' },
-      { text: 'Statistic Link', value: '10' },
+      { text: 'Measurement', value: 0 },
+      { text: 'Statistic Link', value: 10 },
     ];
   }
 
