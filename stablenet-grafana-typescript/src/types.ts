@@ -48,3 +48,8 @@ export interface StringPair {
   key: string;
   name: string;
 }
+
+export enum Mode {
+  MEASUREMENT = 0,
+  STATISTIC_LINK = 10,
+}

@@ -1,5 +1,5 @@
 import { Target } from './queryInterfaces';
-import { SingleQuery, StringPair } from './types';
+import { Mode, SingleQuery, StringPair } from './types';
 
 export class WrappedTarget {
   target: Target;
@@ -11,7 +11,7 @@ export class WrappedTarget {
   }
 
   isValidStatisticLinkMode(): boolean {
-    return this.target.mode === 10 && this.target.statisticLink !== '';
+    return this.target.mode === Mode.STATISTIC_LINK && this.target.statisticLink !== '';
   }
 
   hasEmptyMetrics(): boolean {

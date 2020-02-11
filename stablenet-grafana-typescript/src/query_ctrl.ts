@@ -9,6 +9,7 @@ import { QueryCtrl } from 'grafana/app/plugins/sdk';
 import './css/query-editor.css';
 import { StableNetDatasource } from './datasource';
 import { TextValue } from './returnTypes';
+import { Mode } from './types';
 
 /** @ngInject */
 export class StableNetQueryCtrl extends QueryCtrl {
@@ -16,7 +17,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   constructor($scope: any, $injector: any) {
     super($scope, $injector);
-    this.target.mode = this.target.mode || 0;
+    this.target.mode = this.target.mode || Mode.MEASUREMENT;
     this.target.deviceQuery = this.target.deviceQuery || '';
     this.target.selectedDevice = this.target.selectedDevice || -1;
     this.target.measurementQuery = this.target.measurementQuery || '';
@@ -37,8 +38,8 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   getModes(): TextValue[] {
     return [
-      { text: 'Measurement', value: 0 },
-      { text: 'Statistic Link', value: 10 },
+      { text: 'Measurement', value: Mode.MEASUREMENT },
+      { text: 'Statistic Link', value: Mode.STATISTIC_LINK },
     ];
   }
 
