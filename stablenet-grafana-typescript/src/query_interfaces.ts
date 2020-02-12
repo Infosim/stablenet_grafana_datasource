@@ -22,7 +22,7 @@ export interface Target extends EmptyTarget {
   includeAvgStats: boolean;
   includeMaxStats: boolean;
   statisticLink: string;
-  metrics: Array<{ text: string; key: string; measurementObid: number; $$hashKey: string }>;
+  metrics: Array<{ text: string; key: string; measurementObid: number }>;
   moreDevices: boolean;
   moreMeasurements: boolean;
 }
