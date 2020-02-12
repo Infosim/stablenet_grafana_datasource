@@ -1,14 +1,14 @@
-interface TargetEmpty {
+interface EmptyTarget {
   refId: string;
   datasource: undefined;
 }
 
-export interface QueryOptionsEmpty {
-  targets: [TargetEmpty];
+export interface EmptyQueryOptions {
+  targets: EmptyTarget[];
   [x: string]: any;
 }
 
-export interface Target extends TargetEmpty {
+export interface Target extends EmptyTarget {
   mode: number;
   deviceQuery: string;
   selectedDevice: number;
@@ -30,6 +30,6 @@ export interface QueryOptions {
   [x: string]: any;
 }
 
-export function isQOE(object: any): object is QueryOptionsEmpty {
+export function isQOE(object: any): object is EmptyQueryOptions {
   return !('mode' in object.targets[0]);
 }

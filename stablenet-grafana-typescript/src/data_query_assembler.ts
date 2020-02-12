@@ -54,15 +54,15 @@ export class WrappedTarget {
   }
 
   private getRequestedMetricsAsKeys(): StringPair[] {
-    const keys: Array<{ key: string; name: string }> = [];
+    const keys: StringPair[] = [];
     const e: Array<[string, boolean]> = Object.entries(this.target.chosenMetrics);
 
     for (const [key, value] of e) {
       if (value) {
-        const text: string = this.target.metricPrefix + ' {MinMaxAvg} ' + this.target.metrics.filter(m => m.key === key)[0].text;
+        const name: string = this.target.metricPrefix + ' {MinMaxAvg} ' + this.target.metrics.filter(m => m.key === key)[0].text;
         keys.push({
-          key: key,
-          name: text,
+          key,
+          name,
         });
       }
     }

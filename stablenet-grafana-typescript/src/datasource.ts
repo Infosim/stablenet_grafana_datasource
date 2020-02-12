@@ -6,21 +6,21 @@
  *                  www.infosim.net
  */
 import { WrappedTarget } from './data_query_assembler';
-import { isQOE, QueryOptions, QueryOptionsEmpty } from './queryInterfaces';
+import { isQOE, QueryOptions, Target } from './queryInterfaces';
 import {
+  EmptyQueryResult,
   EntityQueryResult,
   GenericResponse,
   MetricResult,
   MetricType,
   QueryResult,
-  EmptyQueryResult,
   TargetDatapoints,
   TestResult,
   TextValue,
   TSDBArg,
   TSDBResult,
 } from './returnTypes';
-import { DeviceQuery, MeasurementQuery, MetricQuery, Query, SingleQuery, TestOptions } from './types';
+import { BasicQuery, DeviceQuery, MeasurementQuery, MetricQuery, Query, SingleQuery, TestOptions } from './types';
 
 const BACKEND_URL = '/api/tsdb/query';
 
@@ -149,19 +149,18 @@ export class StableNetDatasource {
     };
   }
 
-  async query(options: QueryOptionsEmpty): Promise<EmptyQueryResult>;
   async query(options: QueryOptions): Promise<TSDBResult>;
-  async query(options: QueryOptions | QueryOptionsEmpty): Promise<TSDBResult | EmptyQueryResult> {
+  async query(options: QueryOptions): Promise<TSDBResult | EmptyQueryResult> {
     const from: string = new Date(options.range.from).getTime().toString();
     const to: string = new Date(options.range.to).getTime().toString();
+    const targets: Target[] = options.targets;
     const queries: SingleQuery[] = [];
     if (isQOE(options)) {
-      console.log('is empty');
       return { data: [] };
     }
 
-    for (let i = 0; i < options.targets.length; i++) {
-      const target: WrappedTarget = new WrappedTarget(options.targets[i], this.id);
+    for (let i = 0; i < targets.length; i++) {
+      const target: WrappedTarget = new WrappedTarget(targets[i], this.id);
 
       if (target.isValidStatisticLinkMode()) {
         queries.push(target.toStatisticLinkQuery());
@@ -187,7 +186,7 @@ export class StableNetDatasource {
     return await this.doRequest<TSDBArg>(data).then(handleTsdbResponse);
   }
 
-  private doRequest<RETURN>(data: Query<any>): Promise<RETURN> {
+  private doRequest<RETURN>(data: Query<BasicQuery>): Promise<RETURN> {
     const options = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,

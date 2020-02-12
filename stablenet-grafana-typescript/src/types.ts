@@ -1,4 +1,4 @@
-interface BasicQuery {
+export interface BasicQuery {
   refId: string;
   datasourceId: number;
   queryType: string;

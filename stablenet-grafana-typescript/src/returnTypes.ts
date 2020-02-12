@@ -52,8 +52,6 @@ export interface GenericResponse<T> extends RequestResult {
     results: {
       [x: string]: {
         refId: string;
-        tables: null;
-        series: never[];
         meta: T;
       };
     };
@@ -65,7 +63,6 @@ export interface TSDBArg extends RequestResult {
     results: {
       [x: string]: {
         refId: string;
-        tables: null;
         series: Array<{ name: string; points: Array<[number, number]> }>;
       };
     };
