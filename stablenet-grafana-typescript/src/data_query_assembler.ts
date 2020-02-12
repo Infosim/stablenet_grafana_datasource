@@ -1,4 +1,4 @@
-import { Target } from './queryInterfaces';
+import { Target } from './query_interfaces';
 import { Mode, SingleQuery, StringPair } from './types';
 
 export class WrappedTarget {

@@ -3,11 +3,6 @@ interface EmptyTarget {
   datasource: undefined;
 }
 
-export interface EmptyQueryOptions {
-  targets: EmptyTarget[];
-  [x: string]: any;
-}
-
 export interface Target extends EmptyTarget {
   mode: number;
   deviceQuery: string;
@@ -28,8 +23,4 @@ export interface Target extends EmptyTarget {
 export interface QueryOptions {
   targets: Target[];
   [x: string]: any;
-}
-
-export function isQOE(object: any): object is EmptyQueryOptions {
-  return !('mode' in object.targets[0]);
 }

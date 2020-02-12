@@ -6,7 +6,7 @@
  *                  www.infosim.net
  */
 import { WrappedTarget } from './data_query_assembler';
-import { isQOE, QueryOptions, Target } from './queryInterfaces';
+import { QueryOptions, Target } from './query_interfaces';
 import {
   EmptyQueryResult,
   EntityQueryResult,
@@ -149,13 +149,12 @@ export class StableNetDatasource {
     };
   }
 
-  async query(options: QueryOptions): Promise<TSDBResult>;
   async query(options: QueryOptions): Promise<TSDBResult | EmptyQueryResult> {
     const from: string = new Date(options.range.from).getTime().toString();
     const to: string = new Date(options.range.to).getTime().toString();
     const targets: Target[] = options.targets;
     const queries: SingleQuery[] = [];
-    if (isQOE(options)) {
+    if (!('mode' in options.targets[0])) {
       return { data: [] };
     }
 
