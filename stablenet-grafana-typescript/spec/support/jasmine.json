@@ -7,5 +7,6 @@
     "helpers/**/*.js"
   ],
   "stopSpecOnExpectationFailure": false,
+  "passWithNoTests": true,
   "random": true
 }
