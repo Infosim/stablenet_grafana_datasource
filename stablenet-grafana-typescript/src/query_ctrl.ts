@@ -30,7 +30,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
     this.target.statisticLink = this.target.statisticLink || '';
     this.target.averagePeriod = this.target.averagePeriod || '';
     this.target.averageUnit = this.target.averageUnit || Unit.MINUTES;
-    this.target.useCustAverage = typeof this.target.useCustAverage === 'undefined' ? false : this.target.useCustAverage;
+    this.target.useCustomAverage = typeof this.target.useCustomAverage === 'undefined' ? false : this.target.useCustomAverage;
     //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid),
     //but we need the variable to make ng-repeat in query-editor.html (and thus the checkboxes) work
     this.target.metrics = this.target.metrics || [];

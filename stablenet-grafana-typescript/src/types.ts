@@ -63,8 +63,8 @@ export enum Mode {
 }
 
 export enum Unit {
-  SECONDS = 1,
-  MINUTES = 60,
-  HOURS = 3600,
-  DAYS = 86400,
+  SECONDS = 1000,
+  MINUTES = 60000,
+  HOURS = 3600000,
+  DAYS = 86400000,
 }

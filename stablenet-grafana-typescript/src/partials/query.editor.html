@@ -224,39 +224,35 @@
         </div>
 
         <div class="gf-form-inline">
-            <div class="gf-form">
-                <label class="gf-form-label query-keyword width-11">
-                    Average Period:
-                    <info-popover mode="right-normal">Allows defining a custom average period in seconds.</info-popover>
-                </label>
-                <input class="gf-form-input width-10"
-                       type="text"
-                       ng-model="ctrl.target.averagePeriod"
-                       ng-blur="ctrl.onDeviceQueryChange()"
-                       tabindex="0"
+            <div class="gf-form" style="margin-left: 3px">
+                <gf-form-checkbox class="gf-form sn-checkbox-width"
+                                  checked="ctrl.target.useCustomAverage"
+                                  on-change="ctrl.onChangeInternal()"
+                                  tabindex="0"
                 >
-                <div class="gf-form">
-                    <gf-form-dropdown model="ctrl.target.averageUnit"
-                                      allow-custom="true"
-                                      lookup-text="true"
-                                      get-options="ctrl.getUnits()"
-                                      class="width-7"
-                                      tabindex="0"
-                                      on-change="ctrl.onChangeInternal()"
-                    >
-                    </gf-form-dropdown>
-                </div>
-                <div class="gf-form">
-                    <gf-form-checkbox class="gf-form sn-checkbox-width"
-                                      checked="ctrl.target.useCustAverage"
-                                      on-change="ctrl.onChangeInternal()"
-                                      tabindex="0"
-                    >
-                    </gf-form-checkbox>
-                    <label class="gf-form-label query-keyword width-11"
-                    >Use Custom Average
-                    </label>
-                </div>
+                </gf-form-checkbox>
+            </div>
+            <label class="gf-form-label query-keyword width-11">
+                Average Period:
+                <info-popover mode="right-normal">Allows defining a custom average period in seconds.</info-popover>
+            </label>
+            <input class="gf-form-input width-10"
+                   type="text"
+                   ng-model="ctrl.target.averagePeriod"
+                   ng-blur="ctrl.onDeviceQueryChange()"
+                   tabindex="0"
+                   ng-disabled="!ctrl.target.useCustomAverage"
+            >
+            <div class="gf-form">
+                <gf-form-dropdown model="ctrl.target.averageUnit"
+                                  allow-custom="true"
+                                  lookup-text="true"
+                                  get-options="ctrl.getUnits()"
+                                  class="width-7"
+                                  tabindex="0"
+                                  on-change="ctrl.onChangeInternal()"
+                >
+                </gf-form-dropdown>
             </div>
         </div>
     </div>
