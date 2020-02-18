@@ -37,7 +37,7 @@ export class WrappedTarget {
       datasourceId: this.dataSourceId,
       queryType: 'statisticLink',
       statisticLink: this.target.statisticLink,
-      intervalMs: this.target.useCustomAverage ? parseInt(this.target.averagePeriod, 10)* this.target.averageUnit : this.intervalMs,
+      intervalMs: this.target.useCustomAverage ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
       includeAvgStats: this.target.includeAvgStats,
       includeMaxStats: this.target.includeMaxStats,
