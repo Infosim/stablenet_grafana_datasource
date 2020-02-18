@@ -159,7 +159,7 @@ export class StableNetDatasource {
     }
 
     for (let i = 0; i < targets.length; i++) {
-      const target: WrappedTarget = new WrappedTarget(targets[i], this.id);
+      const target: WrappedTarget = new WrappedTarget(targets[i], options.intervalMs, this.id);
 
       if (target.isValidStatisticLinkMode()) {
         queries.push(target.toStatisticLinkQuery());

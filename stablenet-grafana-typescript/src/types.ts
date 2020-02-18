@@ -40,6 +40,7 @@ export interface Query<T> {
 export interface SingleQuery extends BasicQuery {
   statisticLink?: string;
   requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
+  intervalMs: number;
   includeMinStats: boolean;
   includeAvgStats: boolean;
   includeMaxStats: boolean;
@@ -59,4 +60,11 @@ export interface StringPair {
 export enum Mode {
   MEASUREMENT = 0,
   STATISTIC_LINK = 10,
+}
+
+export enum Unit {
+  SECONDS = 1,
+  MINUTES = 60,
+  HOURS = 3600,
+  DAYS = 86400,
 }

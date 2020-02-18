@@ -10,10 +10,12 @@ import { Mode, SingleQuery, StringPair } from './types';
 
 export class WrappedTarget {
   target: Target;
+  intervalMs: number;
   dataSourceId: number;
 
-  constructor(target: Target, dataSourceId: number) {
+  constructor(target: Target, intervalMs: number, dataSourceId: number) {
     this.target = target;
+    this.intervalMs = intervalMs;
     this.dataSourceId = dataSourceId;
   }
 
@@ -35,6 +37,7 @@ export class WrappedTarget {
       datasourceId: this.dataSourceId,
       queryType: 'statisticLink',
       statisticLink: this.target.statisticLink,
+      intervalMs: this.target.useCustAverage ? parseInt(this.target.averagePeriod, 10) * 1000 * this.target.averageUnit : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
       includeAvgStats: this.target.includeAvgStats,
       includeMaxStats: this.target.includeMaxStats,
@@ -54,6 +57,7 @@ export class WrappedTarget {
       datasourceId: this.dataSourceId,
       queryType: 'metricData',
       requestData: requestData,
+      intervalMs: this.target.useCustAverage ? parseInt(this.target.averagePeriod, 10) * 1000 * this.target.averageUnit : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
       includeAvgStats: this.target.includeAvgStats,
       includeMaxStats: this.target.includeMaxStats,

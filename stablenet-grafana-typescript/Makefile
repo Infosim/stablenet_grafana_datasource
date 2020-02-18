@@ -2,7 +2,7 @@ all: build_frontend build_linux build_windows build_darwin deploy
 compile: build_frontend build_linux build_windows
 
 build_frontend:
-	npm run dev > /dev/null
+	npm run dev
 
 build_linux:
 	cd ../backend-plugin;GOOS=linux GOARCH=amd64 go build -o ../stablenet-grafana-typescript/dist/stablenet_backend_plugin_linux_amd64 backend-plugin/main;cd ..
@@ -14,8 +14,8 @@ build_darwin:
 	cd ../backend-plugin;GOOS=darwin GOARCH=amd64 go build -o ../stablenet-grafana-typescript/dist/stablenet_backend_plugin_darwin_amd64 backend-plugin/main;cd ..
 
 deploy:
-	rm -rf ${GRAFANA_HOME}/data/plugins/stablenet-grafana-typescript
-	cp -R ./dist ${GRAFANA_HOME}/data/plugins/stablenet-grafana-typescript
+	rm -rf ${GRAFANA_HOME}/data/plugins/stablenet-grafana-plugin
+	cp -R ./dist ${GRAFANA_HOME}/data/plugins/stablenet-grafana-plugin
 
 ship:
 	cp -r ./dist ./stablenet-grafana-typescript
