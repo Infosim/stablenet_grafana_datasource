@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "grafana-toolkit plugin:build",
-    "test": "grafana-toolkit plugin:test",
+    "test": "ts-node node_modules/jasmine/bin/jasmine",
     "dev": "grafana-toolkit plugin:dev",
     "watch": "grafana-toolkit plugin:dev --watch"
   },
@@ -13,9 +13,13 @@
   "license": "Apache",
   "dependencies": {},
   "devDependencies": {
+    "@grafana/data": "next",
     "@grafana/toolkit": "6.5.3",
     "@grafana/ui": "next",
-    "@grafana/data": "next",
-    "@types/grafana": "github:CorpGlory/types-grafana.git"
+    "@types/grafana": "github:CorpGlory/types-grafana.git",
+    "@types/jasmine": "^3.5.4",
+    "jest": "^25.1.0",
+    "jasmine": "^3.5.0",
+    "ts-node": "^8.6.2"
   }
 }
