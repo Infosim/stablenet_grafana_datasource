@@ -1,7 +1,7 @@
 {
-  "name": "grafana-influxdb-flux-datasource",
-  "version": "5.4.1",
-  "description": "Grafana data source for InfluxDB (Flux query support)",
+  "name": "grafana-stablenet-datasource",
+  "version": "1.1.0",
+  "description": "Grafana data source for StableNet®",
   "private": true,
   "scripts": {
     "build": "grafana-toolkit plugin:build",
@@ -9,8 +9,8 @@
     "dev": "grafana-toolkit plugin:dev",
     "watch": "grafana-toolkit plugin:dev --watch"
   },
-  "author": "Grafana Labs",
-  "license": "Apache",
+  "author": "Infosim & Ko. GmbH",
+  "license": "",
   "dependencies": {},
   "devDependencies": {
     "@grafana/data": "next",
