@@ -22,6 +22,9 @@ export interface Target extends EmptyTarget {
   includeAvgStats: boolean;
   includeMaxStats: boolean;
   statisticLink: string;
+  averagePeriod: string;
+  averageUnit: number;
+  useCustomAverage: boolean;
   metrics: Array<{ text: string; key: string; measurementObid: number }>;
   moreDevices: boolean;
   moreMeasurements: boolean;

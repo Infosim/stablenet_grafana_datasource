@@ -9,7 +9,7 @@ import { QueryCtrl } from 'grafana/app/plugins/sdk';
 import './css/query-editor.css';
 import { StableNetDatasource } from './datasource';
 import { TextValue } from './returnTypes';
-import { Mode } from './types';
+import { Mode, Unit } from './types';
 
 /** @ngInject */
 export class StableNetQueryCtrl extends QueryCtrl {
@@ -28,6 +28,9 @@ export class StableNetQueryCtrl extends QueryCtrl {
     this.target.includeAvgStats = typeof this.target.includeAvgStats === 'undefined' ? true : this.target.includeAvgStats;
     this.target.includeMaxStats = typeof this.target.includeMaxStats === 'undefined' ? false : this.target.includeMaxStats;
     this.target.statisticLink = this.target.statisticLink || '';
+    this.target.averagePeriod = this.target.averagePeriod || '';
+    this.target.averageUnit = this.target.averageUnit || Unit.MINUTES;
+    this.target.useCustomAverage = typeof this.target.useCustomAverage === 'undefined' ? false : this.target.useCustomAverage;
     //normally metrics should not be stored within this.target (they can be fetched any time given measurement obid),
     //but we need the variable to make ng-repeat in query-editor.html (and thus the checkboxes) work
     this.target.metrics = this.target.metrics || [];
@@ -40,6 +43,15 @@ export class StableNetQueryCtrl extends QueryCtrl {
     return [
       { text: 'Measurement', value: Mode.MEASUREMENT },
       { text: 'Statistic Link', value: Mode.STATISTIC_LINK },
+    ];
+  }
+
+  getUnits(): TextValue[] {
+    return [
+      { text: 'sec', value: Unit.SECONDS },
+      { text: 'min', value: Unit.MINUTES },
+      { text: 'hrs', value: Unit.HOURS },
+      { text: 'days', value: Unit.DAYS },
     ];
   }
 
