@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "build": "grafana-toolkit plugin:build",
-    "test": "ts-node node_modules/jasmine/bin/jasmine",
+    "test": "jasmine --reporter=jasmine-console-reporter --config=jasmine.json",
+    "coverage": "nyc npm run test && nyc report --reporter=html",
+    "coveralls": "nyc npm run test && nyc report --reporter=text-lcov | coveralls -v",
     "dev": "grafana-toolkit plugin:dev",
     "watch": "grafana-toolkit plugin:dev --watch"
   },
@@ -17,9 +19,13 @@
     "@grafana/toolkit": "6.5.3",
     "@grafana/ui": "next",
     "@types/grafana": "github:CorpGlory/types-grafana.git",
-    "@types/jasmine": "^3.5.4",
-    "jest": "^25.1.0",
-    "jasmine": "^3.5.0",
-    "ts-node": "^8.6.2"
+    "@types/jasmine": "^3.3.12",
+    "@types/node": "^12.12.25",
+    "coveralls": "^3.0.9",
+    "jasmine": "^3.4.0",
+    "jasmine-console-reporter": "^3.1.0",
+    "nyc": "^15.0.0",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.3"
   }
 }

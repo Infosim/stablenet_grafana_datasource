@@ -1,4 +1,4 @@
-import { WrappedTarget } from "../../src/data_query_assembler";
+import { WrappedTarget } from "../src/data_query_assembler";
 
 describe("A suite", function() {
     let s: WrappedTarget = new WrappedTarget({
@@ -23,6 +23,6 @@ describe("A suite", function() {
         moreMeasurements: false
     },0,0);
     it("contains spec with an expectation", function() {
-        expect(s).not.toBeNull();
+        expect(s.isValidStatisticLinkMode()).toBe(false);
     });
 });
