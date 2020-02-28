@@ -186,7 +186,7 @@ export class StableNetDatasource {
   }
 
   private doRequest<RETURN>(data: Query<BasicQuery>): Promise<RETURN> {
-    const options = {
+    const options: TestOptions = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
       method: 'POST',
