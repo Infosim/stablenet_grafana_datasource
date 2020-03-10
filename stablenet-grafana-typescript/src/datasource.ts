@@ -207,13 +207,6 @@ export function handleTsdbResponse(response: TSDBArg): TSDBResult {
         });
       });
     }
-    if (r.tables) {
-      r.tables.forEach(t => {
-        t.type = 'table';
-        t.refId = r.refId;
-        res.push(t);
-      });
-    }
   });
   return {
     status: response.status,
