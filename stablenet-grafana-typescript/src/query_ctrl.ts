@@ -21,7 +21,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
     this.target.deviceQuery = this.target.deviceQuery || '';
     this.target.selectedDevice = this.target.selectedDevice || -1;
     this.target.measurementQuery = this.target.measurementQuery || '';
-    this.target.selectedMeasurement = this.target.selectedMeasurement || -1;
+    this.target.selectedMeasurement = this.target.selectedMeasurement || '';
     this.target.chosenMetrics = this.target.chosenMetrics || {};
     this.target.metricPrefix = this.target.metricPrefix || '';
     this.target.includeMinStats = typeof this.target.includeMinStats === 'undefined' ? false : this.target.includeMinStats;
@@ -70,7 +70,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
         if (!r.includes(this.target.selectedDevice)) {
           this.target.selectedDevice = -1;
           this.target.measurementQuery = '';
-          this.target.selectedMeasurement = -1;
+          this.target.selectedMeasurement = '';
           this.target.metricPrefix = '';
           this.target.metrics = [];
           this.target.chosenMetrics = {};
@@ -89,7 +89,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   onDeviceChange(): void {
     this.target.measurementQuery = '';
-    this.target.selectedMeasurement = -1;
+    this.target.selectedMeasurement = '';
     this.target.metricPrefix = '';
     this.target.metrics = [];
     this.target.chosenMetrics = {};
@@ -111,7 +111,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
       .then(r => (r ? r.map(el => el.value) : []))
       .then(r => {
         if (!r.includes(this.target.selectedMeasurement)) {
-          this.target.selectedMeasurement = -1;
+          this.target.selectedMeasurement = '';
           this.target.metrics = [];
           this.target.chosenMetrics = {};
         }
