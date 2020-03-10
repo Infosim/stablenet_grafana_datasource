@@ -1,7 +1,7 @@
-import {StableNetDatasource} from "../src/datasource";
+import {handleTsdbResponse, StableNetDatasource} from "../src/datasource";
 import {MockBackendServer} from "./mock_server";
 import {TestOptions} from "../src/types";
-import {TestResult} from "../src/returnTypes";
+import {TestResult, TSDBArg} from "../src/returnTypes";
 
 let backendSrv: MockBackendServer;
 let datasource: StableNetDatasource;
@@ -69,5 +69,28 @@ describe("queryDevices()", () => {
         datasource = new StableNetDatasource({id:1},null,backendSrv);
 
         spyOn(backendSrv, 'datasourceRequest');
+    });
+});
+
+describe("handleTsdbResponse()", () => {
+    let response: TSDBArg;
+
+    beforeEach(() => {
+        response = {
+            config: {},
+            data: {
+                results: {
+
+                }
+            },
+            headers: () => {},
+            status: 0,
+            statusText: "",
+            xhrStatus: ""
+        }
+    });
+
+    it('should return empty data on empty results', function () {
+        expect(handleTsdbResponse(response).data).toEqual([]);
     });
 });
