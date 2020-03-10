@@ -125,16 +125,16 @@ export class StableNetDatasource {
 
   findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
     const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
-    return this.doRequest<GenericResponse<MetricType[]>>(data).then(result => {
-      return result.data.results[refid].meta.map(metric => {
+    return this.doRequest<GenericResponse<MetricType[]>>(data).then(result =>
+      result.data.results[refid].meta.map(metric => {
         const m: MetricResult = {
           measurementObid: obid,
           key: metric.key,
           text: metric.name,
         };
         return m;
-      });
-    });
+      })
+    );
   }
 
   private createMetricQuery(mesurementObid: number, refid: string): Query<MetricQuery> {
@@ -169,6 +169,7 @@ export class StableNetDatasource {
       if (target.hasEmptyMetrics()) {
         continue;
       }
+
       queries.push(target.toDeviceQuery());
     }
 
