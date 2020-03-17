@@ -164,6 +164,17 @@ describe("testDatasource()", () => {
         };
         expect(await datasource.testDatasource()).toEqual(expected);
     });
+
+    it('should return properly on rejected Promise', async () => {
+        let backend2 = new MockBackendServer(true);
+        let ds2 = new StableNetDatasource({id:1},null,backend2);
+        let expected = {
+            status: 'error',
+            message: "did not work",
+            title: 'Failure',
+        };
+        expect(await ds2.testDatasource()).toEqual(expected);
+    });
 });
 
 describe("queryDevices()", () => {

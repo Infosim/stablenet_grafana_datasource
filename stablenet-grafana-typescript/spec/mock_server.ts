@@ -2,10 +2,17 @@ import {DeviceQuery, MeasurementQuery, MetricQuery, SingleQuery, TestOptions} fr
 import {EntityQueryResult, GenericResponse, MetricType, TSDBArg} from "../src/returnTypes";
 
 export class MockBackendServer {
-    constructor() {}
+    private willThrow: boolean;
 
-    async request(options: TestOptions): Promise<boolean> {
-        return Promise.resolve(true);
+    constructor(t?: boolean) {
+        this.willThrow = t === undefined ? false : t;
+    }
+
+    async request(options: TestOptions): Promise<any> {
+        return this.willThrow ?
+            Promise.reject({data:{message:"did not work"}})
+            :
+            Promise.resolve(true);
     }
 
     datasourceRequest(options: TestOptions): any {
