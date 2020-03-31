@@ -14,8 +14,8 @@
     },
     "keywords": [],
     "logos": {
-      "small": "img/infosim_logo_small.png",
-      "large": "img/infosim_logo.png"
+      "small": "img/infosim_logo_small.svg",
+      "large": "img/infosim_logo.svg"
     },
     "links": [
       {"name": "StableNet® by Infosim®", "url": "https://www.infosim.net/stablenet"}
