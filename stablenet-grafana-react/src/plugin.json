@@ -1,0 +1,35 @@
+{
+  "type": "datasource",
+  "name": "StableNet",
+  "id": "infosim-stable-net",
+  "metrics": true,
+  "info": {
+    "description": "Data Source for StableNet Server",
+    "author": {
+      "name": "Infosim",
+      "url": "https://www.infosim.net"
+    },
+    "keywords": [],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://github.com/grafana/simple-datasource"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/grafana/simple-datasource/blob/master/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaVersion": "6.5.x",
+    "plugins": []
+  }
+}

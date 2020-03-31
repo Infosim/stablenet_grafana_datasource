@@ -1,0 +1,30 @@
+{
+  "name": "grafana-stablenet-datasource",
+  "version": "0.0.1",
+  "description": "Grafana data source for StableNet®",
+  "scripts": {
+    "build": "grafana-toolkit plugin:build",
+    "test": "grafana-toolkit plugin:test",
+    "dev": "grafana-toolkit plugin:dev",
+    "watch": "grafana-toolkit plugin:dev --watch"
+  },
+  "author": "Infosim & Ko. GmbH",
+  "license": "",
+  "dependencies": {
+    "react-scripts": "3.4.1",
+    "eslint-config-prettier": "^6.10.1",
+    "eslint-plugin-prettier": "^3.1.2"
+  },
+  "devDependencies": {
+    "@grafana/data": "next",
+    "@grafana/toolkit": "next",
+    "@grafana/ui": "next",
+    "@types/lodash": "latest"
+  },
+  "resolutions": {
+    "@babel/preset-env": "7.9.0"
+  },
+  "engines": {
+    "node": ">=12 <13"
+  }
+}
