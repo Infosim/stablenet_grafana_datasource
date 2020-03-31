@@ -1,5 +1,9 @@
-# Simple Data Source
+# StableNet® Grafana Data Source
 
-[![CircleCI](https://circleci.com/gh/grafana/simple-datasource/tree/master.svg?style=svg)](https://circleci.com/gh/grafana/simple-datasource/tree/master)
 
-This is a stub to show how to create a basic data source plugin.
+This Grafana plugin enables to view StableNet® measurement data in Grafana charts.
+
+## Documentation
+
+Please refer to the official StableNet® documentation for more information about the Grafana data source.
+See the document "ADM - StableNet Data Source for Grafana".

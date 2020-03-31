@@ -2,6 +2,7 @@
   "name": "grafana-stablenet-datasource",
   "version": "0.0.1",
   "description": "Grafana data source for StableNet®",
+  "private": true,
   "scripts": {
     "build": "grafana-toolkit plugin:build",
     "test": "grafana-toolkit plugin:test",
