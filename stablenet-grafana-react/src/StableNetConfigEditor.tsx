@@ -9,7 +9,7 @@ interface Props extends DataSourcePluginOptionsEditorProps<MyDataSourceOptions> 
 interface State {
 }
 
-export class ConfigEditor extends PureComponent<Props, State> {
+export class StableNetConfigEditor extends PureComponent<Props, State> {
     onIpChange = (event: ChangeEvent<HTMLInputElement>) => {
         const {onOptionsChange, options} = this.props;
         const jsonData = {
@@ -23,7 +23,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
         const {onOptionsChange, options} = this.props;
         const jsonData = {
             ...options.jsonData,
-            snport: event.target.value,
+            snport: parseInt(event.target.value,10),
         };
         onOptionsChange({...options, jsonData});
     };
@@ -37,34 +37,32 @@ export class ConfigEditor extends PureComponent<Props, State> {
         onOptionsChange({...options, jsonData});
     };
 
-    // Secure field (only sent to the backend)
-    onAPIKeyChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
         const {onOptionsChange, options} = this.props;
         onOptionsChange({
             ...options,
             secureJsonData: {
-                apiKey: event.target.value,
+                snpassword: event.target.value,
             },
         });
     };
 
-    onResetAPIKey = () => {
+    onResetPassword = () => {
         const {onOptionsChange, options} = this.props;
         onOptionsChange({
             ...options,
             secureJsonFields: {
                 ...options.secureJsonFields,
-                apiKey: false,
+                snpassword: false,
             },
             secureJsonData: {
                 ...options.secureJsonData,
-                apiKey: '',
+                snpassword: '',
             },
         });
     };
 
     render() {
-        console.log(this.props);
         const {options} = this.props;
         const {jsonData, secureJsonFields} = options;
         const secureJsonData = (options.secureJsonData || {}) as MySecureJsonData;
@@ -111,14 +109,14 @@ export class ConfigEditor extends PureComponent<Props, State> {
                     <div className="gf-form-inline">
                         <div className="gf-form">
                             <SecretFormField
-                                isConfigured={(secureJsonFields && secureJsonFields.apiKey) as boolean}
-                                value={secureJsonData.apiKey || ''}
-                                label="API Key"
-                                placeholder="secure json field (backend only)"
-                                labelWidth={6}
-                                inputWidth={20}
-                                onReset={this.onResetAPIKey}
-                                onChange={this.onAPIKeyChange}
+                                isConfigured={(secureJsonFields && secureJsonFields.snpassword) as boolean}
+                                value={secureJsonData.snpassword || ''}
+                                label="Password"
+                                placeholder=""
+                                labelWidth={13}
+                                inputWidth={(secureJsonFields && secureJsonFields.snpassword) ? 16 : 17}
+                                onReset={this.onResetPassword}
+                                onChange={this.onPasswordChange}
                             />
                         </div>
                     </div>
