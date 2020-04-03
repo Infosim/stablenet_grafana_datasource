@@ -33,7 +33,7 @@ export interface MetricResult {
 }
 
 export interface EmptyQueryResult {
-  data: never[];
+  data: never[] | undefined[];
 }
 
 interface RequestResult {

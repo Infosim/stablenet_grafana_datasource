@@ -65,9 +65,9 @@ export class StableNetDatasource {
       });
   }
 
-  queryDevices(queryString: string, refid: string): Promise<QueryResult> {
+  queryDevices(queryString: string, refid: string, scope: any): Promise<QueryResult> {
     const data: Query<DeviceQuery> = this.createDeviceQuery(queryString, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data, scope).then(result => {
       const res: TextValue[] = result.data.results[refid].meta.data.map(device => {
         return {
           text: device.name,
@@ -94,9 +94,9 @@ export class StableNetDatasource {
     };
   }
 
-  findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
+  findMeasurementsForDevice(obid: number, input: string, refid: string, scope: any): Promise<QueryResult> {
     const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data, scope).then(result => {
       const res: TextValue[] = result.data.results[refid].meta.data.map(measurement => {
         return {
           text: measurement.name,
@@ -123,9 +123,9 @@ export class StableNetDatasource {
     };
   }
 
-  findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
+  findMetricsForMeasurement(obid: number, refid: string, scope: any): Promise<MetricResult[]> {
     const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
-    return this.doRequest<GenericResponse<MetricType[]>>(data).then(result =>
+    return this.doRequest<GenericResponse<MetricType[]>>(data, scope).then(result =>
       result.data.results[refid].meta.map(metric => {
         const m: MetricResult = {
           measurementObid: obid,
@@ -186,14 +186,19 @@ export class StableNetDatasource {
     return await this.doRequest<TSDBArg>(data).then(handleTsdbResponse);
   }
 
-  private doRequest<RETURN>(data: Query<BasicQuery>): Promise<RETURN> {
+  private doRequest<RETURN>(data: Query<BasicQuery>, scope?: any): Promise<RETURN> {
     const options: TestOptions = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
       method: 'POST',
       data: data,
     };
-    return this.backendSrv.datasourceRequest(options);
+    return this.backendSrv.datasourceRequest(options).then(result => {
+      if (scope) {
+        scope.$digest();
+      }
+      return result;
+    });
   }
 }
 

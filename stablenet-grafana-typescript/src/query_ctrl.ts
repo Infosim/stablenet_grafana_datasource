@@ -63,7 +63,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   onDeviceQueryChange(): void {
     (this.datasource as StableNetDatasource)
-      .queryDevices(this.target.deviceQuery, this.target.refId)
+      .queryDevices(this.target.deviceQuery, this.target.refId, this.$scope)
       .then(r => r.data)
       .then(r => (r ? r.map(el => el.value) : []))
       .then(r => {
@@ -81,7 +81,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
   }
 
   getDevices(): Promise<TextValue[]> {
-    return (this.datasource as StableNetDatasource).queryDevices(this.target.deviceQuery, this.target.refId).then(r => {
+    return (this.datasource as StableNetDatasource).queryDevices(this.target.deviceQuery, this.target.refId, this.$scope).then(r => {
       this.target.moreDevices = r.hasMore;
       return r.data;
     });
@@ -93,11 +93,14 @@ export class StableNetQueryCtrl extends QueryCtrl {
     this.target.metricPrefix = '';
     this.target.metrics = [];
     this.target.chosenMetrics = {};
+    setTimeout(() => {
+      this.onChangeInternal();
+    }, 50);
   }
 
   getMeasurements(): Promise<TextValue[]> {
     return (this.datasource as StableNetDatasource)
-      .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
+      .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId, this.$scope)
       .then(r => {
         this.target.moreMeasurements = r.hasMore;
         return r.data;
@@ -106,7 +109,7 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   onMeasurementRegexChange(): void {
     (this.datasource as StableNetDatasource)
-      .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
+      .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId, this.$scope)
       .then(r => r.data)
       .then(r => (r ? r.map(el => el.value) : []))
       .then(r => {
@@ -122,11 +125,11 @@ export class StableNetQueryCtrl extends QueryCtrl {
 
   onMeasurementChange(): void {
     (this.datasource as StableNetDatasource)
-      .findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId)
+      .findMetricsForMeasurement(this.target.selectedMeasurement, this.target.refId, this.$scope)
       .then(res => (this.target.metrics = res));
     this.target.chosenMetrics = {};
     (this.datasource as StableNetDatasource)
-      .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId)
+      .findMeasurementsForDevice(this.target.selectedDevice, this.target.measurementQuery, this.target.refId, this.$scope)
       .then(r => r.data)
       .then(r => r.filter(m => m.value === this.target.selectedMeasurement)[0])
       .then(r => (this.target.metricPrefix = r.text));
