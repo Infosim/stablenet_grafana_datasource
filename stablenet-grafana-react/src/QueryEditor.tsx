@@ -4,9 +4,9 @@ import React, { PureComponent, ChangeEvent } from 'react';
 import { FormField } from '@grafana/ui';
 import { QueryEditorProps } from '@grafana/data';
 import { DataSource } from './DataSource';
-import { MyQuery, MyDataSourceOptions, defaultQuery } from './types';
+import { MyQuery, StableNetConfigOptions, defaultQuery } from './types';
 
-type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
+type Props = QueryEditorProps<DataSource, MyQuery, StableNetConfigOptions>;
 
 interface State {}
 

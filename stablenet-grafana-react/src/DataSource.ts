@@ -2,11 +2,49 @@ import defaults from 'lodash/defaults';
 
 import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings, MutableDataFrame, FieldType } from '@grafana/data';
 
-import { MyQuery, MyDataSourceOptions, defaultQuery } from './types';
+import {defaultQuery, StableNetConfigOptions, MyQuery, TestOptions} from './types';
+import {TestResult} from "./returnTypes";
 
-export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
-  constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
+const BACKEND_URL = '/api/tsdb/query';
+
+export class DataSource extends DataSourceApi<MyQuery, StableNetConfigOptions> {
+
+  constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>, $q, private backendSrv) {
     super(instanceSettings);
+  }
+
+  async testDatasource(): Promise<TestResult> {
+    const options: TestOptions = {
+      headers: { 'Content-Type': 'application/json' },
+      url: BACKEND_URL,
+      method: 'POST',
+      data: {
+        queries: [
+          {
+            refId: 'UNUSED',
+            datasourceId: this.id,
+            queryType: 'testDatasource',
+          },
+        ],
+      },
+    };
+
+    return this.backendSrv
+        .request(options)
+        .then(() => {
+          return {
+            status: 'success',
+            message: 'Data source is working and can connect to StableNet®.',
+            title: 'Success',
+          };
+        })
+        .catch(err => {
+          return {
+            status: 'error',
+            message: err.data.message,
+            title: 'Failure',
+          };
+        });
   }
 
   async query(options: DataQueryRequest<MyQuery>): Promise<DataQueryResponse> {
@@ -29,12 +67,4 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
     return { data };
   }
 
-  async testDatasource() {
-    // Implement a health check for your data source.
-
-    return {
-      status: 'success',
-      message: 'Success',
-    };
-  }
 }

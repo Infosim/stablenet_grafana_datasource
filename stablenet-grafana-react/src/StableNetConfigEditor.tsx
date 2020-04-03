@@ -1,9 +1,9 @@
 import React, {PureComponent, ChangeEvent} from 'react';
 import {SecretFormField, FormField} from '@grafana/ui';
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
-import {MyDataSourceOptions, MySecureJsonData} from './types';
+import {StableNetConfigOptions, StableNetSecureJsonData} from './types';
 
-interface Props extends DataSourcePluginOptionsEditorProps<MyDataSourceOptions> {
+interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions> {
 }
 
 interface State {
@@ -14,7 +14,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
         const {onOptionsChange, options} = this.props;
         const jsonData = {
             ...options.jsonData,
-            snip: event.target.value,
+            ip: event.target.value,
         };
         onOptionsChange({...options, jsonData});
     };
@@ -23,7 +23,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
         const {onOptionsChange, options} = this.props;
         const jsonData = {
             ...options.jsonData,
-            snport: parseInt(event.target.value,10),
+            port: event.target.value,
         };
         onOptionsChange({...options, jsonData});
     };
@@ -32,7 +32,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
         const {onOptionsChange, options} = this.props;
         const jsonData = {
             ...options.jsonData,
-            snusername: event.target.value,
+            username: event.target.value,
         };
         onOptionsChange({...options, jsonData});
     };
@@ -42,7 +42,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
         onOptionsChange({
             ...options,
             secureJsonData: {
-                snpassword: event.target.value,
+                password: event.target.value,
             },
         });
     };
@@ -53,11 +53,11 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
             ...options,
             secureJsonFields: {
                 ...options.secureJsonFields,
-                snpassword: false,
+                password: false,
             },
             secureJsonData: {
                 ...options.secureJsonData,
-                snpassword: '',
+                password: '',
             },
         });
     };
@@ -65,7 +65,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
     render() {
         const {options} = this.props;
         const {jsonData, secureJsonFields} = options;
-        const secureJsonData = (options.secureJsonData || {}) as MySecureJsonData;
+        const secureJsonData = (options.secureJsonData || {}) as StableNetSecureJsonData;
 
         return (
             <div>
@@ -79,7 +79,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
                             labelWidth={13}
                             inputWidth={17}
                             onChange={this.onIpChange}
-                            value={jsonData.snip || ''}
+                            value={jsonData.ip || ''}
                             placeholder="127.0.0.1"
                         />
                     </div>
@@ -90,7 +90,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
                             labelWidth={13}
                             inputWidth={17}
                             onChange={this.onPortChange}
-                            value={jsonData.snport || ''}
+                            value={jsonData.port || ''}
                             placeholder="5443"
                         />
                     </div>
@@ -101,7 +101,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
                             labelWidth={13}
                             inputWidth={17}
                             onChange={this.onUsernameChange}
-                            value={jsonData.snusername || ''}
+                            value={jsonData.username || ''}
                             placeholder="infosim"
                         />
                     </div>
@@ -110,7 +110,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
                         <div className="gf-form">
                             <SecretFormField
                                 isConfigured={(secureJsonFields && secureJsonFields.snpassword) as boolean}
-                                value={secureJsonData.snpassword || ''}
+                                value={secureJsonData.password || ''}
                                 label="Password"
                                 placeholder=""
                                 labelWidth={13}
