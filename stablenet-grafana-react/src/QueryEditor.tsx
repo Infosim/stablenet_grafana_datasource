@@ -1,6 +1,6 @@
-import React, { PureComponent, ChangeEvent } from 'react';
-import { FormField } from '@grafana/ui';
-import { QueryEditorProps } from '@grafana/data';
+import React, { PureComponent } from 'react';
+import  { Select } from '@grafana/ui';
+import {QueryEditorProps, SelectableValue} from '@grafana/data';
 import { DataSource } from './DataSource';
 import {Mode, StableNetConfigOptions, Unit} from './types';
 import {Target} from "./query_interfaces";
@@ -8,15 +8,16 @@ import {TextValue} from "./returnTypes";
 
 type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions>;
 
-interface State {}
+interface State {
+}
 
 export class QueryEditor extends PureComponent<Props, State> {
   onComponentDidMount() {}
 
-  getModes(): TextValue[] {
+  getModes(): Array<SelectableValue<number>> {
     return [
-      { text: 'Measurement', value: Mode.MEASUREMENT },
-      { text: 'Statistic Link', value: Mode.STATISTIC_LINK },
+      { label: 'Measurement', value: Mode.MEASUREMENT },
+      { label: 'Statistic Link', value: Mode.STATISTIC_LINK },
     ];
   }
 
@@ -29,39 +30,38 @@ export class QueryEditor extends PureComponent<Props, State> {
     ];
   }
 
-  onModeChange = (event: ChangeEvent<HTMLInputElement>) => {
+  onModeChange = (i: SelectableValue<number>) => {
+    console.log(this.props);
     const { onChange, query } = this.props;
-    onChange({ ...query, mode: parseInt(event.target.value) });
-  };
-
-  onConstantChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({ ...query, deviceQuery: event.target.value });
-    onRunQuery(); // executes the query
+    onChange({ ...query,
+      mode: i.value!,
+      includeMinStats: false,
+      includeAvgStats: true,
+      includeMaxStats: false
+    });
   };
 
   render() {
     const query = this.props.query;
-    const { mode, deviceQuery } = query;
+    const selectedMode:SelectableValue<number> =
+        {
+          label: query.mode ? this.getModes().find(x => x.value === query.mode)!.label : this.getModes()[0].label,
+          value: query.mode
+        };
 
     return (
       <div className="gf-form">
-        <FormField
-            width={4}
-            value={deviceQuery}
-            onChange={this.onConstantChange}
-            label="Constant"
-            type="number"
-            step="0.1">
-        </FormField>
 
-        <FormField
-            labelWidth={8}
-            value={mode || 0}
-            onChange={this.onModeChange}
-            label="Query Text"
-            tooltip="Not used yet">
-        </FormField>
+        <Select<number>
+            isMulti={false}
+            isClearable={false}
+            backspaceRemovesValue={false}
+            onChange={i => this.onModeChange(i)}
+            options={this.getModes()}
+            isSearchable={true}
+            value={selectedMode}
+        />
+
       </div>
     );
   }
