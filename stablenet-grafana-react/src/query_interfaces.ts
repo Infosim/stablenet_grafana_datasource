@@ -5,12 +5,10 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-interface EmptyTarget {
-  refId: string;
-  datasource: undefined;
-}
 
-export interface Target extends EmptyTarget {
+import {DataQuery} from "@grafana/data";
+
+export interface Target extends DataQuery {
   mode: number;
   deviceQuery: string;
   selectedDevice: number;
@@ -28,9 +26,4 @@ export interface Target extends EmptyTarget {
   metrics: Array<{ text: string; key: string; measurementObid: number }>;
   moreDevices: boolean;
   moreMeasurements: boolean;
-}
-
-export interface QueryOptions {
-  targets: Target[];
-  [x: string]: any;
 }
