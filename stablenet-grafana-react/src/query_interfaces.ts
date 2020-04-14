@@ -7,11 +7,12 @@
  */
 
 import {DataQuery} from "@grafana/data";
+import {LabelValue} from "./returnTypes";
 
 export interface Target extends DataQuery {
   mode: number;
   deviceQuery: string;
-  selectedDevice: number;
+  selectedDevice: LabelValue;
   measurementQuery: string;
   selectedMeasurement: number;
   chosenMetrics: object;

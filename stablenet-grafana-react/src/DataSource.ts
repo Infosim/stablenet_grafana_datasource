@@ -19,7 +19,7 @@ import {
   MetricType,
   QueryResult, TargetDatapoints,
   TestResult,
-  TextValue, TSDBArg, TSDBResult
+  LabelValue, TSDBArg, TSDBResult
 } from "./returnTypes";
 import {Target} from "./query_interfaces";
 import {WrappedTarget} from "./data_query_assembler";
@@ -66,21 +66,22 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
         });
   }
 
-  async queryDevices(queryString: string, refid: string, scope: any): Promise<QueryResult> {
+  async queryDevices(queryString: string, refid: string): Promise<QueryResult> {
     const data: Query<DeviceQuery> = this.createDeviceQuery(queryString, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data, scope).then(result => {
-      const res: TextValue[] = result.data.results[refid].meta.data.map(device => {
-        return {
-          text: device.name,
-          value: device.obid,
-        };
-      });
-      res.unshift({
-        text: 'none',
-        value: -1,
-      });
-      return { data: res, hasMore: result.data.results[refid].meta.hasMore };
-    });
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data)
+        .then(result => {
+          const res: LabelValue[] = result.data.results[refid].meta.data.map(device => {
+            return {
+              label: device.name,
+              value: device.obid,
+            };
+          });
+          res.unshift({
+            label: 'none',
+            value: -1,
+          });
+          return { data: res, hasMore: result.data.results[refid].meta.hasMore };
+        });
   }
 
   private createDeviceQuery(queryString: string, refid: string): Query<DeviceQuery> {
@@ -95,20 +96,21 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     };
   }
 
-  async findMeasurementsForDevice(obid: number, input: string, refid: string, scope: any): Promise<QueryResult> {
+  async findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
     const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data, scope).then(result => {
-      const res: TextValue[] = result.data.results[refid].meta.data.map(measurement => {
-        return {
-          text: measurement.name,
-          value: measurement.obid,
-        };
-      });
-      return {
-        data: res,
-        hasMore: result.data.results[refid].meta.hasMore,
-      };
-    });
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data)
+        .then(result => {
+          const res: LabelValue[] = result.data.results[refid].meta.data.map(measurement => {
+            return {
+              label: measurement.name,
+              value: measurement.obid,
+            };
+          });
+          return {
+            data: res,
+            hasMore: result.data.results[refid].meta.hasMore,
+          };
+        });
   }
 
   private createMeasurementQuery(deviceObid: number, input: string, refid: string): Query<MeasurementQuery> {
@@ -124,18 +126,19 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     };
   }
 
-  async findMetricsForMeasurement(obid: number, refid: string, scope: any): Promise<MetricResult[]> {
+  async findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
     const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
-    return this.doRequest<GenericResponse<MetricType[]>>(data, scope).then(result =>
-        result.data.results[refid].meta.map(metric => {
-          const m: MetricResult = {
-            measurementObid: obid,
-            key: metric.key,
-            text: metric.name,
-          };
-          return m;
-        })
-    );
+    return this.doRequest<GenericResponse<MetricType[]>>(data)
+        .then(result =>
+          result.data.results[refid].meta.map(metric => {
+            const m: MetricResult = {
+              measurementObid: obid,
+              key: metric.key,
+              text: metric.name,
+            };
+            return m;
+          })
+        );
   }
 
   private createMetricQuery(mesurementObid: number, refid: string): Query<MetricQuery> {
@@ -189,19 +192,14 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     return await this.doRequest<TSDBArg>(data).then(handleTsdbResponse);
   }
 
-  private doRequest<RETURN>(data: Query<BasicQuery>, scope?: any): Promise<RETURN> {
+  private doRequest<RETURN>(data: Query<BasicQuery>): Promise<RETURN> {
     const options: TestOptions = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
       method: 'POST',
       data: data,
     };
-    return this.backendSrv.datasourceRequest(options).then(result => {
-      if (scope) {
-        scope.$digest();
-      }
-      return result;
-    });
+    return this.backendSrv.datasourceRequest(options);
   }
 }
 
