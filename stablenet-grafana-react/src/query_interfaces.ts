@@ -14,7 +14,7 @@ export interface Target extends DataQuery {
   deviceQuery: string;
   selectedDevice: LabelValue;
   measurementQuery: string;
-  selectedMeasurement: number;
+  selectedMeasurement: LabelValue;
   chosenMetrics: object;
   metricPrefix: string;
   includeMinStats: boolean;

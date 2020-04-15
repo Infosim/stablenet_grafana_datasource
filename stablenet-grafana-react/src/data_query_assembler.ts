@@ -9,14 +9,8 @@ import { Target } from './query_interfaces';
 import { Mode, SingleQuery, StringPair } from './types';
 
 export class WrappedTarget {
-  target: Target;
-  intervalMs: number;
-  dataSourceId: number;
 
-  constructor(target: Target, intervalMs: number, dataSourceId: number) {
-    this.target = target;
-    this.intervalMs = intervalMs;
-    this.dataSourceId = dataSourceId;
+  constructor(private target: Target, private intervalMs: number, private dataSourceId: number) {
   }
 
   isValidStatisticLinkMode(): boolean {
@@ -48,7 +42,7 @@ export class WrappedTarget {
     const keys: StringPair[] = this.getRequestedMetricsAsKeys();
     const requestData: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }> = [];
     requestData.push({
-      measurementObid: this.target.selectedMeasurement,
+      measurementObid: this.target.selectedMeasurement.value,
       metrics: keys,
     });
 

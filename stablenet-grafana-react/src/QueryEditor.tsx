@@ -49,35 +49,10 @@ export class QueryEditor extends PureComponent<Props, State> {
         onRunQuery(); // executes the query
     };
 
-    onDeviceQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const {onChange, query, onRunQuery} = this.props;
-        onChange({...query, deviceQuery: event.target.value});
-        (this.props.datasource as DataSource)
-            .queryDevices(query.deviceQuery, query.refId)
-            .then(r => r.data)
-            .then(r => (r ? r.map(el => el.value) : []))
-            .then(r => {
-                if (!r.includes(query.selectedDevice.value)) {
-                    const curr = this.props.query;
-                    onChange({
-                        ...curr,
-                        selectedDevice: {label: '', value: -1},
-                        measurementQuery: '',
-                        selectedMeasurement: -1,
-                        metricPrefix: '',
-                        metrics: [],
-                        chosenMetrics: {}
-                    });
-                }
-                return r;
-            })
-            .then(onRunQuery)
-    };
-
     getDevices = (v: string) => {
         const {query, onChange} = this.props;
         return (this.props.datasource as DataSource)
-            .queryDevices(query.deviceQuery || v, query.refId)
+            .queryDevices(v, query.refId)
             .then(r => {
                 onChange({...query, moreDevices: r.hasMore});
                 return r.data;
@@ -90,13 +65,39 @@ export class QueryEditor extends PureComponent<Props, State> {
             ...query,
             selectedDevice: {label: v.label!, value: v.value!},
             measurementQuery: '',
-            selectedMeasurement: -1,
+            selectedMeasurement: {label: "", value: -1},
             metricPrefix: '',
             metrics: [],
             chosenMetrics: {}
         });
         onRunQuery();
     };
+
+    getMeasurements = (v: string) => {
+        const {query, onChange} = this.props;
+        return (this.props.datasource as DataSource)
+            .findMeasurementsForDevice(query.selectedDevice ? query.selectedDevice.value : -1, v, query.refId)
+            .then(r => {
+                onChange({...query, moreMeasurements: r.hasMore});
+                return r.data;
+            });
+    };
+
+    onMeasurementChange = (v: SelectableValue<number>) => {
+        const {onChange, query, onRunQuery} = this.props;
+        (this.props.datasource as DataSource)
+            .findMetricsForMeasurement(v.value!, query.refId)
+            .then(r => {
+                onChange({
+                    ...query, metrics: r,
+                    chosenMetrics: {},
+                    metricPrefix: v.label!,
+                    selectedMeasurement: {label: v.label!, value: v.value!}
+                });
+            })
+            .then(() => onRunQuery());
+    };
+
 
 
     onMoreChange = () => {
@@ -153,54 +154,74 @@ export class QueryEditor extends PureComponent<Props, State> {
                             </div>
                         </div>
                         :
-                        <div className="gf-form-inline">{/** Measurement mode */}
-                            <div className="gf-form">
-                                <FormLabel
-                                    width={11}
-                                    tooltip="The dropdown menu on the right will only show devices containing
-                        the string typed into this field. Case insensitive."
-                                >Device Filter:
-                                </FormLabel>
+                        <div>{/** Measurement mode */}
+                            <div className="gf-form-inline">
+                                <div className="gf-form">
+                                    <FormLabel width={11}>
+                                        Device:
+                                    </FormLabel>
 
-                                <div style={{...space, marginRight: "2px"}}
-                                     className="width-19">
-                                  <Forms.Input
-                                      type="text"
-                                      value={query.deviceQuery || ''}
-                                      spellCheck={false}
-                                      tabIndex={0}
-                                      onChange={this.onDeviceQueryChange}
-                                  />
-                                </div>
-                            </div>
-                            <div className="gf-form">
-                                <FormLabel width={11}>
-                                  Device:
-                                </FormLabel>
-
-                                <div tabIndex={0}
-                                     style={space}>
-                                    <Forms.AsyncSelect<number>
-                                        loadOptions={this.getDevices}
-                                        value={query.selectedDevice || {label: '', value: -1}}
-                                        onChange={this.onDeviceChange}
-                                        defaultOptions={true}
-                                        noOptionsMessage={'Type into the Field to show options'}
-                                        width={19}
-                                    />
-                                </div>
-                            </div>
-                            {
-                                query.moreDevices ?
-                                    <div className="gf-form">
-                                        <FormLabel
-                                            children={{}}
-                                            tooltip="There are more devices available, but only the first 100 are displayed.
-                        Specify a stricter Device Filter to reduce the number of shown devices."/>
+                                    <div tabIndex={0}
+                                         style={space}>
+                                        <Forms.AsyncSelect<number>
+                                            loadOptions={this.getDevices}
+                                            value={query.selectedDevice}
+                                            onChange={this.onDeviceChange}
+                                            defaultOptions={true}
+                                            noOptionsMessage={'No devices match this search.'}
+                                            loadingMessage="Fetching devices..."
+                                            width={19}
+                                            placeholder="none"
+                                            isSearchable={true}
+                                        />
                                     </div>
-                                    :
-                                    null
-                            }
+                                </div>
+                                {
+                                    query.moreDevices ?
+                                        <div className="gf-form">
+                                            <FormLabel
+                                                children={{}}
+                                                tooltip="There are more devices available, but only the first 100 are displayed.
+                                                Use a stricter search to reduce the number of shown devices."/>
+                                        </div>
+                                        :
+                                        null
+                                }
+                            </div>
+
+                            <div className="gf-form-inline">
+                                <div className="gf-form">
+                                    <FormLabel width={11}>
+                                        Measurement:
+                                    </FormLabel>
+
+                                    <div tabIndex={0}
+                                         style={space}>
+                                        <Forms.AsyncSelect<number>
+                                            loadOptions={this.getMeasurements}
+                                            value={query.selectedMeasurement}
+                                            onChange={this.onMeasurementChange}
+                                            defaultOptions={true}
+                                            noOptionsMessage={'No measurements match this search.'}
+                                            loadingMessage="Fetching measurements..."
+                                            width={19}
+                                            placeholder="none"
+                                            isSearchable={true}
+                                        />
+                                    </div>
+                                </div>
+                                {
+                                    query.moreMeasurements ?
+                                        <div className="gf-form">
+                                            <FormLabel
+                                                children={{}}
+                                                tooltip="There are more measurements available, but only the first 100 are displayed.
+                                                Specify a stricter search to reduce the number of shown devices."/>
+                                        </div>
+                                        :
+                                        null
+                                }
+                            </div>
                         </div>
                 }
 
