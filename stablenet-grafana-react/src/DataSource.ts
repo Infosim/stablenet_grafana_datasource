@@ -160,7 +160,7 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
 
     const { targets } = options;
     const queries: SingleQuery[] = [];
-    if (!('mode' in options.targets[0])) {
+    if (!('statisticLink' in options.targets[0]) && !('chosenMetrics' in options.targets[0])) {
       return { data: [] };
     }
 

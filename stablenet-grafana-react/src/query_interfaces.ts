@@ -11,9 +11,7 @@ import {LabelValue} from "./returnTypes";
 
 export interface Target extends DataQuery {
   mode: number;
-  deviceQuery: string;
   selectedDevice: LabelValue;
-  measurementQuery: string;
   selectedMeasurement: LabelValue;
   chosenMetrics: object;
   metricPrefix: string;
