@@ -1,6 +1,6 @@
 {
   "type": "datasource",
-  "name": "StableNet®R",
+  "name": "StableNet®",
   "id": "stablenet-react-datasource",
   "metrics": true,
   "annotations": false,

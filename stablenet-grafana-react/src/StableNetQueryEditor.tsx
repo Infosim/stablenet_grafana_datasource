@@ -1,18 +1,18 @@
 import React, {PureComponent, ChangeEvent} from 'react';
 import {FormLabel, Forms} from '@grafana/ui';
 import {QueryEditorProps, SelectableValue} from '@grafana/data';
-import {DataSource} from './DataSource';
+import {StableNetDataSource} from './StableNetDataSource';
 import {Mode, StableNetConfigOptions, Unit} from './types';
 import {Target} from "./query_interfaces";
 import "./css/query-editor.css";
 import {LabelValue} from "./returnTypes";
 
-type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions>;
+type Props = QueryEditorProps<StableNetDataSource, Target, StableNetConfigOptions>;
 
 interface State {
 }
 
-export class QueryEditor extends PureComponent<Props, State> {
+export class StableNetQueryEditor extends PureComponent<Props, State> {
     getModes(): LabelValue[] {
         return [
             {label: 'Measurement', value: Mode.MEASUREMENT},
@@ -36,7 +36,8 @@ export class QueryEditor extends PureComponent<Props, State> {
             mode: v.value!,
             includeMaxStats: false,
             includeAvgStats: true,
-            includeMinStats: false
+            includeMinStats: false,
+            averageUnit: Unit.MINUTES
         });
     };
 
@@ -48,7 +49,7 @@ export class QueryEditor extends PureComponent<Props, State> {
 
     getDevices = (v: string) => {
         const {query, onChange} = this.props;
-        return (this.props.datasource as DataSource)
+        return (this.props.datasource as StableNetDataSource)
             .queryDevices(v, query.refId)
             .then(r => {
                 onChange({
@@ -71,14 +72,15 @@ export class QueryEditor extends PureComponent<Props, State> {
             mode: Mode.MEASUREMENT,
             includeAvgStats: query.includeAvgStats === undefined ? true : query.includeAvgStats,
             includeMaxStats: query.includeMaxStats === undefined ? false : query.includeMaxStats,
-            includeMinStats: query.includeMinStats === undefined ? false : query.includeMinStats
+            includeMinStats: query.includeMinStats === undefined ? false : query.includeMinStats,
+            averageUnit: query.averageUnit ? query.averageUnit : Unit.MINUTES
         });
         onRunQuery();
     };
 
     getMeasurements = (v: string) => {
         const {query, onChange} = this.props;
-        return (this.props.datasource as DataSource)
+        return (this.props.datasource as StableNetDataSource)
             .findMeasurementsForDevice(query.selectedDevice ? query.selectedDevice.value : -1, v, query.refId)
             .then(r => {
                 onChange({...query, moreMeasurements: r.hasMore});
@@ -88,7 +90,7 @@ export class QueryEditor extends PureComponent<Props, State> {
 
     onMeasurementChange = (v: SelectableValue<number>) => {
         const {onChange, query, onRunQuery} = this.props;
-        (this.props.datasource as DataSource)
+        (this.props.datasource as StableNetDataSource)
             .findMetricsForMeasurement(v.value!, query.refId)
             .then(r => {
                 onChange({
@@ -202,7 +204,6 @@ export class QueryEditor extends PureComponent<Props, State> {
                                 onChange={this.onModeChange}
                                 width={10}
                                 isSearchable={true}
-                                allowCustomValue={true}
                             />
                         </div>
                     </div>
@@ -428,7 +429,6 @@ export class QueryEditor extends PureComponent<Props, State> {
                                                 onChange={this.onAvgUnitChange}
                                                 width={7}
                                                 isSearchable={true}
-                                                allowCustomValue={true}
                                             />
                                         </div>
                                     </div>

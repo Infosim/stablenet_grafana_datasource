@@ -74,7 +74,7 @@ export enum Unit {
 }
 
 /**
- * These are options configured for each DataSource instance
+ * These are options configured for each StableNetDataSource instance
  */
 export interface StableNetConfigOptions extends DataSourceJsonData {
   snip?: string;
