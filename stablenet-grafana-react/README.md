@@ -1,7 +1,6 @@
 # StableNet® Grafana Data Source
 
-
-This Grafana plugin enables to view StableNet® measurement data in Grafana charts.
+This Grafana plugin enables viewing StableNet® measurement data in Grafana charts.
 
 ## Documentation
 

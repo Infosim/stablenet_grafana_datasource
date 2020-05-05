@@ -1,11 +1,18 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 import React, {PureComponent, ChangeEvent} from 'react';
 import {FormLabel, Forms} from '@grafana/ui';
 import {QueryEditorProps, SelectableValue} from '@grafana/data';
 import {StableNetDataSource} from './StableNetDataSource';
-import {Mode, StableNetConfigOptions, Unit} from './types';
-import {Target} from "./query_interfaces";
+import {Mode, StableNetConfigOptions, Unit} from './Types';
+import {Target} from "./QueryInterfaces";
 import "./css/query-editor.css";
-import {LabelValue} from "./returnTypes";
+import {LabelValue} from "./ReturnTypes";
 
 type Props = QueryEditorProps<StableNetDataSource, Target, StableNetConfigOptions>;
 
@@ -48,8 +55,8 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
     };
 
     getDevices = (v: string) => {
-        const {query, onChange} = this.props;
-        return (this.props.datasource as StableNetDataSource)
+        const {query, onChange, datasource} = this.props;
+        return datasource
             .queryDevices(v, query.refId)
             .then(r => {
                 onChange({
@@ -79,8 +86,8 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
     };
 
     getMeasurements = (v: string) => {
-        const {query, onChange} = this.props;
-        return (this.props.datasource as StableNetDataSource)
+        const {query, onChange, datasource} = this.props;
+        return datasource
             .findMeasurementsForDevice(query.selectedDevice ? query.selectedDevice.value : -1, v, query.refId)
             .then(r => {
                 onChange({...query, moreMeasurements: r.hasMore});
@@ -89,8 +96,8 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
     };
 
     onMeasurementChange = (v: SelectableValue<number>) => {
-        const {onChange, query, onRunQuery} = this.props;
-        (this.props.datasource as StableNetDataSource)
+        const {onChange, query, onRunQuery, datasource} = this.props;
+        datasource
             .findMetricsForMeasurement(v.value!, query.refId)
             .then(r => {
                 onChange({

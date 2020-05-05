@@ -1,5 +1,10 @@
-import _ from 'lodash';
-
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings } from '@grafana/data';
 
 import {
@@ -10,7 +15,7 @@ import {
   Query, SingleQuery,
   StableNetConfigOptions,
   TestOptions
-} from './types';
+} from './Types';
 import {
   EmptyQueryResult,
   EntityQueryResult,
@@ -20,9 +25,9 @@ import {
   QueryResult, TargetDatapoints,
   TestResult,
   LabelValue, TSDBArg, TSDBResult
-} from "./returnTypes";
-import {Target} from "./query_interfaces";
-import {WrappedTarget} from "./data_query_assembler";
+} from "./ReturnTypes";
+import {Target} from "./QueryInterfaces";
+import {WrappedTarget} from "./DataQueryAssembler";
 
 const BACKEND_URL = '/api/tsdb/query';
 
@@ -205,9 +210,9 @@ export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOp
 
 export function handleTsdbResponse(response: TSDBArg): TSDBResult {
   const res: TargetDatapoints[] = [];
-  _.forEach(response.data.results,(r: any) => {
+  Object.values(response.data.results).forEach((r: any) => {
     if (r.series) {
-      _.forEach(r.series,s => {
+      r.series.forEach(s => {
         res.push({
           target: s.name,
           datapoints: s.points,

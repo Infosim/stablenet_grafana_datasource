@@ -1,7 +1,7 @@
 {
   "type": "datasource",
   "name": "StableNet®",
-  "id": "stablenet-react-datasource",
+  "id": "stablenet-datasource",
   "metrics": true,
   "annotations": false,
   "backend": true,
@@ -25,7 +25,7 @@
     "updated": "2020-04-03"
   },
   "dependencies": {
-    "grafanaVersion": "6.5.x",
+    "grafanaVersion": "6.7.x",
     "plugins": []
   }
 }

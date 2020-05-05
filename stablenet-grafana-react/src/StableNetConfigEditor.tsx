@@ -1,7 +1,14 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 import React, {PureComponent, ChangeEvent} from 'react';
 import {SecretFormField, FormField} from '@grafana/ui';
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
-import {StableNetConfigOptions, StableNetSecureJsonData} from './types';
+import {StableNetConfigOptions, StableNetSecureJsonData} from './Types';
 
 interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions> {
 }
