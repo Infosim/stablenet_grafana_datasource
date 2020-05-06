@@ -6,103 +6,24 @@
  *                  www.infosim.net
  */
 import React, { PureComponent, ChangeEvent } from 'react';
-import { FormLabel, Forms } from '@grafana/ui';
+import { FormLabel } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { StableNetDataSource } from './StableNetDataSource';
 import { Mode, StableNetConfigOptions, Unit } from './Types';
 import { Target } from './QueryInterfaces';
 import './css/query-editor.css';
 import { LabelValue } from './ReturnTypes';
+import { ModeChooser } from './components/ModeChooser';
+import { StatLink } from './components/StatLink';
+import { DropdownMenu } from './components/DropdownMenu';
+import { MetricPrefix } from './components/MetricPrefix';
+import { Metric } from './components/Metric';
+import { Stats } from './components/Stats';
+import { CustomAverage } from './components/CustomAverage';
 
 type Props = QueryEditorProps<StableNetDataSource, Target, StableNetConfigOptions>;
 
 interface State {}
-
-const ModeChooser = props => (
-  <div className="gf-form-inline">
-    <div className="gf-form">
-      <FormLabel width={11} tooltip="Allows switching between Measurement mode and Statistic Link mode.">
-        Query Mode:
-      </FormLabel>
-
-      <div tabIndex={0} style={props.space}>
-        <Forms.Select<number> options={props.options()} value={props.mode} onChange={props.onChange} width={10} isSearchable={true} />
-      </div>
-    </div>
-  </div>
-);
-
-const StatLink = props => (
-  <div className="gf-form-inline">
-    {/** Statistic Link mode */}
-    <div className="gf-form">
-      <FormLabel
-        width={11}
-        tooltip="Copy a link from the StableNet®-Analyzer. Experimental: At the current version, only links containing exactly one measurement are supported."
-      >
-        Link:
-      </FormLabel>
-
-      <div className="width-19">
-        <Forms.Input type="text" value={props.link} spellCheck={false} tabIndex={0} onChange={props.onChange} />
-      </div>
-    </div>
-  </div>
-);
-
-const DropdownMenu = props => {
-  const plural = props.name.toLowerCase() + 's';
-  return (
-    <div className="gf-form-inline">
-      <div className="gf-form">
-        <FormLabel width={11}>{props.name + ':'}</FormLabel>
-
-        <div tabIndex={0} style={props.space}>
-          <Forms.AsyncSelect<number>
-            loadOptions={props.get}
-            value={props.selected}
-            onChange={props.onChange}
-            defaultOptions={true}
-            noOptionsMessage={`No ${plural} match this search.`}
-            loadingMessage={`Fetching ${plural}...`}
-            width={19}
-            placeholder="none"
-            isSearchable={true}
-          />
-        </div>
-      </div>
-      {props.more ? (
-        <div className="gf-form">
-          <FormLabel
-            children={{}}
-            tooltip={`There are more ${plural} available, but only the first 100 are displayed.
-                                                Use a stricter search to reduce the number of shown ${plural}.`}
-          />
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
-const MetricPrefix = props => (
-  <div className="gf-form">
-    <FormLabel width={11} tooltip="The input of this field will be added as a prefix to the metrics' names on the chart.">
-      Metric prefix:
-    </FormLabel>
-    <div className="width-19" style={props.space}>
-      <Forms.Input type="text" value={props.value} spellCheck={false} tabIndex={0} onChange={props.onChange} />
-    </div>
-  </div>
-);
-
-const Metric = props => (
-  <div className="gf-form">
-    <Forms.Checkbox value={props.value} onChange={props.onChange} size={11} />
-    <div style={props.singleMetric}>
-      <FormLabel width={17}>{props.text}</FormLabel>
-    </div>
-  </div>
-);
 
 export class StableNetQueryEditor extends PureComponent<Props, State> {
   getModes(): LabelValue[] {
@@ -336,57 +257,20 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
         <div>
           {!!(query.selectedMeasurement && query.selectedMeasurement.label) || !!query.mode ? (
             <div>
-              <div className="gf-form">
-                <div style={!query.mode ? { marginLeft: '415px' } : {}}>
-                  <FormLabel width={11} tooltip="Select the statistics you want to display.">
-                    Include Statistics:
-                  </FormLabel>
-                </div>
+              <Stats
+                mode={query.mode}
+                values={[query.includeMinStats, query.includeAvgStats, query.includeMaxStats]}
+                onChange={this.onIncludeChange}
+              />
 
-                <div className="gf-form">
-                  <Forms.Checkbox value={query.includeMinStats} onChange={() => this.onIncludeChange('min')} tabIndex={0} />
-                  <FormLabel width={5}>Min</FormLabel>
-
-                  <Forms.Checkbox value={query.includeAvgStats} onChange={() => this.onIncludeChange('avg')} tabIndex={0} />
-                  <FormLabel width={5}>Avg</FormLabel>
-
-                  <Forms.Checkbox value={query.includeMaxStats} onChange={() => this.onIncludeChange('max')} tabIndex={0} />
-                  <FormLabel width={5}>Max</FormLabel>
-                </div>
-              </div>
-
-              <div className="gf-form-inline">
-                <div className="gf-form" style={{ width: '30px' } as React.CSSProperties}>
-                  <Forms.Checkbox value={query.useCustomAverage} onChange={() => this.onUseAvgChange()} tabIndex={0} />
-                </div>
-                <FormLabel
-                  width={11}
-                  tooltip="Allows defining a custom average period. If disabled, Grafana will automatically compute a suiting average period."
-                >
-                  Average Period:
-                </FormLabel>
-                <div className="width-10" style={space}>
-                  <Forms.Input
-                    type="number"
-                    value={query.averagePeriod || ''}
-                    spellCheck={false}
-                    tabIndex={0}
-                    onChange={this.onCustAvgChange}
-                    disabled={!query.useCustomAverage}
-                  />
-                </div>
-                <div className="gf-form">
-                  <div tabIndex={0} style={space}>
-                    <Forms.Select<number>
-                      options={this.getUnits()}
-                      value={query.averageUnit || Unit.MINUTES}
-                      onChange={this.onAvgUnitChange}
-                      width={7}
-                      isSearchable={true}
-                    />
-                  </div>
-                </div>
-              </div>
+              <CustomAverage
+                space={space}
+                use={query.useCustomAverage}
+                period={query.averagePeriod || ''}
+                unit={query.averageUnit || Unit.MINUTES}
+                getUnits={this.getUnits}
+                onChange={[this.onUseAvgChange, this.onCustAvgChange, this.onAvgUnitChange]}
+              />
             </div>
           ) : null}
         </div>
