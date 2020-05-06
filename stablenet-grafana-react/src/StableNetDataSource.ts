@@ -5,23 +5,9 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import {
-  DataQueryRequest,
-  DataQueryResponse,
-  DataSourceApi,
-  DataSourceInstanceSettings,
-} from '@grafana/data';
+import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings } from '@grafana/data';
 
-import {
-  BasicQuery,
-  DeviceQuery,
-  MeasurementQuery,
-  MetricQuery,
-  Query,
-  SingleQuery,
-  StableNetConfigOptions,
-  TestOptions,
-} from './Types';
+import { BasicQuery, DeviceQuery, MeasurementQuery, MetricQuery, Query, SingleQuery, StableNetConfigOptions, TestOptions } from './Types';
 import {
   EmptyQueryResult,
   EntityQueryResult,
@@ -41,11 +27,7 @@ import { WrappedTarget } from './DataQueryAssembler';
 const BACKEND_URL = '/api/tsdb/query';
 
 export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOptions> {
-  constructor(
-    instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>,
-    $q,
-    private backendSrv
-  ) {
+  constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>, $q, private backendSrv) {
     super(instanceSettings);
   }
 
@@ -112,11 +94,7 @@ export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOp
     };
   }
 
-  async findMeasurementsForDevice(
-    obid: number,
-    input: string,
-    refid: string
-  ): Promise<QueryResult> {
+  async findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
     const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
     return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
       const res: LabelValue[] = result.data.results[refid].meta.data.map(measurement => {
@@ -132,11 +110,7 @@ export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOp
     });
   }
 
-  private createMeasurementQuery(
-    deviceObid: number,
-    input: string,
-    refid: string
-  ): Query<MeasurementQuery> {
+  private createMeasurementQuery(deviceObid: number, input: string, refid: string): Query<MeasurementQuery> {
     const data: MeasurementQuery = {
       refId: refid,
       datasourceId: this.id,

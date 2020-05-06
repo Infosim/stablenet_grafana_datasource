@@ -18,6 +18,92 @@ type Props = QueryEditorProps<StableNetDataSource, Target, StableNetConfigOption
 
 interface State {}
 
+const ModeChooser = props => (
+  <div className="gf-form-inline">
+    <div className="gf-form">
+      <FormLabel width={11} tooltip="Allows switching between Measurement mode and Statistic Link mode.">
+        Query Mode:
+      </FormLabel>
+
+      <div tabIndex={0} style={props.space}>
+        <Forms.Select<number> options={props.options()} value={props.mode} onChange={props.onChange} width={10} isSearchable={true} />
+      </div>
+    </div>
+  </div>
+);
+
+const StatLink = props => (
+  <div className="gf-form-inline">
+    {/** Statistic Link mode */}
+    <div className="gf-form">
+      <FormLabel
+        width={11}
+        tooltip="Copy a link from the StableNet®-Analyzer. Experimental: At the current version, only links containing exactly one measurement are supported."
+      >
+        Link:
+      </FormLabel>
+
+      <div className="width-19">
+        <Forms.Input type="text" value={props.link} spellCheck={false} tabIndex={0} onChange={props.onChange} />
+      </div>
+    </div>
+  </div>
+);
+
+const DropdownMenu = props => {
+  const plural = props.name.toLowerCase() + 's';
+  return (
+    <div className="gf-form-inline">
+      <div className="gf-form">
+        <FormLabel width={11}>{props.name + ':'}</FormLabel>
+
+        <div tabIndex={0} style={props.space}>
+          <Forms.AsyncSelect<number>
+            loadOptions={props.get}
+            value={props.selected}
+            onChange={props.onChange}
+            defaultOptions={true}
+            noOptionsMessage={`No ${plural} match this search.`}
+            loadingMessage={`Fetching ${plural}...`}
+            width={19}
+            placeholder="none"
+            isSearchable={true}
+          />
+        </div>
+      </div>
+      {props.more ? (
+        <div className="gf-form">
+          <FormLabel
+            children={{}}
+            tooltip={`There are more ${plural} available, but only the first 100 are displayed.
+                                                Use a stricter search to reduce the number of shown ${plural}.`}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const MetricPrefix = props => (
+  <div className="gf-form">
+    <FormLabel width={11} tooltip="The input of this field will be added as a prefix to the metrics' names on the chart.">
+      Metric prefix:
+    </FormLabel>
+    <div className="width-19" style={props.space}>
+      <Forms.Input type="text" value={props.value} spellCheck={false} tabIndex={0} onChange={props.onChange} />
+    </div>
+  </div>
+);
+
+const Metric = props => (
+  <div className="gf-form">
+    <Forms.Checkbox value={props.value} onChange={props.onChange} size={11} />
+    <div style={props.singleMetric}>
+      <FormLabel width={17}>{props.text}</FormLabel>
+    </div>
+  </div>
+);
+
 export class StableNetQueryEditor extends PureComponent<Props, State> {
   getModes(): LabelValue[] {
     return [
@@ -84,16 +170,10 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
 
   getMeasurements = (v: string) => {
     const { query, onChange, datasource } = this.props;
-    return datasource
-      .findMeasurementsForDevice(
-        query.selectedDevice ? query.selectedDevice.value : -1,
-        v,
-        query.refId
-      )
-      .then(r => {
-        onChange({ ...query, moreMeasurements: r.hasMore });
-        return r.data;
-      });
+    return datasource.findMeasurementsForDevice(query.selectedDevice ? query.selectedDevice.value : -1, v, query.refId).then(r => {
+      onChange({ ...query, moreMeasurements: r.hasMore });
+      return r.data;
+    });
   };
 
   onMeasurementChange = (v: SelectableValue<number>) => {
@@ -195,111 +275,31 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
 
     return (
       <div>
-        <div className="gf-form-inline">
-          <div className="gf-form">
-            <FormLabel
-              width={11}
-              tooltip="Allows switching between Measurement mode and Statistic Link mode."
-            >
-              Query Mode:
-            </FormLabel>
-
-            <div tabIndex={0} style={space}>
-              <Forms.Select<number>
-                options={this.getModes()}
-                value={query.mode || Mode.MEASUREMENT}
-                onChange={this.onModeChange}
-                width={10}
-                isSearchable={true}
-              />
-            </div>
-          </div>
-        </div>
+        <ModeChooser space={space} mode={query.mode || Mode.MEASUREMENT} options={this.getModes} onChange={this.onModeChange} />
 
         {!!query.mode ? (
-          <div className="gf-form-inline">
-            {/** Statistic Link mode */}
-            <div className="gf-form">
-              <FormLabel
-                width={11}
-                tooltip="Copy a link from the StableNet®-Analyzer. Experimental: At the current version, only links containing exactly one measurement are supported."
-              >
-                Link:
-              </FormLabel>
-
-              <div className="width-19">
-                <Forms.Input
-                  type="text"
-                  value={query.statisticLink || ''}
-                  spellCheck={false}
-                  tabIndex={0}
-                  onChange={this.onStatisticLinkChange}
-                />
-              </div>
-            </div>
-          </div>
+          <StatLink link={query.statisticLink || ''} onChange={this.onStatisticLinkChange} />
         ) : (
           <div>
             {/** Measurement mode */}
             {/**Device dropdown, more devices*/}
-            <div className="gf-form-inline">
-              <div className="gf-form">
-                <FormLabel width={11}>Device:</FormLabel>
-
-                <div tabIndex={0} style={space}>
-                  <Forms.AsyncSelect<number>
-                    loadOptions={this.getDevices}
-                    value={query.selectedDevice}
-                    onChange={this.onDeviceChange}
-                    defaultOptions={true}
-                    noOptionsMessage={'No devices match this search.'}
-                    loadingMessage="Fetching devices..."
-                    width={19}
-                    placeholder="none"
-                    isSearchable={true}
-                  />
-                </div>
-              </div>
-              {query.moreDevices ? (
-                <div className="gf-form">
-                  <FormLabel
-                    children={{}}
-                    tooltip="There are more devices available, but only the first 100 are displayed.
-                                                Use a stricter search to reduce the number of shown devices."
-                  />
-                </div>
-              ) : null}
-            </div>
+            <DropdownMenu
+              space={space}
+              name={'Device'}
+              get={this.getDevices}
+              selected={query.selectedDevice}
+              onChange={this.onDeviceChange}
+              more={query.moreDevices}
+            />
             {/**Measurement dropdown, more measurements*/}
-            <div className="gf-form-inline">
-              <div className="gf-form">
-                <FormLabel width={11}>Measurement:</FormLabel>
-
-                <div tabIndex={0} style={space}>
-                  <Forms.AsyncSelect<number>
-                    loadOptions={this.getMeasurements}
-                    value={query.selectedMeasurement}
-                    onChange={this.onMeasurementChange}
-                    defaultOptions={true}
-                    noOptionsMessage={'No measurements match this search.'}
-                    loadingMessage="Fetching measurements..."
-                    width={19}
-                    placeholder="none"
-                    isSearchable={true}
-                  />
-                </div>
-              </div>
-              {query.moreMeasurements ? (
-                <div className="gf-form">
-                  <FormLabel
-                    children={{}}
-                    tooltip="There are more measurements available, but only the first 100 are displayed.
-                                                Specify a stricter search to reduce the number of shown devices."
-                  />
-                </div>
-              ) : null}
-            </div>
-
+            <DropdownMenu
+              space={space}
+              name={'Measurement'}
+              get={this.getMeasurements}
+              selected={query.selectedMeasurement}
+              onChange={this.onMeasurementChange}
+              more={query.moreMeasurements}
+            />
             {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (
               <div>
                 {!query.metrics.length ? (
@@ -310,23 +310,7 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
                   </div>
                 ) : (
                   <div className="gf-form">
-                    <div className="gf-form">
-                      <FormLabel
-                        width={11}
-                        tooltip="The input of this field will be added as a prefix to the metrics' names on the chart."
-                      >
-                        Metric prefix:
-                      </FormLabel>
-                      <div className="width-19" style={space}>
-                        <Forms.Input
-                          type="text"
-                          value={query.metricPrefix || ''}
-                          spellCheck={false}
-                          tabIndex={0}
-                          onChange={this.onMetricPrefixChange}
-                        />
-                      </div>
-                    </div>
+                    <MetricPrefix space={space} value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
 
                     <FormLabel width={11} tooltip="Select the metrics you want to display.">
                       Metrics:
@@ -334,16 +318,12 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
 
                     <div className="gf-form-inline">
                       {query.metrics.map(metric => (
-                        <div className="gf-form">
-                          <Forms.Checkbox
-                            value={!!query.chosenMetrics[metric.key]}
-                            onChange={() => this.onMetricChange(metric)}
-                            size={11}
-                          />
-                          <div style={singleMetric}>
-                            <FormLabel width={17}>{metric.text}</FormLabel>
-                          </div>
-                        </div>
+                        <Metric
+                          singleMetric={singleMetric}
+                          value={!!query.chosenMetrics[metric.key]}
+                          onChange={() => this.onMetricChange(metric)}
+                          text={metric.text}
+                        />
                       ))}
                     </div>
                   </div>
@@ -364,36 +344,20 @@ export class StableNetQueryEditor extends PureComponent<Props, State> {
                 </div>
 
                 <div className="gf-form">
-                  <Forms.Checkbox
-                    value={query.includeMinStats}
-                    onChange={() => this.onIncludeChange('min')}
-                    tabIndex={0}
-                  />
+                  <Forms.Checkbox value={query.includeMinStats} onChange={() => this.onIncludeChange('min')} tabIndex={0} />
                   <FormLabel width={5}>Min</FormLabel>
 
-                  <Forms.Checkbox
-                    value={query.includeAvgStats === undefined ? true : query.includeAvgStats}
-                    onChange={() => this.onIncludeChange('avg')}
-                    tabIndex={0}
-                  />
+                  <Forms.Checkbox value={query.includeAvgStats} onChange={() => this.onIncludeChange('avg')} tabIndex={0} />
                   <FormLabel width={5}>Avg</FormLabel>
 
-                  <Forms.Checkbox
-                    value={query.includeMaxStats}
-                    onChange={() => this.onIncludeChange('max')}
-                    tabIndex={0}
-                  />
+                  <Forms.Checkbox value={query.includeMaxStats} onChange={() => this.onIncludeChange('max')} tabIndex={0} />
                   <FormLabel width={5}>Max</FormLabel>
                 </div>
               </div>
 
               <div className="gf-form-inline">
                 <div className="gf-form" style={{ width: '30px' } as React.CSSProperties}>
-                  <Forms.Checkbox
-                    value={query.useCustomAverage}
-                    onChange={() => this.onUseAvgChange()}
-                    tabIndex={0}
-                  />
+                  <Forms.Checkbox value={query.useCustomAverage} onChange={() => this.onUseAvgChange()} tabIndex={0} />
                 </div>
                 <FormLabel
                   width={11}

@@ -89,14 +89,7 @@ export class StableNetConfigEditor extends PureComponent<Props, State> {
           </div>
 
           <div className="gf-form">
-            <FormField
-              label="Port"
-              labelWidth={13}
-              inputWidth={17}
-              onChange={this.onPortChange}
-              value={jsonData.snport || ''}
-              placeholder="5443"
-            />
+            <FormField label="Port" labelWidth={13} inputWidth={17} onChange={this.onPortChange} value={jsonData.snport || ''} placeholder="5443" />
           </div>
 
           <div className="gf-form">
