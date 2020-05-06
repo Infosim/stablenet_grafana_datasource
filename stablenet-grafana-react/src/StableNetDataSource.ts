@@ -5,16 +5,22 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings } from '@grafana/data';
+import {
+  DataQueryRequest,
+  DataQueryResponse,
+  DataSourceApi,
+  DataSourceInstanceSettings,
+} from '@grafana/data';
 
 import {
   BasicQuery,
   DeviceQuery,
   MeasurementQuery,
   MetricQuery,
-  Query, SingleQuery,
+  Query,
+  SingleQuery,
   StableNetConfigOptions,
-  TestOptions
+  TestOptions,
 } from './Types';
 import {
   EmptyQueryResult,
@@ -22,18 +28,24 @@ import {
   GenericResponse,
   MetricResult,
   MetricType,
-  QueryResult, TargetDatapoints,
+  QueryResult,
+  TargetDatapoints,
   TestResult,
-  LabelValue, TSDBArg, TSDBResult
-} from "./ReturnTypes";
-import {Target} from "./QueryInterfaces";
-import {WrappedTarget} from "./DataQueryAssembler";
+  LabelValue,
+  TSDBArg,
+  TSDBResult,
+} from './ReturnTypes';
+import { Target } from './QueryInterfaces';
+import { WrappedTarget } from './DataQueryAssembler';
 
 const BACKEND_URL = '/api/tsdb/query';
 
 export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOptions> {
-
-  constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>, $q, private backendSrv) {
+  constructor(
+    instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>,
+    $q,
+    private backendSrv
+  ) {
     super(instanceSettings);
   }
 
@@ -54,39 +66,38 @@ export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOp
     };
 
     return this.backendSrv
-        .request(options)
-        .then(() => {
-          return {
-            status: 'success',
-            message: 'Data source is working and can connect to StableNet®.',
-            title: 'Success',
-          };
-        })
-        .catch(err => {
-          return {
-            status: 'error',
-            message: err.data.message,
-            title: 'Failure',
-          };
-        });
+      .request(options)
+      .then(() => {
+        return {
+          status: 'success',
+          message: 'Data source is working and can connect to StableNet®.',
+          title: 'Success',
+        };
+      })
+      .catch(err => {
+        return {
+          status: 'error',
+          message: err.data.message,
+          title: 'Failure',
+        };
+      });
   }
 
   async queryDevices(queryString: string, refid: string): Promise<QueryResult> {
     const data: Query<DeviceQuery> = this.createDeviceQuery(queryString, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data)
-        .then(result => {
-          const res: LabelValue[] = result.data.results[refid].meta.data.map(device => {
-            return {
-              label: device.name,
-              value: device.obid,
-            };
-          });
-          res.unshift({
-            label: 'none',
-            value: -1,
-          });
-          return { data: res, hasMore: result.data.results[refid].meta.hasMore };
-        });
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
+      const res: LabelValue[] = result.data.results[refid].meta.data.map(device => {
+        return {
+          label: device.name,
+          value: device.obid,
+        };
+      });
+      res.unshift({
+        label: 'none',
+        value: -1,
+      });
+      return { data: res, hasMore: result.data.results[refid].meta.hasMore };
+    });
   }
 
   private createDeviceQuery(queryString: string, refid: string): Query<DeviceQuery> {
@@ -101,24 +112,31 @@ export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOp
     };
   }
 
-  async findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
+  async findMeasurementsForDevice(
+    obid: number,
+    input: string,
+    refid: string
+  ): Promise<QueryResult> {
     const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data)
-        .then(result => {
-          const res: LabelValue[] = result.data.results[refid].meta.data.map(measurement => {
-            return {
-              label: measurement.name,
-              value: measurement.obid,
-            };
-          });
-          return {
-            data: res,
-            hasMore: result.data.results[refid].meta.hasMore,
-          };
-        });
+    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
+      const res: LabelValue[] = result.data.results[refid].meta.data.map(measurement => {
+        return {
+          label: measurement.name,
+          value: measurement.obid,
+        };
+      });
+      return {
+        data: res,
+        hasMore: result.data.results[refid].meta.hasMore,
+      };
+    });
   }
 
-  private createMeasurementQuery(deviceObid: number, input: string, refid: string): Query<MeasurementQuery> {
+  private createMeasurementQuery(
+    deviceObid: number,
+    input: string,
+    refid: string
+  ): Query<MeasurementQuery> {
     const data: MeasurementQuery = {
       refId: refid,
       datasourceId: this.id,
@@ -133,17 +151,16 @@ export class StableNetDataSource extends DataSourceApi<Target, StableNetConfigOp
 
   async findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
     const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
-    return this.doRequest<GenericResponse<MetricType[]>>(data)
-        .then(result =>
-          result.data.results[refid].meta.map(metric => {
-            const m: MetricResult = {
-              measurementObid: obid,
-              key: metric.key,
-              text: metric.name,
-            };
-            return m;
-          })
-        );
+    return this.doRequest<GenericResponse<MetricType[]>>(data).then(result =>
+      result.data.results[refid].meta.map(metric => {
+        const m: MetricResult = {
+          measurementObid: obid,
+          key: metric.key,
+          text: metric.name,
+        };
+        return m;
+      })
+    );
   }
 
   private createMetricQuery(mesurementObid: number, refid: string): Query<MetricQuery> {
@@ -229,4 +246,3 @@ export function handleTsdbResponse(response: TSDBArg): TSDBResult {
     data: res,
   };
 }
-

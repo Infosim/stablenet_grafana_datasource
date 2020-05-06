@@ -10,8 +10,10 @@ import { StableNetDataSource } from './StableNetDataSource';
 import { StableNetConfigEditor } from './StableNetConfigEditor';
 import { StableNetQueryEditor } from './StableNetQueryEditor';
 import { StableNetConfigOptions } from './Types';
-import { Target } from "./QueryInterfaces";
+import { Target } from './QueryInterfaces';
 
-export const plugin = new DataSourcePlugin<StableNetDataSource, Target, StableNetConfigOptions>(StableNetDataSource)
+export const plugin = new DataSourcePlugin<StableNetDataSource, Target, StableNetConfigOptions>(
+  StableNetDataSource
+)
   .setConfigEditor(StableNetConfigEditor)
   .setQueryEditor(StableNetQueryEditor);

@@ -5,9 +5,9 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import {SelectableValue} from "@grafana/data";
+import { SelectableValue } from '@grafana/data';
 
-export interface LabelValue extends SelectableValue<number>{
+export interface LabelValue extends SelectableValue<number> {
   label: string;
   value: number;
 }

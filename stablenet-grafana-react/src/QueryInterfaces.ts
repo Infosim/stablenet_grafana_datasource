@@ -5,8 +5,8 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import {DataQuery} from "@grafana/data";
-import {LabelValue} from "./ReturnTypes";
+import { DataQuery } from '@grafana/data';
+import { LabelValue } from './ReturnTypes';
 
 export interface Target extends DataQuery {
   mode: number;
