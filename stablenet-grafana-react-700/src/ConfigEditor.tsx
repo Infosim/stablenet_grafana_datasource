@@ -8,7 +8,7 @@
 import React, { ChangeEvent, PureComponent } from 'react';
 import { LegacyForms } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
-import { StableNetConfigOptions, StableNetSecureJsonData } from './types';
+import { StableNetConfigOptions, StableNetSecureJsonData } from './Types';
 
 const { SecretFormField, FormField } = LegacyForms;
 
