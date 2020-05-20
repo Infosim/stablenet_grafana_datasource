@@ -9,10 +9,10 @@ import {
   FieldType,
 } from '@grafana/data';
 
-import { MyQuery, MyDataSourceOptions, defaultQuery } from './types';
+import { MyQuery, StableNetConfigOptions, defaultQuery } from './types';
 
-export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
-  constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
+export class DataSource extends DataSourceApi<MyQuery, StableNetConfigOptions> {
+  constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>) {
     super(instanceSettings);
   }
 
