@@ -17,7 +17,7 @@ export const ModeChooser = props => (
               value={props.mode}
               onChange={props.onChange}
               className={'width-10'}
-              menuPlacement={"bottom"}
+              menuPlacement={'bottom'}
               isSearchable={true}
             />
           </div>

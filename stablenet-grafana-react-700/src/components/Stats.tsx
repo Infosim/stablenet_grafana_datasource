@@ -1,5 +1,7 @@
 import React from 'react';
-import { Checkbox, InlineFormLabel } from '@grafana/ui';
+import { Checkbox, InlineFormLabel, LegacyForms } from '@grafana/ui';
+
+const { FormField } = LegacyForms;
 
 const checkboxOuter = {
   width: '32px',
@@ -18,34 +20,34 @@ const checkboxInner = {
 } as React.CSSProperties;
 
 export const Stats = props => (
-  <div className="gf-form">
-    <div style={!props.mode ? { marginLeft: '480px' } : {}}>
-      <InlineFormLabel width={11} tooltip="Select the statistics you want to display.">
-        Include Statistics:
-      </InlineFormLabel>
-    </div>
+  <div style={!props.mode ? { marginLeft: '487px' } : {}}>
+    <FormField
+      label={'Include Statistics:'}
+      labelWidth={11}
+      inputEl={
+        <div className="gf-form-inline">
+          <div style={checkboxOuter}>
+            <div style={checkboxInner}>
+              <Checkbox value={props.values[0]} onChange={() => props.onChange('min')} tabIndex={0} />
+            </div>
+          </div>
+          <InlineFormLabel width={4}>Min</InlineFormLabel>
 
-    <div className="gf-form">
-      <div style={checkboxOuter}>
-        <div style={checkboxInner}>
-          <Checkbox value={props.values[0]} onChange={() => props.onChange('min')} tabIndex={0} />
-        </div>
-      </div>
-      <InlineFormLabel width={4}>Min</InlineFormLabel>
+          <div style={checkboxOuter}>
+            <div style={checkboxInner}>
+              <Checkbox value={props.values[1]} onChange={() => props.onChange('avg')} tabIndex={0} />
+            </div>
+          </div>
+          <InlineFormLabel width={4}>Avg</InlineFormLabel>
 
-      <div style={checkboxOuter}>
-        <div style={checkboxInner}>
-          <Checkbox value={props.values[1]} onChange={() => props.onChange('avg')} tabIndex={0} />
+          <div style={checkboxOuter}>
+            <div style={checkboxInner}>
+              <Checkbox value={props.values[2]} onChange={() => props.onChange('max')} tabIndex={0} />
+            </div>
+          </div>
+          <InlineFormLabel width={4}>Max</InlineFormLabel>
         </div>
-      </div>
-      <InlineFormLabel width={4}>Avg</InlineFormLabel>
-
-      <div style={checkboxOuter}>
-        <div style={checkboxInner}>
-          <Checkbox value={props.values[2]} onChange={() => props.onChange('max')} tabIndex={0} />
-        </div>
-      </div>
-      <InlineFormLabel width={4}>Max</InlineFormLabel>
-    </div>
+      }
+    />
   </div>
 );
