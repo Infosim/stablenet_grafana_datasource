@@ -14,12 +14,13 @@ import { Target } from './QueryInterfaces';
 import { LabelValue } from './ReturnTypes';
 import { Metric } from './components/Metric';
 import { MetricPrefix } from './components/MetricPrefix';
-import { DropdownMenu } from './components/DropdownMenu';
+import { DeviceMenu } from './components/DeviceMenu';
 import { StatLink } from './components/StatLink';
 import { ModeChooser } from './components/ModeChooser';
 import { CustomAverage } from './components/CustomAverage';
 import { MinMaxAvg } from './components/MinMaxAvg';
 import { InlineFormLabel } from '@grafana/ui';
+import { MeasurementMenu } from './components/MeasurementMenu';
 
 type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions>;
 
@@ -70,32 +71,27 @@ export class QueryEditor extends PureComponent<Props> {
   };
 
   onDeviceChange = (v: SelectableValue<number>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({
-      ...query,
-      selectedDevice: { label: v.label!, value: v.value! },
-      selectedMeasurement: { label: '', value: -1 },
-      metricPrefix: '',
-      metrics: [],
-      chosenMetrics: {},
-      mode: Mode.MEASUREMENT,
-      includeAvgStats: query.includeAvgStats === undefined ? true : query.includeAvgStats,
-      includeMaxStats: query.includeMaxStats === undefined ? false : query.includeMaxStats,
-      includeMinStats: query.includeMinStats === undefined ? false : query.includeMinStats,
-      averageUnit: query.averageUnit ? query.averageUnit : Unit.MINUTES,
-    });
-    onRunQuery();
-  };
-
-  getMeasurements = (v: string) => {
-    const { query, onChange, datasource } = this.props;
-    return datasource
-      .findMeasurementsForDevice(query.selectedDevice ? query.selectedDevice.value : -1, v, query.refId)
+    const { onChange, query, onRunQuery, datasource } = this.props;
+    datasource
+      .findMeasurementsForDevice(v.value!, query.refId)
       .then(r => {
-        onChange({ ...query, moreMeasurements: r.hasMore });
-        console.log(r.data);
-        return r.data;
-      });
+        onChange({
+          ...query,
+          moreMeasurements: r.hasMore,
+          measurements: r.data,
+          selectedDevice: { label: v.label!, value: v.value! },
+          selectedMeasurement: { label: '', value: -1 },
+          metricPrefix: '',
+          metrics: [],
+          chosenMetrics: {},
+          mode: Mode.MEASUREMENT,
+          includeAvgStats: query.includeAvgStats === undefined ? true : query.includeAvgStats,
+          includeMaxStats: query.includeMaxStats === undefined ? false : query.includeMaxStats,
+          includeMinStats: query.includeMinStats === undefined ? false : query.includeMinStats,
+          averageUnit: query.averageUnit ? query.averageUnit : Unit.MINUTES,
+        });
+      })
+      .then(() => onRunQuery());
   };
 
   onMeasurementChange = (v: SelectableValue<number>) => {
@@ -198,22 +194,22 @@ export class QueryEditor extends PureComponent<Props> {
         ) : (
           <div>
             {/** Measurement mode */}
-            {/**Device dropdown, more devices*/}
-            <DropdownMenu
-              name={'Device'}
-              get={this.getDevices}
-              selected={query.selectedDevice}
-              onChange={this.onDeviceChange}
-              more={query.moreDevices}
-            />
-            {/**Measurement dropdown, more measurements*/}
-            <DropdownMenu
-              name={'Measurement'}
-              get={this.getMeasurements}
-              selected={query.selectedMeasurement}
-              onChange={this.onMeasurementChange}
-              more={query.moreMeasurements}
-            />
+            <div className="gf-form-inline">
+              {/**Device dropdown, more devices*/}
+              <DeviceMenu
+                get={this.getDevices}
+                selected={query.selectedDevice}
+                onChange={this.onDeviceChange}
+                more={query.moreDevices}
+              />
+              {/**Measurement dropdown, more measurements*/}
+              <MeasurementMenu
+                get={query.measurements || []}
+                selected={query.selectedMeasurement}
+                onChange={this.onMeasurementChange}
+                more={query.moreMeasurements}
+              />
+            </div>
             {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (
               <div>
                 {!query.metrics.length ? (

@@ -21,6 +21,7 @@ export interface Target extends DataQuery {
   averagePeriod: string;
   averageUnit: number;
   useCustomAverage: boolean;
+  measurements: Array<LabelValue>;
   metrics: Array<{ text: string; key: string; measurementObid: number }>;
   moreDevices: boolean;
   moreMeasurements: boolean;

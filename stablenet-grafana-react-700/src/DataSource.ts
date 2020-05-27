@@ -103,8 +103,8 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     };
   }
 
-  async findMeasurementsForDevice(obid: number, input: string, refid: string): Promise<QueryResult> {
-    const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, input, refid);
+  async findMeasurementsForDevice(obid: number, refid: string): Promise<QueryResult> {
+    const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, refid);
     return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
       const res: LabelValue[] = result.data.results[refid].meta.data.map(measurement => {
         return {
@@ -119,13 +119,13 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     });
   }
 
-  private createMeasurementQuery(deviceObid: number, input: string, refid: string): Query<MeasurementQuery> {
+  private createMeasurementQuery(deviceObid: number, refid: string): Query<MeasurementQuery> {
     const data: MeasurementQuery = {
       refId: refid,
       datasourceId: this.id,
       queryType: 'measurements',
       deviceObid: deviceObid,
-      filter: input,
+      filter: '',
     };
     return {
       queries: [data],
