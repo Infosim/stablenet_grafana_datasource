@@ -18,7 +18,7 @@ import { DropdownMenu } from './components/DropdownMenu';
 import { StatLink } from './components/StatLink';
 import { ModeChooser } from './components/ModeChooser';
 import { CustomAverage } from './components/CustomAverage';
-import { Stats } from './components/Stats';
+import { MinMaxAvg } from './components/MinMaxAvg';
 import { InlineFormLabel } from '@grafana/ui';
 
 type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions>;
@@ -93,6 +93,7 @@ export class QueryEditor extends PureComponent<Props> {
       .findMeasurementsForDevice(query.selectedDevice ? query.selectedDevice.value : -1, v, query.refId)
       .then(r => {
         onChange({ ...query, moreMeasurements: r.hasMore });
+        console.log(r.data);
         return r.data;
       });
   };
@@ -248,7 +249,7 @@ export class QueryEditor extends PureComponent<Props> {
         <div>
           {!!(query.selectedMeasurement && query.selectedMeasurement.label) || !!query.mode ? (
             <div>
-              <Stats
+              <MinMaxAvg
                 mode={query.mode}
                 values={[query.includeMinStats, query.includeAvgStats, query.includeMaxStats]}
                 onChange={this.onIncludeChange}

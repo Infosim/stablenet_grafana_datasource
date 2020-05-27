@@ -26,7 +26,7 @@ const checkboxInner = {
   marginTop: '-5px',
 } as React.CSSProperties;
 
-export const Stats = props => (
+export const MinMaxAvg = props => (
   <div style={!props.mode ? { marginLeft: '487px' } : {}}>
     <FormField
       label={'Include Statistics:'}
