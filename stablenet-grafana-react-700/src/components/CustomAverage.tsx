@@ -1,3 +1,10 @@
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 import React from 'react';
 import { Checkbox, Input, Select, LegacyForms } from '@grafana/ui';
 
