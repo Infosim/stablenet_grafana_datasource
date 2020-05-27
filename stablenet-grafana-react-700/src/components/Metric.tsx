@@ -22,6 +22,12 @@ const checkboxInner = {
   marginTop: '-5.5px',
 } as React.CSSProperties;
 
+const singleMetric = {
+  textOverflow: 'ellipsis',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+} as React.CSSProperties;
+
 export const Metric = props => (
   <div className="gf-form">
     <div style={checkboxOuter}>
@@ -29,7 +35,7 @@ export const Metric = props => (
         <Checkbox value={props.value} onChange={props.onChange} />
       </div>
     </div>
-    <div style={props.singleMetric}>
+    <div style={singleMetric}>
       <InlineFormLabel width={17}>{props.text}</InlineFormLabel>
     </div>
   </div>

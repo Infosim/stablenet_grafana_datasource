@@ -187,11 +187,6 @@ export class QueryEditor extends PureComponent<Props> {
 
   render() {
     const query = this.props.query;
-    const singleMetric = {
-      textOverflow: 'ellipsis',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-    } as React.CSSProperties;
 
     return (
       <div>
@@ -237,7 +232,6 @@ export class QueryEditor extends PureComponent<Props> {
                     <div className="gf-form-inline">
                       {query.metrics.map(metric => (
                         <Metric
-                          singleMetric={singleMetric}
                           value={!!query.chosenMetrics[metric.key]}
                           onChange={() => this.onMetricChange(metric)}
                           text={metric.text}
