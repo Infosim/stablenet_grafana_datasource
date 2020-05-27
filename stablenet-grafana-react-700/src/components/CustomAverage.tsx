@@ -1,10 +1,26 @@
 import React from 'react';
 import { Checkbox, InlineFormLabel, Input, Select } from '@grafana/ui';
 
+const checkboxOuter = {
+  width: '33px',
+  borderStyle: 'solid',
+  borderWidth: '1px',
+  borderColor: '#2c3235',
+  borderRadius: '3px',
+  marginBottom: '5px',
+} as React.CSSProperties;
+
+const checkboxInner = {
+  paddingLeft: '7.5px',
+  marginTop: '-5px',
+} as React.CSSProperties;
+
 export const CustomAverage = props => (
   <div className="gf-form-inline">
-    <div className="gf-form" style={{ width: '30px' } as React.CSSProperties}>
-      <Checkbox value={props.use} onChange={() => props.onChange[0]()} tabIndex={0} />
+    <div style={checkboxOuter}>
+      <div style={checkboxInner}>
+        <Checkbox value={props.use} onChange={() => props.onChange[0]()} tabIndex={0} />
+      </div>
     </div>
     <InlineFormLabel
       width={11}

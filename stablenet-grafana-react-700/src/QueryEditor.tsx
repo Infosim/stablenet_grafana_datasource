@@ -187,7 +187,6 @@ export class QueryEditor extends PureComponent<Props> {
 
   render() {
     const query = this.props.query;
-    const space = { marginTop: '2px' } as React.CSSProperties;
     const singleMetric = {
       textOverflow: 'ellipsis',
       overflow: 'hidden',
@@ -196,12 +195,7 @@ export class QueryEditor extends PureComponent<Props> {
 
     return (
       <div>
-        <ModeChooser
-          space={space}
-          mode={query.mode || Mode.MEASUREMENT}
-          options={this.getModes}
-          onChange={this.onModeChange}
-        />
+        <ModeChooser mode={query.mode || Mode.MEASUREMENT} options={this.getModes} onChange={this.onModeChange} />
 
         {!!query.mode ? (
           <StatLink link={query.statisticLink || ''} onChange={this.onStatisticLinkChange} />
@@ -210,7 +204,6 @@ export class QueryEditor extends PureComponent<Props> {
             {/** Measurement mode */}
             {/**Device dropdown, more devices*/}
             <DropdownMenu
-              space={space}
               name={'Device'}
               get={this.getDevices}
               selected={query.selectedDevice}
@@ -219,7 +212,6 @@ export class QueryEditor extends PureComponent<Props> {
             />
             {/**Measurement dropdown, more measurements*/}
             <DropdownMenu
-              space={space}
               name={'Measurement'}
               get={this.getMeasurements}
               selected={query.selectedMeasurement}
@@ -236,7 +228,7 @@ export class QueryEditor extends PureComponent<Props> {
                   </div>
                 ) : (
                   <div className="gf-form">
-                    <MetricPrefix space={space} value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
+                    <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
 
                     <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
                       Metrics:
@@ -269,7 +261,6 @@ export class QueryEditor extends PureComponent<Props> {
               />
 
               <CustomAverage
-                space={space}
                 use={query.useCustomAverage}
                 period={query.averagePeriod || ''}
                 unit={query.averageUnit || Unit.MINUTES}
