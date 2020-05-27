@@ -12,7 +12,7 @@ const checkboxOuter = {
 
 const checkboxInner = {
   paddingLeft: '7.5px',
-  marginTop: '-5px',
+  marginTop: '-5.5px',
 } as React.CSSProperties;
 
 export const CustomAverage = props => (

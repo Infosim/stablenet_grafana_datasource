@@ -1,5 +1,5 @@
 import React from 'react';
-import { AsyncSelect, InlineFormLabel, LegacyForms } from '@grafana/ui';
+import { AsyncSelect, LegacyForms } from '@grafana/ui';
 
 const { FormField } = LegacyForms;
 
@@ -11,6 +11,12 @@ export const DropdownMenu = props => {
         <FormField
           label={props.name + ':'}
           labelWidth={11}
+          tooltip={
+            props.more
+              ? `There are more ${plural} available, but only the first 100 are displayed.
+                                                Use a stricter search to reduce the number of shown ${plural}.`
+              : ''
+          }
           inputEl={
             <div tabIndex={0}>
               <AsyncSelect<number>
@@ -29,15 +35,6 @@ export const DropdownMenu = props => {
           }
         />
       </div>
-      {props.more ? (
-        <div className="gf-form">
-          <InlineFormLabel
-            children={{}}
-            tooltip={`There are more ${plural} available, but only the first 100 are displayed.
-                                                Use a stricter search to reduce the number of shown ${plural}.`}
-          />
-        </div>
-      ) : null}
     </div>
   );
 };
