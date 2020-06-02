@@ -35,6 +35,7 @@ export const DeviceMenu = props => {
               placeholder={'none'}
               menuPlacement={'bottom'}
               isSearchable={true}
+              backspaceRemovesValue={true}
             />
           </div>
         }

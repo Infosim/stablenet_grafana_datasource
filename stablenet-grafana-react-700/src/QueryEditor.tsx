@@ -64,7 +64,7 @@ export class QueryEditor extends PureComponent<Props> {
     return datasource.queryDevices(v, query.refId).then(r => {
       onChange({
         ...query,
-        moreDevices: r.hasMore,
+        moreDevices: r.hasMore || !!query.moreDevices,
       });
       return r.data;
     });
@@ -77,7 +77,7 @@ export class QueryEditor extends PureComponent<Props> {
       .then(r => {
         onChange({
           ...query,
-          moreMeasurements: r.hasMore,
+          moreMeasurements: r.hasMore || !!query.moreMeasurements,
           measurements: r.data,
           selectedDevice: { label: v.label!, value: v.value! },
           selectedMeasurement: { label: '', value: -1 },

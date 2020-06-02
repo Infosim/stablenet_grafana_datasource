@@ -18,7 +18,8 @@ export const StatLink = props => (
         labelWidth={11}
         inputWidth={19}
         tooltip={
-          'Copy a link from the StableNet®-Analyzer. Experimental: At the current version, only links containing exactly one measurement are supported.'
+          'Copy a link from the StableNet®-Analyzer. Due to technical limitations, measurements other than template measurements ' +
+          '(e.g. ping and interface measurements) are only partly supported.'
         }
         value={props.link}
         onChange={props.onChange}

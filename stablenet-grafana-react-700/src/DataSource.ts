@@ -83,7 +83,7 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
           value: device.obid,
         };
       });
-      res.unshift({
+      res.push({
         label: 'none',
         value: -1,
       });
