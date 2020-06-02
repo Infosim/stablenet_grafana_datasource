@@ -6,12 +6,12 @@
  *                  www.infosim.net
  */
 import { DataSourcePlugin } from '@grafana/data';
-import { StableNetDataSource } from './StableNetDataSource';
-import { StableNetConfigEditor } from './StableNetConfigEditor';
-import { StableNetQueryEditor } from './StableNetQueryEditor';
+import { DataSource } from './DataSource';
+import { ConfigEditor } from './ConfigEditor';
+import { QueryEditor } from './QueryEditor';
 import { StableNetConfigOptions } from './Types';
 import { Target } from './QueryInterfaces';
 
-export const plugin = new DataSourcePlugin<StableNetDataSource, Target, StableNetConfigOptions>(StableNetDataSource)
-  .setConfigEditor(StableNetConfigEditor)
-  .setQueryEditor(StableNetQueryEditor);
+export const plugin = new DataSourcePlugin<DataSource, Target, StableNetConfigOptions>(DataSource)
+  .setConfigEditor(ConfigEditor)
+  .setQueryEditor(QueryEditor);

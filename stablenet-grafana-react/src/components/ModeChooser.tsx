@@ -1,16 +1,35 @@
-import { FormLabel, Forms } from '@grafana/ui';
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 import React from 'react';
+import { Select, LegacyForms } from '@grafana/ui';
+
+const { FormField } = LegacyForms;
 
 export const ModeChooser = props => (
   <div className="gf-form-inline">
     <div className="gf-form">
-      <FormLabel width={11} tooltip="Allows switching between Measurement mode and Statistic Link mode.">
-        Query Mode:
-      </FormLabel>
-
-      <div tabIndex={0} style={props.space}>
-        <Forms.Select<number> options={props.options()} value={props.mode} onChange={props.onChange} width={10} isSearchable={true} />
-      </div>
+      <FormField
+        label={'Query Mode:'}
+        labelWidth={11}
+        tooltip={'Allows switching between Measurement mode and Statistic Link mode.'}
+        inputEl={
+          <div tabIndex={0}>
+            <Select<number>
+              options={props.options()}
+              value={props.mode}
+              onChange={props.onChange}
+              className={'width-10'}
+              menuPlacement={'bottom'}
+              isSearchable={true}
+            />
+          </div>
+        }
+      />
     </div>
   </div>
 );

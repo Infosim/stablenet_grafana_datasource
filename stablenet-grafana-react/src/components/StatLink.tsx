@@ -1,19 +1,27 @@
-import { FormLabel, Forms } from '@grafana/ui';
+/*
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
+ * Company: Infosim GmbH & Co. KG,
+ *                  Landsteinerstraße 4,
+ *                  97074 Wuerzburg, Germany
+ *                  www.infosim.net
+ */
 import React from 'react';
+import { Input, InlineFormLabel } from '@grafana/ui';
 
 export const StatLink = props => (
   <div className="gf-form-inline">
-    {/** Statistic Link mode */}
-    <div className="gf-form">
-      <FormLabel
+    <div className={'gf-form'} style={{ width: '100%' } as React.CSSProperties}>
+      <InlineFormLabel
         width={11}
-        tooltip="Copy a link from the StableNet®-Analyzer. Experimental: At the current version, only links containing exactly one measurement are supported."
+        tooltip={
+          'Copy a link from the StableNet®-Analyzer. Due to technical limitations, measurements other than template measurements ' +
+          '(e.g. ping and interface measurements) are only partly supported.'
+        }
       >
         Link:
-      </FormLabel>
-
-      <div className="width-19">
-        <Forms.Input type="text" value={props.link} spellCheck={false} tabIndex={0} onChange={props.onChange} />
+      </InlineFormLabel>
+      <div style={{ width: '100%' } as React.CSSProperties}>
+        <Input type={'text'} value={props.link} onChange={props.onChange} spellCheck={false} tabIndex={0} />
       </div>
     </div>
   </div>

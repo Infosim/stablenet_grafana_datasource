@@ -29,7 +29,9 @@ export class WrappedTarget {
       datasourceId: this.dataSourceId,
       queryType: 'statisticLink',
       statisticLink: this.target.statisticLink,
-      intervalMs: this.target.useCustomAverage ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit : this.intervalMs,
+      intervalMs: this.target.useCustomAverage
+        ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit
+        : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
       includeAvgStats: this.target.includeAvgStats,
       includeMaxStats: this.target.includeMaxStats,
@@ -52,7 +54,9 @@ export class WrappedTarget {
       datasourceId: this.dataSourceId,
       queryType: 'metricData',
       requestData: requestData,
-      intervalMs: this.target.useCustomAverage ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit : this.intervalMs,
+      intervalMs: this.target.useCustomAverage
+        ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit
+        : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
       includeAvgStats: this.target.includeAvgStats,
       includeMaxStats: this.target.includeMaxStats,
@@ -65,7 +69,8 @@ export class WrappedTarget {
 
     for (const [key, value] of e) {
       if (value) {
-        const name: string = this.target.metricPrefix + ' {MinMaxAvg} ' + this.target.metrics.filter(m => m.key === key)[0].text;
+        const name: string =
+          this.target.metricPrefix + ' {MinMaxAvg} ' + this.target.metrics.filter(m => m.key === key)[0].text;
         keys.push({
           key,
           name,
