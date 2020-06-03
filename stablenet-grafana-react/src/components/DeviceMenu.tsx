@@ -18,8 +18,8 @@ export const DeviceMenu = props => {
         labelWidth={11}
         tooltip={
           props.more
-            ? `There are more devices available, but only the first 100 are displayed.
-                                                Use a stricter search to reduce the number of shown devices.`
+            ? `There are more devices available, but only the first 100 are displayed. 
+              Use a stricter search to reduce the number of shown devices.`
             : ''
         }
         inputEl={

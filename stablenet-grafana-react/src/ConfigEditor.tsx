@@ -14,9 +14,7 @@ const { SecretFormField, FormField } = LegacyForms;
 
 interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions> {}
 
-interface State {}
-
-export class ConfigEditor extends PureComponent<Props, State> {
+export class ConfigEditor extends PureComponent<Props> {
   onIpChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     const jsonData = {

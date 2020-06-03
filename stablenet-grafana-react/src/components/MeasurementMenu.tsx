@@ -19,7 +19,7 @@ export const MeasurementMenu = props => {
         tooltip={
           props.more
             ? `There are more measurements available, but only the first 100 are displayed.
-                                                Use a stricter search to reduce the number of shown measurements.`
+              Use a stricter search to reduce the number of shown measurements.`
             : ''
         }
         inputEl={

@@ -12,9 +12,7 @@
   "author": "Infosim GmbH & Co. KG",
   "license": "",
   "dependencies": {
-    "react-scripts": "3.4.1",
-    "eslint-config-prettier": "^6.10.1",
-    "eslint-plugin-prettier": "^3.1.2"
+    "react-scripts": "3.4.1"
   },
   "devDependencies": {
     "@grafana/data": "^7.0.0",
@@ -22,7 +20,9 @@
     "@grafana/ui": "^7.0.0",
     "@types/lodash": "latest",
     "@testing-library/jest-dom": "5.4.0",
-    "@testing-library/react": "^10.0.2"
+    "@testing-library/react": "^10.0.2",
+    "eslint-config-prettier": "^6.10.1",
+    "eslint-plugin-prettier": "^3.1.2"
   },
   "engines": {
     "node": ">=12 <13"

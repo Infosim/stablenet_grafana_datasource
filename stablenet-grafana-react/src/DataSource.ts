@@ -36,7 +36,7 @@ import { WrappedTarget } from './DataQueryAssembler';
 const BACKEND_URL = '/api/tsdb/query';
 
 export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
-  constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>, $q, private backendSrv) {
+  constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>, private backendSrv) {
     super(instanceSettings);
   }
 
