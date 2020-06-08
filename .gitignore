@@ -39,3 +39,8 @@ grafana
 **/stablenet-grafana-plugin.zip
 
 stablenet-grafana-typescript/.nyc_output/
+/stablenet-grafana-6.x.x-plugin.zip
+/stablenet-grafana-7.x.x-plugin.zip
+**/backend-plugin/stablenet_backend_plugin_darwin_amd64
+**/backend-plugin/stablenet_backend_plugin_linux_amd64
+**/backend-plugin/stablenet_backend_plugin_windows_amd64.exe
