@@ -51,6 +51,7 @@ func newDataSource(logger hclog.Logger) datasource.ServeOpts {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/test", ds.handleTest)
 	mux.HandleFunc("/devices", handleDeviceQuery)
+	mux.HandleFunc("/measurements", handleMeasurementQuery)
 
 	return datasource.ServeOpts{
 		CheckHealthHandler:  ds,
@@ -145,5 +146,33 @@ func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
 	err = json.NewEncoder(rw).Encode(devices)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not serialize devices: %v", err), http.StatusInternalServerError)
+	}
+}
+
+func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
+	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
+	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not extract data source settings: %v", err), http.StatusInternalServerError)
+		return
+	}
+	snClient := stablenet.NewClient(options)
+	filterWrapper := struct {
+		Filter     string
+		DeviceObid int
+	}{}
+	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not extract filter and filter from request body: %v", err), http.StatusUnprocessableEntity)
+		return
+	}
+	measurements, err := snClient.FetchMeasurementsForDevice(&filterWrapper.DeviceObid, filterWrapper.Filter)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not query measurements: %v", err), http.StatusInternalServerError)
+		return
+	}
+	err = json.NewEncoder(rw).Encode(measurements)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not serialize measurements: %v", err), http.StatusInternalServerError)
 	}
 }

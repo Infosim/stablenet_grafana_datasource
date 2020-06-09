@@ -7,15 +7,7 @@
  */
 import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings } from '@grafana/data';
 
-import {
-  StableNetConfigOptions,
-  Query,
-  MeasurementQuery,
-  MetricQuery,
-  BasicQuery,
-  TestOptions,
-  SingleQuery,
-} from './Types';
+import { StableNetConfigOptions, Query, MetricQuery, BasicQuery, TestOptions, SingleQuery } from './Types';
 import { Target } from './QueryInterfaces';
 import {
   EmptyQueryResult,
@@ -64,7 +56,7 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
       });
   }
 
-  async queryDevices(queryString: string, refid: string): Promise<QueryResult> {
+  async queryDevices(queryString: string): Promise<QueryResult> {
     return this.doResourceRequest<EntityQueryResult>('devices', { filter: queryString }).then(result => {
       const res: LabelValue[] = result.data.data.map(device => {
         return {
@@ -76,16 +68,14 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
         label: 'none',
         value: -1,
       });
-      console.log(res);
-      console.log(result);
       return { data: res, hasMore: result.data.hasMore };
     });
   }
 
-  async findMeasurementsForDevice(obid: number, refid: string): Promise<QueryResult> {
-    const data: Query<MeasurementQuery> = this.createMeasurementQuery(obid, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
-      const res: LabelValue[] = result.data.results[refid].meta.data.map(measurement => {
+  async findMeasurementsForDevice(obid: number): Promise<QueryResult> {
+    const data = { deviceObid: obid, filter: '' };
+    return this.doResourceRequest<EntityQueryResult>('measurements', data).then(result => {
+      const res: LabelValue[] = result.data.data.map(measurement => {
         return {
           label: measurement.name,
           value: measurement.obid,
@@ -93,22 +83,9 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
       });
       return {
         data: res,
-        hasMore: result.data.results[refid].meta.hasMore,
+        hasMore: result.data.hasMore,
       };
     });
-  }
-
-  private createMeasurementQuery(deviceObid: number, refid: string): Query<MeasurementQuery> {
-    const data: MeasurementQuery = {
-      refId: refid,
-      datasourceId: this.id,
-      queryType: 'measurements',
-      deviceObid: deviceObid,
-      filter: '',
-    };
-    return {
-      queries: [data],
-    };
   }
 
   async findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {

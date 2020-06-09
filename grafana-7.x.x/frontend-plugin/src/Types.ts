@@ -20,11 +20,6 @@ export interface TestOptions {
   data?: Query<BasicQuery>;
 }
 
-export interface MeasurementQuery extends BasicQuery {
-  filter: string;
-  deviceObid: number;
-}
-
 export interface MetricQuery extends BasicQuery {
   measurementObid: number;
 }
