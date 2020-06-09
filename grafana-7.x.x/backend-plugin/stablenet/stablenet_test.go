@@ -33,7 +33,7 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 		wantErrStr     *string
 	}{
 		{name: "success", returnedBody: versionXml, returnedStatus: http.StatusOK, wantVersion: &ServerVersion{Version: "8.6.0"}, wantErrStr: nil},
-		{name: "connection error", httpError: errors.New("server running low on schnitzels"), wantErrStr: util.StringPointer("Connecting to StableNet® failed: Get https://127.0.0.1:443/rest/info: server running low on schnitzels")},
+		{name: "connection error", httpError: errors.New("server running low on schnitzels"), wantErrStr: util.StringPointer("Connecting to StableNet® failed: Get \"https://127.0.0.1:443/rest/info\": server running low on schnitzels")},
 		{name: "authentication error", returnedBody: "Forbidden", returnedStatus: http.StatusUnauthorized, wantErrStr: util.StringPointer("The StableNet® server could be reached, but the credentials were invalid.")},
 		{name: "status error", returnedBody: "Internal Server Error", returnedStatus: http.StatusInternalServerError, wantErrStr: util.StringPointer("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: 500")},
 		{name: "unmarshal error", returnedBody: "this is no xml", returnedStatus: http.StatusOK, wantErrStr: util.StringPointer("Log in to StableNet® successful, but the StableNet® answer \"this is no xml\" could not be parsed: EOF")},
@@ -297,7 +297,7 @@ func errorResponseTest(shouldReturnError func(Client) (interface{}, error), meth
 		_, err := shouldReturnError(client)
 		capitalizedMethod := []byte(strings.ToLower(method))
 		capitalizedMethod[0] = byte(method[0])
-		wantErr := fmt.Sprintf("retrieving %s failed: %s %s: custom error", msg, capitalizedMethod, url)
+		wantErr := fmt.Sprintf("retrieving %s failed: %s \"%s\": custom error", msg, capitalizedMethod, url)
 		require.EqualError(t, err, wantErr, "error message wrong")
 	}
 }
