@@ -8,9 +8,9 @@
 package main
 
 import (
-	"github.com/grafana/grafana-plugin-model/go/datasource"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
+	"os"
 )
 
 var pluginLogger = hclog.New(&hclog.LoggerOptions{
@@ -19,18 +19,23 @@ var pluginLogger = hclog.New(&hclog.LoggerOptions{
 })
 
 func main() {
-	plugin.Serve(&plugin.ServeConfig{
-		Logger: pluginLogger,
-		HandshakeConfig: plugin.HandshakeConfig{
-			ProtocolVersion:  1,
-			MagicCookieKey:   "grafana_plugin_type",
-			MagicCookieValue: "datasource",
-		},
-		Plugins: map[string]plugin.Plugin{
-			"stablenet-datasource": &datasource.DatasourcePluginImpl{Plugin: NewBackendPlugin(pluginLogger)},
-		},
-
-		// A non-nil value here enables gRPC serving for this plugin...
-		GRPCServer: plugin.DefaultGRPCServer,
-	})
+	err := datasource.Serve(newDataSource(pluginLogger))
+	if err != nil {
+		pluginLogger.Error("could not initialize datasource: %v", err)
+		os.Exit(1)
+	}
+	//plugin.Serve(&plugin.ServeConfig{
+	//	Logger: pluginLogger,
+	//	HandshakeConfig: plugin.HandshakeConfig{
+	//		ProtocolVersion:  1,
+	//		MagicCookieKey:   "grafana_plugin_type",
+	//		MagicCookieValue: "datasource",
+	//	},
+	//	Plugins: map[string]plugin.Plugin{
+	//		"stablenet-datasource": &datasource.DatasourcePluginImpl{Plugin: NewBackendPlugin(pluginLogger)},
+	//	},
+	//
+	//	// A non-nil value here enables gRPC serving for this plugin...
+	//	GRPCServer: plugin.DefaultGRPCServer,
+	//})
 }

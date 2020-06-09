@@ -43,17 +43,8 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
   async testDatasource(): Promise<TestResult> {
     const options: TestOptions = {
       headers: { 'Content-Type': 'application/json' },
-      url: BACKEND_URL,
-      method: 'POST',
-      data: {
-        queries: [
-          {
-            refId: 'UNUSED',
-            datasourceId: this.id,
-            queryType: 'testDatasource',
-          },
-        ],
-      },
+      url: '/api/datasources/' + this.id + '/resources/test',
+      method: 'GET',
     };
 
     return this.backendSrv
