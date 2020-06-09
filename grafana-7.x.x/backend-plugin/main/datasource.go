@@ -10,6 +10,7 @@ package main
 import (
 	"backend-plugin/stablenet"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
@@ -49,6 +50,7 @@ func newDataSource(logger hclog.Logger) datasource.ServeOpts {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/test", ds.handleTest)
+	mux.HandleFunc("/devices", handleDeviceQuery)
 
 	return datasource.ServeOpts{
 		CheckHealthHandler:  ds,
@@ -117,4 +119,31 @@ func (ds *testDataSource) handleTest(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 	rw.WriteHeader(http.StatusNoContent)
+}
+
+func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
+	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
+	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not extract data source settings: %v", err), http.StatusInternalServerError)
+		return
+	}
+	snClient := stablenet.NewClient(options)
+	filterWrapper := struct {
+		Filter string
+	}{}
+	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not extract filter from request body: %v", err), http.StatusUnprocessableEntity)
+		return
+	}
+	devices, err := snClient.QueryDevices(filterWrapper.Filter)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not query devices: %v", err), http.StatusInternalServerError)
+		return
+	}
+	err = json.NewEncoder(rw).Encode(devices)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not serialize devices: %v", err), http.StatusInternalServerError)
+	}
 }

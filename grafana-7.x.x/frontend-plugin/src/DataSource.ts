@@ -9,7 +9,6 @@ import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceS
 
 import {
   StableNetConfigOptions,
-  DeviceQuery,
   Query,
   MeasurementQuery,
   MetricQuery,
@@ -66,9 +65,8 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
   }
 
   async queryDevices(queryString: string, refid: string): Promise<QueryResult> {
-    const data: Query<DeviceQuery> = this.createDeviceQuery(queryString, refid);
-    return this.doRequest<GenericResponse<EntityQueryResult>>(data).then(result => {
-      const res: LabelValue[] = result.data.results[refid].meta.data.map(device => {
+    return this.doResourceRequest<EntityQueryResult>('devices', { filter: queryString }).then(result => {
+      const res: LabelValue[] = result.data.data.map(device => {
         return {
           label: device.name,
           value: device.obid,
@@ -78,20 +76,10 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
         label: 'none',
         value: -1,
       });
-      return { data: res, hasMore: result.data.results[refid].meta.hasMore };
+      console.log(res);
+      console.log(result);
+      return { data: res, hasMore: result.data.hasMore };
     });
-  }
-
-  private createDeviceQuery(queryString: string, refid: string): Query<DeviceQuery> {
-    const query: DeviceQuery = {
-      filter: queryString,
-      datasourceId: this.id,
-      queryType: 'devices',
-      refId: refid,
-    };
-    return {
-      queries: [query],
-    };
   }
 
   async findMeasurementsForDevice(obid: number, refid: string): Promise<QueryResult> {
@@ -192,6 +180,16 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     const options: TestOptions = {
       headers: { 'Content-Type': 'application/json' },
       url: BACKEND_URL,
+      method: 'POST',
+      data: data,
+    };
+    return this.backendSrv.datasourceRequest(options);
+  }
+
+  private doResourceRequest<RETURN>(resource: string, data: any): Promise<RETURN> {
+    const options: TestOptions = {
+      headers: { 'Content-Type': 'application/json' },
+      url: '/api/datasources/' + this.id + '/resources/' + resource,
       method: 'POST',
       data: data,
     };

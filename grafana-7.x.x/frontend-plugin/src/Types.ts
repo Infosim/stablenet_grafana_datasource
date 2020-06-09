@@ -17,11 +17,7 @@ export interface TestOptions {
   headers: object;
   url: string;
   method: string;
-  data: Query<BasicQuery>;
-}
-
-export interface DeviceQuery extends BasicQuery {
-  filter: string;
+  data?: Query<BasicQuery>;
 }
 
 export interface MeasurementQuery extends BasicQuery {

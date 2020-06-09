@@ -47,8 +47,10 @@ interface RequestResult {
 }
 
 export interface EntityQueryResult {
-  hasMore: boolean;
-  data: Array<{ name: string; obid: number }>;
+  data: {
+    hasMore: boolean;
+    data: Array<{ name: string; obid: number }>;
+  };
 }
 
 export interface MetricType {
