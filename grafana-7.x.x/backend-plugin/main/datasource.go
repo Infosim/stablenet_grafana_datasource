@@ -52,6 +52,7 @@ func newDataSource(logger hclog.Logger) datasource.ServeOpts {
 	mux.HandleFunc("/test", ds.handleTest)
 	mux.HandleFunc("/devices", handleDeviceQuery)
 	mux.HandleFunc("/measurements", handleMeasurementQuery)
+	mux.HandleFunc("/metrics", handleMetricQuery)
 
 	return datasource.ServeOpts{
 		CheckHealthHandler:  ds,
@@ -163,7 +164,7 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 	}{}
 	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract filter and filter from request body: %v", err), http.StatusUnprocessableEntity)
+		http.Error(rw, fmt.Sprintf("could not extract filter and deviceObid from request body: %v", err), http.StatusUnprocessableEntity)
 		return
 	}
 	measurements, err := snClient.FetchMeasurementsForDevice(&filterWrapper.DeviceObid, filterWrapper.Filter)
@@ -172,6 +173,33 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	err = json.NewEncoder(rw).Encode(measurements)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not serialize measurements: %v", err), http.StatusInternalServerError)
+	}
+}
+
+func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
+	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
+	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not extract source settings: %v", err), http.StatusInternalServerError)
+		return
+	}
+	snClient := stablenet.NewClient(options)
+	filterWrapper := struct {
+		MeasurementObid int
+	}{}
+	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v"), http.StatusInternalServerError)
+		return
+	}
+	metrics, err := snClient.FetchMetricsForMeasurement(filterWrapper.MeasurementObid, "")
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("could not query metrics: %v", err), http.StatusInternalServerError)
+		return
+	}
+	err = json.NewEncoder(rw).Encode(metrics)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not serialize measurements: %v", err), http.StatusInternalServerError)
 	}

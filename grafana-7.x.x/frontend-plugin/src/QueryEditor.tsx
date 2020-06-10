@@ -60,7 +60,7 @@ export class QueryEditor extends PureComponent<Props> {
 
   getDevices = (v: string) => {
     const { query, onChange, datasource } = this.props;
-    return datasource.queryDevices(v, query.refId).then(r => {
+    return datasource.queryDevices(v).then(r => {
       onChange({
         ...query,
         moreDevices: r.hasMore || !!query.moreDevices,
@@ -72,7 +72,7 @@ export class QueryEditor extends PureComponent<Props> {
   onDeviceChange = (v: SelectableValue<number>) => {
     const { onChange, query, onRunQuery, datasource } = this.props;
     datasource
-      .findMeasurementsForDevice(v.value!, query.refId)
+      .findMeasurementsForDevice(v.value!)
       .then(r => {
         onChange({
           ...query,
@@ -96,7 +96,7 @@ export class QueryEditor extends PureComponent<Props> {
   onMeasurementChange = (v: SelectableValue<number>) => {
     const { onChange, query, onRunQuery, datasource } = this.props;
     datasource
-      .findMetricsForMeasurement(v.value!, query.refId)
+      .findMetricsForMeasurement(v.value!)
       .then(r => {
         onChange({
           ...query,

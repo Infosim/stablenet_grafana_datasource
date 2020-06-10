@@ -7,15 +7,14 @@
  */
 import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings } from '@grafana/data';
 
-import { StableNetConfigOptions, Query, MetricQuery, BasicQuery, TestOptions, SingleQuery } from './Types';
+import { StableNetConfigOptions, Query, BasicQuery, TestOptions, SingleQuery } from './Types';
 import { Target } from './QueryInterfaces';
 import {
   EmptyQueryResult,
   EntityQueryResult,
-  GenericResponse,
   LabelValue,
+  MetricQueryResult,
   MetricResult,
-  MetricType,
   QueryResult,
   TargetDatapoints,
   TestResult,
@@ -88,10 +87,10 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     });
   }
 
-  async findMetricsForMeasurement(obid: number, refid: string): Promise<MetricResult[]> {
-    const data: Query<MetricQuery> = this.createMetricQuery(obid, refid);
-    return this.doRequest<GenericResponse<MetricType[]>>(data).then(result =>
-      result.data.results[refid].meta.map(metric => {
+  async findMetricsForMeasurement(obid: number): Promise<MetricResult[]> {
+    const data = { measurementObid: obid };
+    return this.doResourceRequest<MetricQueryResult>('metrics', data).then(result =>
+      result.data.map(metric => {
         const m: MetricResult = {
           measurementObid: obid,
           key: metric.key,
@@ -100,18 +99,6 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
         return m;
       })
     );
-  }
-
-  private createMetricQuery(mesurementObid: number, refid: string): Query<MetricQuery> {
-    const data: MetricQuery = {
-      refId: refid,
-      datasourceId: this.id,
-      queryType: 'metricNames',
-      measurementObid: mesurementObid,
-    };
-    return {
-      queries: [data],
-    };
   }
 
   async query(options: DataQueryRequest<Target>): Promise<DataQueryResponse | EmptyQueryResult> {
