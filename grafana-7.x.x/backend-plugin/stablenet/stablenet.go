@@ -22,7 +22,7 @@ import (
 type Client interface {
 	QueryStableNetVersion() (*ServerVersion, *string)
 	QueryDevices(string) (*DeviceQueryResult, error)
-	FetchMeasurementsForDevice(*int) (*MeasurementQueryResult, error)
+	FetchMeasurementsForDevice(int) (*MeasurementQueryResult, error)
 	FetchMeasurementName(int) (*string, error)
 	FetchMetricsForMeasurement(int) ([]Metric, error)
 	FetchDataForMetrics(DataQueryOptions) (map[string]MetricDataSeries, error)
@@ -150,11 +150,8 @@ type MeasurementQueryResult struct {
 	HasMore      bool          `json:"hasMore"`
 }
 
-func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int) (*MeasurementQueryResult, error) {
-	var deviceFilter string
-	if deviceObid != nil {
-		deviceFilter = fmt.Sprintf("destDeviceId eq '%d'", *deviceObid)
-	}
+func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) (*MeasurementQueryResult, error) {
+	deviceFilter := fmt.Sprintf("destDeviceId eq '%d'", deviceObid)
 	url := c.buildJsonApiUrl("measurements", "name", deviceFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {

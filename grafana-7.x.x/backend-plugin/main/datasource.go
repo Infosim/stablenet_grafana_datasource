@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 )
 
 type testDataSource struct {
@@ -46,10 +47,7 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))
 		}
 	}()
-	options, err := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		return nil, fmt.Errorf("could not extract data source settings: %v", err)
-	}
+	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
 
 	queries := make([]query2.MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
@@ -62,7 +60,7 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 	}
 	client := stablenet.NewClient(options)
 	handler := query2.StableNetHandler{SnClient: client}
-	queries, err = handler.ExpandStatisticLinks(queries)
+	queries, err := handler.ExpandStatisticLinks(queries)
 	if err != nil {
 		return nil, err
 	}
@@ -83,11 +81,7 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 
 func (ds *testDataSource) handleTest(rw http.ResponseWriter, req *http.Request) {
 	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract data source settings: %v", err), http.StatusInternalServerError)
-		return
-	}
+	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
 	snClient := stablenet.NewClient(options)
 	version, errStr := snClient.QueryStableNetVersion()
 	if errStr != nil {
@@ -104,21 +98,10 @@ func (ds *testDataSource) handleTest(rw http.ResponseWriter, req *http.Request) 
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
 	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract data source settings: %v", err), http.StatusInternalServerError)
-		return
-	}
+	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
 	snClient := stablenet.NewClient(options)
-	filterWrapper := struct {
-		Filter string
-	}{}
-	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract filter from request body: %v", err), http.StatusUnprocessableEntity)
-		return
-	}
-	devices, err := snClient.QueryDevices(filterWrapper.Filter)
+	filter := req.URL.Query().Get("filter")
+	devices, err := snClient.QueryDevices(filter)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query devices: %v", err), http.StatusInternalServerError)
 		return
@@ -131,21 +114,14 @@ func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
 
 func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract data source settings: %v", err), http.StatusInternalServerError)
-		return
-	}
+	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
 	snClient := stablenet.NewClient(options)
-	filterWrapper := struct {
-		DeviceObid int
-	}{}
-	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
+	deviceObid, err := strconv.Atoi(req.URL.Query().Get("deviceObid"))
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract filter and deviceObid from request body: %v", err), http.StatusUnprocessableEntity)
+		http.Error(rw, fmt.Sprintf("could not parse deviceObid from request body: %v", err), http.StatusBadRequest)
 		return
 	}
-	measurements, err := snClient.FetchMeasurementsForDevice(&filterWrapper.DeviceObid)
+	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query measurements: %v", err), http.StatusInternalServerError)
 		return
@@ -158,21 +134,14 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 
 func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
 	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options, err := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract source settings: %v", err), http.StatusInternalServerError)
-		return
-	}
+	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
 	snClient := stablenet.NewClient(options)
-	filterWrapper := struct {
-		MeasurementObid int
-	}{}
-	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
+	measurementObid, err := strconv.Atoi(req.URL.Query().Get("measurementObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v"), http.StatusInternalServerError)
 		return
 	}
-	metrics, err := snClient.FetchMetricsForMeasurement(filterWrapper.MeasurementObid)
+	metrics, err := snClient.FetchMetricsForMeasurement(measurementObid)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query metrics: %v", err), http.StatusInternalServerError)
 		return

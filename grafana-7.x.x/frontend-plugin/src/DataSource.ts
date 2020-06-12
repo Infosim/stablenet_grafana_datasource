@@ -45,7 +45,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   }
 
   async queryDevices(queryString: string): Promise<QueryResult> {
-    return super.postResource('devices', { filter: queryString }).then(result => {
+    return super.getResource('devices', { filter: queryString }).then(result => {
       const res: LabelValue[] = result.data.map(device => {
         return {
           label: device.name,
@@ -61,7 +61,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   }
 
   async findMeasurementsForDevice(obid: number): Promise<QueryResult> {
-    return super.postResource('measurements', { deviceObid: obid }).then(result => {
+    return super.getResource('measurements', { deviceObid: obid }).then(result => {
       const res: LabelValue[] = result.data.map(measurement => {
         return {
           label: measurement.name,
@@ -76,7 +76,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   }
 
   async findMetricsForMeasurement(obid: number): Promise<MetricResult[]> {
-    return super.postResource('metrics', { measurementObid: obid }).then(result =>
+    return super.getResource('metrics', { measurementObid: obid }).then(result =>
       result.map(metric => {
         const m: MetricResult = {
           measurementObid: obid,

@@ -15,35 +15,33 @@ import (
 	"strconv"
 )
 
-func stableNetOptions(settings *backend.DataSourceInstanceSettings) (*stablenet.ConnectOptions, error) {
+func stableNetOptions(settings *backend.DataSourceInstanceSettings) *stablenet.ConnectOptions {
 	if settings == nil {
-		return nil, fmt.Errorf("settings is nil")
+		panic("datasource settings are nil, are you in a datasource environment?")
 	}
 	options := make(map[string]string)
-	err := json.Unmarshal(settings.JSONData, &options)
-	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal JSONData of the datasource: %v", err)
-	}
+	//error checking of unmarshal is done by checking the specific fields
+	_ = json.Unmarshal(settings.JSONData, &options)
 	if _, ok := options["snip"]; !ok {
-		return nil, fmt.Errorf("the snip is missing in the JSONData of the datasource")
+		panic("field \"snip\" is missing in the JSONData of the datasource")
 	}
 	if _, ok := options["snport"]; !ok {
-		return nil, fmt.Errorf("the snport is missing in the jsonData of the datasource")
+		panic("the field \"snport\" is missing in the JSONData of the datasource")
 	}
 	if _, ok := options["snusername"]; !ok {
-		return nil, fmt.Errorf("the snusername is missing in the JSONData of the datasource")
+		panic("the field \"snusername\" is missing in the JSONData of the datasource")
 	}
 	if _, ok := settings.DecryptedSecureJSONData["snpassword"]; !ok {
-		return nil, fmt.Errorf("the snpassword is missing in the encryptedJSONData of the datasource")
+		panic("the field \"snpassword\" is missing in the encryptedJSONData of the datasource")
 	}
 	port, portErr := strconv.Atoi(options["snport"])
 	if portErr != nil {
-		return nil, fmt.Errorf("could not parse snport into number: %v", portErr)
+		panic(fmt.Sprintf("the field \"snport\" could not be parsed into a number: %v", portErr))
 	}
 	return &stablenet.ConnectOptions{
 		Host:     options["snip"],
 		Port:     port,
 		Username: options["snusername"],
 		Password: settings.DecryptedSecureJSONData["snpassword"],
-	}, nil
+	}
 }
