@@ -9,8 +9,7 @@ import { DataSourcePlugin } from '@grafana/data';
 import { DataSource } from './DataSource';
 import { ConfigEditor } from './ConfigEditor';
 import { QueryEditor } from './QueryEditor';
-import { StableNetConfigOptions } from './Types';
-import { Target } from './QueryInterfaces';
+import { StableNetConfigOptions, Target } from './Types';
 
 export const plugin = new DataSourcePlugin<DataSource, Target, StableNetConfigOptions>(DataSource)
   .setConfigEditor(ConfigEditor)

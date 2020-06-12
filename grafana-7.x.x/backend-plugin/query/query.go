@@ -9,22 +9,12 @@ package query
 
 import (
 	"backend-plugin/stablenet"
-	"encoding/json"
 	"fmt"
-	"github.com/bitly/go-simplejson"
-	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"sort"
 	"time"
 )
-
-func BuildErrorResult(msg string, refId string) *datasource.QueryResult {
-	return &datasource.QueryResult{
-		Error: msg,
-		RefId: refId,
-	}
-}
 
 type measurementDataRequest struct {
 	MeasurementObid int            `json:"measurementObid"`
@@ -46,81 +36,6 @@ func (m metricsRequest) keyNameMap() map[string]string {
 	for _, metric := range m {
 		result[metric.Key] = metric.Name
 	}
-	return result
-}
-
-type Query struct {
-	datasource.Query
-	StartTime time.Time
-	EndTime   time.Time
-}
-
-func (q *Query) GetCustomField(name string) (string, error) {
-	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
-	if err != nil {
-		return "", err
-	}
-	return queryJson.Get(name).String()
-}
-
-func (q *Query) GetCustomIntField(name string) (*int, error) {
-	var object map[string]interface{}
-	err := json.Unmarshal([]byte(q.ModelJson), &object)
-	if err != nil {
-		return nil, err
-	}
-	if _, ok := object[name]; !ok {
-		return nil, fmt.Errorf("value '%s' not present in the modelJson", name)
-	}
-	floatValue, ok := object[name].(float64)
-	if !ok {
-		return nil, fmt.Errorf("value '%s' is supposed to be an int, but was not", name)
-	}
-	intValue := int(floatValue)
-	return &intValue, nil
-}
-
-func (q *Query) GetMeasurementDataRequest() ([]measurementDataRequest, error) {
-	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
-	if err != nil {
-		return nil, fmt.Errorf("error while creating json from modelJson: %v", err)
-	}
-	if queryJson.Get("requestData").Interface() == nil {
-		return nil, fmt.Errorf("dataRequest not present in the modelJson")
-	}
-	dataRequestBytes, err := queryJson.Get("requestData").Encode()
-	var result []measurementDataRequest
-	err = json.Unmarshal(dataRequestBytes, &result)
-	if err != nil {
-		return nil, fmt.Errorf("requestData field of modelJson has not the expected format: %v", err)
-	}
-	return result, nil
-}
-
-func (q *Query) includeMinStats() bool {
-	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
-	if err != nil {
-		return false
-	}
-	result, _ := queryJson.Get("includeMinStats").Bool()
-	return result
-}
-
-func (q *Query) includeAvgStats() bool {
-	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
-	if err != nil {
-		return false
-	}
-	result, _ := queryJson.Get("includeAvgStats").Bool()
-	return result
-}
-
-func (q *Query) includeMaxStats() bool {
-	queryJson, err := simplejson.NewJson([]byte(q.ModelJson))
-	if err != nil {
-		return false
-	}
-	result, _ := queryJson.Get("includeMaxStats").Bool()
 	return result
 }
 

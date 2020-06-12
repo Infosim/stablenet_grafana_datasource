@@ -15,40 +15,18 @@ import (
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"github.com/hashicorp/go-hclog"
 	"net/http"
 	"regexp"
 	"runtime/debug"
 )
 
-type testDataSourceInstanceSettings struct {
-	httpClient *http.Client
-}
-
-func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	return &testDataSourceInstanceSettings{
-		httpClient: &http.Client{},
-	}, nil
-}
-
-func (s *testDataSourceInstanceSettings) Dispose() {
-	// Cleanup
-}
-
 type testDataSource struct {
-	im     instancemgmt.InstanceManager
-	logger hclog.Logger
 }
 
-func newDataSource(logger hclog.Logger) datasource.ServeOpts {
-	im := datasource.NewInstanceManager(newDataSourceInstance)
-	ds := &testDataSource{
-		im:     im,
-		logger: logger,
-	}
+func newDataSource() datasource.ServeOpts {
+	ds := &testDataSource{}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/test", ds.handleTest)
@@ -99,7 +77,7 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 		}
 	}
 	response := backend.NewQueryDataResponse()
-	response.Responses = backend.Responses{"whatever": backend.DataResponse{Frames: allFrames}}
+	response.Responses = backend.Responses{"queryResponse": backend.DataResponse{Frames: allFrames}}
 	return response, nil
 }
 
