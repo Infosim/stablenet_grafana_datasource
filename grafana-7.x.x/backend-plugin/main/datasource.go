@@ -29,11 +29,21 @@ type testDataSource struct {
 func newDataSource() datasource.ServeOpts {
 	ds := &testDataSource{}
 
+	addClientThen := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(rw http.ResponseWriter, req *http.Request) {
+			pluginContext := httpadapter.PluginConfigFromContext(req.Context())
+			options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+			client := stablenet.NewClient(options)
+			ctx := context.WithValue(req.Context(), "SnClient", client)
+			next.ServeHTTP(rw, req.WithContext(ctx))
+		}
+	}
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/test", ds.handleTest)
-	mux.HandleFunc("/devices", handleDeviceQuery)
-	mux.HandleFunc("/measurements", handleMeasurementQuery)
-	mux.HandleFunc("/metrics", handleMetricQuery)
+	mux.HandleFunc("/test", addClientThen(handleTest))
+	mux.HandleFunc("/devices", addClientThen(handleDeviceQuery))
+	mux.HandleFunc("/measurements", addClientThen(handleMeasurementQuery))
+	mux.HandleFunc("/metrics", addClientThen(handleMetricQuery))
 
 	return datasource.ServeOpts{
 		CallResourceHandler: httpadapter.New(mux),
@@ -79,10 +89,8 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 	return response, nil
 }
 
-func (ds *testDataSource) handleTest(rw http.ResponseWriter, req *http.Request) {
-	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	snClient := stablenet.NewClient(options)
+func handleTest(rw http.ResponseWriter, req *http.Request) {
+	snClient := req.Context().Value("SnClient").(stablenet.Client)
 	version, errStr := snClient.QueryStableNetVersion()
 	if errStr != nil {
 		http.Error(rw, *errStr, http.StatusBadRequest)
@@ -97,9 +105,7 @@ func (ds *testDataSource) handleTest(rw http.ResponseWriter, req *http.Request) 
 }
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
-	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	snClient := stablenet.NewClient(options)
+	snClient := req.Context().Value("SnClient").(stablenet.Client)
 	filter := req.URL.Query().Get("filter")
 	devices, err := snClient.QueryDevices(filter)
 	if err != nil {
@@ -113,12 +119,10 @@ func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
-	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	snClient := stablenet.NewClient(options)
+	snClient := req.Context().Value("SnClient").(stablenet.Client)
 	deviceObid, err := strconv.Atoi(req.URL.Query().Get("deviceObid"))
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not parse deviceObid from request body: %v", err), http.StatusBadRequest)
+		http.Error(rw, fmt.Sprintf("could not parse deviceObid query param: %v", err), http.StatusBadRequest)
 		return
 	}
 	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid)
@@ -133,9 +137,7 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
-	pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-	options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
-	snClient := stablenet.NewClient(options)
+	snClient := req.Context().Value("SnClient").(stablenet.Client)
 	measurementObid, err := strconv.Atoi(req.URL.Query().Get("measurementObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v"), http.StatusInternalServerError)

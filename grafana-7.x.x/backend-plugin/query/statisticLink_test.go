@@ -11,10 +11,9 @@ import (
 	"backend-plugin/stablenet"
 	"bufio"
 	"bytes"
-	"github.com/bmizerany/assert"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/hashicorp/go-hclog"
-	testify "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sort"
 	"testing"
@@ -36,13 +35,13 @@ func TestFindMeasurementIdsInLink(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			got := findMeasurementIdsInLink(tt.link)
-			testify.Equal(t, len(tt.wanted), len(got), "length is different")
+			assert.Equal(t, len(tt.wanted), len(got), "length is different")
 			for key, value := range tt.wanted {
 				gotValue, ok := got[key]
-				if !testify.True(t, ok, "key %d not available in got map", key) {
+				if !assert.True(t, ok, "key %d not available in got map", key) {
 					continue
 				}
-				testify.Equal(t, value, gotValue, "for key %d the expected value %d differs from the got one %d", key, value, gotValue)
+				assert.Equal(t, value, gotValue, "for key %d the expected value %d differs from the got one %d", key, value, gotValue)
 			}
 		})
 	}
@@ -62,13 +61,13 @@ func TestExtractMetricKeysForMeasurement(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			got := extractMetricKeysForMeasurements(tt.link)
-			testify.Equal(t, len(tt.wanted), len(got), "lenght is different")
+			assert.Equal(t, len(tt.wanted), len(got), "lenght is different")
 			for key, value := range tt.wanted {
 				gotValue, ok := got[key]
-				if !testify.True(t, ok, "key %d not available in got map", key) {
+				if !assert.True(t, ok, "key %d not available in got map", key) {
 					continue
 				}
-				testify.Equal(t, value, gotValue, "for key %d the expected value %d differs from the got one %d", key, value, gotValue)
+				assert.Equal(t, value, gotValue, "for key %d the expected value %d differs from the got one %d", key, value, gotValue)
 			}
 		})
 	}
@@ -88,7 +87,7 @@ func TestFilterWantedMetrics(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			got := filterWantedMetrics(tt.wantedMetrics, tt.metrics)
-			testify.Equal(t, len(tt.wanted), len(got))
+			assert.Equal(t, len(tt.wanted), len(got))
 			for _, wantedIndex := range tt.wanted {
 				wanted := tt.metrics[wantedIndex]
 				contained := false
@@ -97,7 +96,7 @@ func TestFilterWantedMetrics(t *testing.T) {
 						contained = true
 					}
 				}
-				testify.True(t, contained, "%v was not present in to got metrics", wanted)
+				assert.True(t, contained, "%v was not present in to got metrics", wanted)
 			}
 		})
 	}

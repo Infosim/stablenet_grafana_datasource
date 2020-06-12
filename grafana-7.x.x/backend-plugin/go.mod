@@ -3,7 +3,6 @@ module backend-plugin
 go 1.14
 
 require (
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-resty/resty/v2 v2.1.0
 	github.com/grafana/grafana-plugin-model v0.0.0-20200514130833-df1eb6bdf4c5
