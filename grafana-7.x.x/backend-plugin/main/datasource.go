@@ -140,7 +140,7 @@ func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
 	snClient := req.Context().Value("SnClient").(stablenet.Client)
 	measurementObid, err := strconv.Atoi(req.URL.Query().Get("measurementObid"))
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v"), http.StatusInternalServerError)
+		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v", err), http.StatusInternalServerError)
 		return
 	}
 	metrics, err := snClient.FetchMetricsForMeasurement(measurementObid)

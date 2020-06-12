@@ -15,6 +15,8 @@ import (
 	"strconv"
 )
 
+// Parses the JSON object contained in settings and extracts the StableNet options.
+// It panics if the the StableNet options are not complete or not parsable, or nil is passed as argument.
 func stableNetOptions(settings *backend.DataSourceInstanceSettings) *stablenet.ConnectOptions {
 	if settings == nil {
 		panic("datasource settings are nil, are you in a datasource environment?")
