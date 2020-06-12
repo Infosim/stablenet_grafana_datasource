@@ -160,7 +160,6 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 	}
 	snClient := stablenet.NewClient(options)
 	filterWrapper := struct {
-		Filter     string
 		DeviceObid int
 	}{}
 	err = json.NewDecoder(req.Body).Decode(&filterWrapper)
@@ -168,7 +167,7 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, fmt.Sprintf("could not extract filter and deviceObid from request body: %v", err), http.StatusUnprocessableEntity)
 		return
 	}
-	measurements, err := snClient.FetchMeasurementsForDevice(&filterWrapper.DeviceObid, filterWrapper.Filter)
+	measurements, err := snClient.FetchMeasurementsForDevice(&filterWrapper.DeviceObid)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query measurements: %v", err), http.StatusInternalServerError)
 		return
@@ -195,7 +194,7 @@ func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v"), http.StatusInternalServerError)
 		return
 	}
-	metrics, err := snClient.FetchMetricsForMeasurement(filterWrapper.MeasurementObid, "")
+	metrics, err := snClient.FetchMetricsForMeasurement(filterWrapper.MeasurementObid)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query metrics: %v", err), http.StatusInternalServerError)
 		return

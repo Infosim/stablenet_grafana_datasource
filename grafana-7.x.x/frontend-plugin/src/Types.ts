@@ -5,25 +5,47 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQuery, DataSourceJsonData } from '@grafana/data';
+import { DataQuery, DataSourceJsonData, SelectableValue } from '@grafana/data';
 
-export interface BasicQuery {
-  refId: string;
-  datasourceId: number;
-  queryType: string;
+export interface Target extends DataQuery {
+  mode: number;
+  selectedDevice: LabelValue;
+  selectedMeasurement: LabelValue;
+  chosenMetrics: object;
+  metricPrefix: string;
+  includeMinStats: boolean;
+  includeAvgStats: boolean;
+  includeMaxStats: boolean;
+  statisticLink: string;
+  averagePeriod: string;
+  averageUnit: number;
+  useCustomAverage: boolean;
+  measurements: LabelValue[];
+  metrics: Array<{ text: string; key: string; measurementObid: number }>;
+  moreDevices: boolean;
+  moreMeasurements: boolean;
 }
 
-export interface TestOptions {
-  headers: object;
-  url: string;
-  method: string;
-  data?: Query<BasicQuery>;
+export interface LabelValue extends SelectableValue<number> {
+  label: string;
+  value: number;
 }
 
-export interface Query<T> {
-  from?: string;
-  to?: string;
-  queries: T[];
+export interface TestResult {
+  status: string;
+  message: string;
+  title: string;
+}
+
+export interface QueryResult {
+  data: LabelValue[];
+  hasMore: boolean;
+}
+
+export interface MetricResult {
+  key: string;
+  text: string;
+  measurementObid: number;
 }
 
 export interface SingleQuery extends DataQuery {

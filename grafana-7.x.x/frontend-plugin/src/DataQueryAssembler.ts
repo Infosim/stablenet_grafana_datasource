@@ -5,8 +5,7 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { Target } from './QueryInterfaces';
-import { Mode, SingleQuery, StringPair } from './Types';
+import { Mode, SingleQuery, StringPair, Target } from './Types';
 
 export class WrappedTarget {
   constructor(private target: Target, private intervalMs: number) {}

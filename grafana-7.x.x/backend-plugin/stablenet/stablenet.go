@@ -22,9 +22,9 @@ import (
 type Client interface {
 	QueryStableNetVersion() (*ServerVersion, *string)
 	QueryDevices(string) (*DeviceQueryResult, error)
-	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
+	FetchMeasurementsForDevice(*int) (*MeasurementQueryResult, error)
 	FetchMeasurementName(int) (*string, error)
-	FetchMetricsForMeasurement(int, string) ([]Metric, error)
+	FetchMetricsForMeasurement(int) ([]Metric, error)
 	FetchDataForMetrics(DataQueryOptions) (map[string]MetricDataSeries, error)
 }
 
@@ -150,21 +150,18 @@ type MeasurementQueryResult struct {
 	HasMore      bool          `json:"hasMore"`
 }
 
-func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int, filter string) (*MeasurementQueryResult, error) {
-	var deviceFilter, nameFilter string
+func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid *int) (*MeasurementQueryResult, error) {
+	var deviceFilter string
 	if deviceObid != nil {
 		deviceFilter = fmt.Sprintf("destDeviceId eq '%d'", *deviceObid)
 	}
-	if len(filter) != 0 {
-		nameFilter = fmt.Sprintf("name ct '%s'", filter)
-	}
-	url := c.buildJsonApiUrl("measurements", "name", deviceFilter, nameFilter)
+	url := c.buildJsonApiUrl("measurements", "name", deviceFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving measurements for device filter \"%s\" and name filter \"%s\" failed: %v", deviceFilter, nameFilter, err)
+		return nil, fmt.Errorf("retrieving measurements for device filter \"%s\" failed: %v", deviceFilter, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device filter \"%s\" and name filter \"%s\" failed", deviceFilter, nameFilter), resp)
+		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device filter \"%s\" failed", deviceFilter), resp)
 	}
 	var result MeasurementQueryResult
 	err = json.Unmarshal(resp.Body(), &result)
@@ -194,14 +191,10 @@ func (c *ClientImpl) FetchMeasurementName(id int) (*string, error) {
 	return &responseData.Measurements[0].Name, nil
 }
 
-func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int, filter string) ([]Metric, error) {
-	var nameFilter string
-	if len(filter) != 0 {
-		nameFilter = fmt.Sprintf("name ct '%s'", filter)
-	}
+func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
 	endpoint := fmt.Sprintf("measurements/%d/metrics", measurementObid)
 	//orderby is empty because it' currently not supported by the endpoint
-	url := c.buildJsonApiUrl(endpoint, "", nameFilter)
+	url := c.buildJsonApiUrl(endpoint, "")
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metrics for measurement %d failed: %v", measurementObid, err)

@@ -8,9 +8,7 @@
 import React, { ChangeEvent, PureComponent } from 'react';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './DataSource';
-import { Mode, StableNetConfigOptions, Unit } from './Types';
-import { Target } from './QueryInterfaces';
-import { LabelValue } from './ReturnTypes';
+import { LabelValue, Mode, StableNetConfigOptions, Target, Unit } from './Types';
 import { Metric } from './components/Metric';
 import { MetricPrefix } from './components/MetricPrefix';
 import { DeviceMenu } from './components/DeviceMenu';

@@ -68,14 +68,14 @@ func filterWantedMetrics(fromLink []string, realMetrics []stablenet.Metric) []St
 	return result
 }
 
-func ParseStatisticLink(originalQuery MetricQuery, metricSupplier func(int, string) ([]stablenet.Metric, error)) ([]MetricQuery, error) {
+func ParseStatisticLink(originalQuery MetricQuery, metricSupplier func(int) ([]stablenet.Metric, error)) ([]MetricQuery, error) {
 	requested := extractMetricKeysForMeasurements(*originalQuery.StatisticLink)
 	if len(requested) == 0 {
 		return nil, fmt.Errorf("the link \"%s\" does not carry at least a measurement id", *originalQuery.StatisticLink)
 	}
 	allQueries := make([]MetricQuery, 0, 0)
 	for measurementId, metricKeys := range requested {
-		realMetrics, err := metricSupplier(measurementId, "")
+		realMetrics, err := metricSupplier(measurementId)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch metrics for measurement %d: %v", measurementId, err)
 		}
