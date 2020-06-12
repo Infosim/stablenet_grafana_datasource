@@ -8,6 +8,7 @@
 package main
 
 import (
+	query2 "backend-plugin/query"
 	"backend-plugin/stablenet"
 	"context"
 	"encoding/json"
@@ -20,7 +21,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"net/http"
 	"regexp"
-	"time"
+	"runtime/debug"
 )
 
 type testDataSourceInstanceSettings struct {
@@ -70,47 +71,40 @@ func (ds *testDataSource) getSettings(pluginContext backend.PluginContext) (*tes
 	return iface.(*testDataSourceInstanceSettings), nil
 }
 
-type MetricQuery struct {
-	IncludeAvgStats bool
-	IncludeMaxStats bool
-	IncludeMinStats bool
-	RequestData     []MetricRequest
-}
-
-type MetricRequest struct {
-	MeasurementObid int
-	Metrics         []struct {
-		Key  string
-		Name string
-	}
-}
-
 func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	_, err := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
+	defer func() {
+		if err := recover(); err != nil {
+			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))
+		}
+	}()
+	options, err := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
 		return nil, fmt.Errorf("could not extract data source settings: %v", err)
 	}
 
-	queries := make([]MetricQuery, 0, len(req.Queries))
+	queries := make([]query2.MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
-		query := MetricQuery{}
+		query := query2.MetricQuery{}
 		err := json.Unmarshal(singleRequest.JSON, &query)
 		if err != nil {
 			return nil, fmt.Errorf("could not deserialize query %d: %v", index, err)
 		}
 		queries = append(queries, query)
 	}
-	frames := make([]*data.Frame, 0, len(req.Queries))
-	for index, _ := range queries {
-		frame := data.NewFrame(fmt.Sprintf("Frame %d", index), data.NewField("timeValues", nil, []time.Time{}), data.NewField("data", nil, []float64{}))
-		frame.AppendRow(time.Now().Add(-1*time.Hour), 5.3)
-		frame.AppendRow(time.Now().Add(-30*time.Minute), 6.7)
-		frame.AppendRow(time.Now(), 7.8)
-		frames = append(frames, frame)
+	client := stablenet.NewClient(options)
+	handler := query2.StableNetHandler{SnClient: client}
+	allFrames := make([]*data.Frame, 0, 0)
+	for index, query := range queries {
+		frames, err := handler.FetchMetrics(req.Queries[index], query)
+		if err != nil {
+			return nil, fmt.Errorf("could not fetch data for query %d: %v", index, err)
+		}
+		for _, frame := range frames {
+			allFrames = append(allFrames, frame)
+		}
 	}
-	backend.Logger.Warn(fmt.Sprintf("%v", frames))
 	response := backend.NewQueryDataResponse()
-	response.Responses = backend.Responses{"whatever": backend.DataResponse{Frames: frames}}
+	response.Responses = backend.Responses{"whatever": backend.DataResponse{Frames: allFrames}}
 	return response, nil
 }
 

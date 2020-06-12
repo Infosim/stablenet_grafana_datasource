@@ -9,7 +9,6 @@ package query
 
 import (
 	"backend-plugin/stablenet"
-	"fmt"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"regexp"
 	"strconv"
@@ -77,45 +76,46 @@ type statisticLinkHandler struct {
 }
 
 func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, error) {
-	link, err := query.GetCustomField("statisticLink")
-	if err != nil {
-		return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
-	}
-	requested := extractMetricKeysForMeasurements(link)
-	if len(requested) == 0 {
-		return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry at least a measurement id", link), query.RefId), nil
-	}
-	allSeries := make([]*datasource.TimeSeries, 0, 0)
-	for measurementId, metricKeys := range requested {
-		realMetrics, err := s.SnClient.FetchMetricsForMeasurement(measurementId, "")
-		if err != nil {
-			s.Logger.Error(err.Error())
-			return BuildErrorResult(fmt.Sprintf("could not fetch metrics for measurement %d, does it exist?", measurementId), query.RefId), nil
-		}
-		metrics := filterWantedMetrics(metricKeys, realMetrics)
-		if len(metrics) == 0 {
-			continue
-		}
-
-		series, err := s.fetchMetrics(query, measurementId, metrics)
-		if err != nil {
-			e := fmt.Errorf("could not fetch data for statistic link from server: %v", err)
-			s.Logger.Error(e.Error())
-			return nil, e
-		}
-		measurementName, err := s.SnClient.FetchMeasurementName(measurementId)
-		if err != nil {
-			s.Logger.Error(err.Error())
-			return BuildErrorResult(fmt.Sprintf("could not fetch name of measurement %d. See Logs for more information", measurementId), query.RefId), nil
-		}
-		for _, singleSeries := range series {
-			singleSeries.Name = *measurementName + " " + singleSeries.Name
-			allSeries = append(allSeries, singleSeries)
-		}
-	}
-	result := datasource.QueryResult{
-		RefId:  query.RefId,
-		Series: allSeries,
-	}
-	return &result, nil
+	panic("not implemented")
+	//link, err := query.GetCustomField("statisticLink")
+	//if err != nil {
+	//	return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
+	//}
+	//requested := extractMetricKeysForMeasurements(link)
+	//if len(requested) == 0 {
+	//	return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry at least a measurement id", link), query.RefId), nil
+	//}
+	//allSeries := make([]*datasource.TimeSeries, 0, 0)
+	//for measurementId, metricKeys := range requested {
+	//	realMetrics, err := s.SnClient.FetchMetricsForMeasurement(measurementId, "")
+	//	if err != nil {
+	//		s.Logger.Error(err.Error())
+	//		return BuildErrorResult(fmt.Sprintf("could not fetch metrics for measurement %d, does it exist?", measurementId), query.RefId), nil
+	//	}
+	//	metrics := filterWantedMetrics(metricKeys, realMetrics)
+	//	if len(metrics) == 0 {
+	//		continue
+	//	}
+	//
+	//	series, err := s.fetchMetrics(query, measurementId, metrics)
+	//	if err != nil {
+	//		e := fmt.Errorf("could not fetch data for statistic link from server: %v", err)
+	//		s.Logger.Error(e.Error())
+	//		return nil, e
+	//	}
+	//	measurementName, err := s.SnClient.FetchMeasurementName(measurementId)
+	//	if err != nil {
+	//		s.Logger.Error(err.Error())
+	//		return BuildErrorResult(fmt.Sprintf("could not fetch name of measurement %d. See Logs for more information", measurementId), query.RefId), nil
+	//	}
+	//	for _, singleSeries := range series {
+	//		singleSeries.Name = *measurementName + " " + singleSeries.Name
+	//		allSeries = append(allSeries, singleSeries)
+	//	}
+	//}
+	//result := datasource.QueryResult{
+	//	RefId:  query.RefId,
+	//	Series: allSeries,
+	//}
+	//return &result, nil
 }

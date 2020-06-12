@@ -25,7 +25,6 @@ func GetHandlersForRequest(request Request) (map[string]Handler, error) {
 	}
 	snClient := stablenet.NewClient(connectOptions)
 	baseHandler := StableNetHandler{
-		Logger:   request.Logger,
 		SnClient: snClient,
 	}
 	handlers := make(map[string]Handler)
@@ -96,7 +95,6 @@ func (d deviceHandler) Process(q Query) (*datasource.QueryResult, error) {
 	queryResult, err := d.SnClient.QueryDevices(filter)
 	if err != nil {
 		e := fmt.Errorf("could not retrieve devices from StableNet(R): %v", err)
-		d.Logger.Error(e.Error())
 		return nil, e
 	}
 	return createResponseWithCustomData(queryResult, q.RefId), nil
@@ -112,7 +110,6 @@ func (m measurementHandler) Process(query Query) (*datasource.QueryResult, error
 	measurements, err := m.SnClient.FetchMeasurementsForDevice(deviceObid, measurementFilter)
 	if err != nil {
 		e := fmt.Errorf("could not fetch measurements from StableNet(R): %v", err)
-		m.Logger.Error(e.Error())
 		return nil, e
 	}
 	return createResponseWithCustomData(measurements, query.RefId), nil
@@ -131,7 +128,6 @@ func (m metricNameHandler) Process(query Query) (*datasource.QueryResult, error)
 	metrics, err := m.SnClient.FetchMetricsForMeasurement(*measurementObid, filter)
 	if err != nil {
 		e := fmt.Errorf("could not retrieve metric names from StableNet(R): %v", err)
-		m.Logger.Error(e.Error())
 		return nil, e
 	}
 	return createResponseWithCustomData(metrics, query.RefId), nil
@@ -142,27 +138,7 @@ type metricDataHandler struct {
 }
 
 func (m metricDataHandler) Process(query Query) (*datasource.QueryResult, error) {
-	requests, err := query.GetMeasurementDataRequest()
-	if err != nil {
-		return BuildErrorResult(fmt.Sprintf("could not extract measurement requests from query: %v", err), query.RefId), nil
-	}
-
-	series := make([]*datasource.TimeSeries, 0, 0)
-	for _, request := range requests {
-		requestSeries, err := m.fetchMetrics(query, request.MeasurementObid, request.Metrics)
-		if err != nil {
-			e := fmt.Errorf("could not fetch metric data from server: %v", err)
-			m.Logger.Error(e.Error())
-			return nil, e
-		}
-		series = append(series, requestSeries...)
-	}
-
-	result := datasource.QueryResult{
-		RefId:  query.RefId,
-		Series: series,
-	}
-	return &result, nil
+	panic("not implemented")
 }
 
 type datasourceTestHandler struct {

@@ -13,9 +13,9 @@ import (
 	"fmt"
 	"github.com/bitly/go-simplejson"
 	"github.com/grafana/grafana-plugin-model/go/datasource"
-	"github.com/hashicorp/go-hclog"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -126,60 +126,72 @@ func (q *Query) includeMaxStats() bool {
 
 type StableNetHandler struct {
 	SnClient stablenet.Client
-	Logger   hclog.Logger
 }
 
-func (s *StableNetHandler) fetchMetrics(query Query, measurementObid int, metrics metricsRequest) ([]*datasource.TimeSeries, error) {
-	options := stablenet.DataQueryOptions{
-		MeasurementObid: measurementObid,
-		Metrics:         metrics.metricKeys(),
-		Start:           query.StartTime,
-		End:             query.EndTime,
-		Average:         query.IntervalMs,
+type MetricQuery struct {
+	IncludeAvgStats bool
+	IncludeMaxStats bool
+	IncludeMinStats bool
+	MeasurementObid int
+	Metrics         []struct {
+		Key  string
+		Name string
 	}
-	data, err := s.SnClient.FetchDataForMetrics(options)
+}
+
+func (m *MetricQuery) metricKeys() []string {
+	result := make([]string, 0, len(m.Metrics))
+	for _, metric := range m.Metrics {
+		result = append(result, metric.Key)
+	}
+	return result
+}
+
+func (m *MetricQuery) keyNameMap() map[string]string {
+	result := make(map[string]string)
+	for _, metric := range m.Metrics {
+		result[metric.Key] = metric.Name
+	}
+	return result
+}
+
+func (s *StableNetHandler) FetchMetrics(originalQuery backend.DataQuery, metricQuery MetricQuery) ([]*data.Frame, error) {
+	options := stablenet.DataQueryOptions{
+		MeasurementObid: metricQuery.MeasurementObid,
+		Metrics:         metricQuery.metricKeys(),
+		Start:           originalQuery.TimeRange.From,
+		End:             originalQuery.TimeRange.To,
+		Average:         int64(originalQuery.Interval / time.Millisecond),
+	}
+	snData, err := s.SnClient.FetchDataForMetrics(options)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
-	keys := make([]string, 0, len(data))
-	for key, _ := range data {
+	keys := make([]string, 0, len(snData))
+	for key, _ := range snData {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
-	result := make([]*datasource.TimeSeries, 0, len(data))
-	names := metrics.keyNameMap()
+	frames := make([]*data.Frame, 0, len(snData))
+	names := metricQuery.keyNameMap()
 	for _, key := range keys {
-		series := data[key]
-		maxTimeSeries := &datasource.TimeSeries{
-			Points: series.MaxValues(),
-			Name:   insertModifierIntoName(names[key], "Max"),
+		columns := make([]*data.Field, 0, 4)
+		columns = append(columns, data.NewField("timeValues", nil, []time.Time{}))
+		if metricQuery.IncludeMaxStats {
+			columns = append(columns, data.NewField("Max", nil, []float64{}))
 		}
-		minTimeSeries := &datasource.TimeSeries{
-			Points: series.MinValues(),
-			Name:   insertModifierIntoName(names[key], "Min"),
+		if metricQuery.IncludeMinStats {
+			columns = append(columns, data.NewField("Min", nil, []float64{}))
 		}
-		avgTimeSeries := &datasource.TimeSeries{
-			Points: series.AvgValues(),
-			Name:   insertModifierIntoName(names[key], "Avg"),
+		if metricQuery.IncludeAvgStats {
+			columns = append(columns, data.NewField("Avg", nil, []float64{}))
 		}
-		if query.includeMinStats() {
-			result = append(result, minTimeSeries)
+		frame := data.NewFrame(names[key], columns...)
+		for _, row := range snData[key].AsTable(metricQuery.IncludeMaxStats, metricQuery.IncludeMinStats, metricQuery.IncludeAvgStats) {
+			frame.AppendRow(row...)
 		}
-		if query.includeMaxStats() {
-			result = append(result, maxTimeSeries)
-		}
-		if query.includeAvgStats() {
-			result = append(result, avgTimeSeries)
-		}
+		frames = append(frames, frame)
 	}
-	return result, nil
-}
 
-const modifierString = "{MinMaxAvg}"
-
-func insertModifierIntoName(name string, modifier string) string {
-	if strings.Contains(name, modifierString) {
-		return strings.Replace(name, modifierString, modifier, 1)
-	}
-	return modifier + " " + name
+	return frames, nil
 }

@@ -67,6 +67,25 @@ func (s MetricDataSeries) AvgValues() []*datasource.Point {
 	})
 }
 
+func (s MetricDataSeries) AsTable(max, min, avg bool) [][]interface{} {
+	table := make([][]interface{}, 0, len(s))
+	for _, data := range s {
+		row := make([]interface{}, 0, 4)
+		row = append(row, data.Time)
+		if max {
+			row = append(row, data.Max)
+		}
+		if min {
+			row = append(row, data.Min)
+		}
+		if avg {
+			row = append(row, data.Avg)
+		}
+		table = append(table, row)
+	}
+	return table
+}
+
 type ServerInfo struct {
 	ServerVersion ServerVersion `xml:"serverversion"`
 }

@@ -28,17 +28,12 @@ export interface Query<T> {
 
 export interface SingleQuery extends DataQuery {
   statisticLink?: string;
-  requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
+  measurementObid?: number;
+  metrics?: Array<{ key: string; name: string }>;
   intervalMs: number;
   includeMinStats: boolean;
   includeAvgStats: boolean;
   includeMaxStats: boolean;
-}
-
-export interface RequestArgQuery {
-  from: string;
-  to: string;
-  queries: SingleQuery[];
 }
 
 export interface StringPair {

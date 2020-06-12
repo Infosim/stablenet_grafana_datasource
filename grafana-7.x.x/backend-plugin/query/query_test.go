@@ -170,7 +170,7 @@ func Test_insertModifierIntoName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, insertModifierIntoName(tt.metricName, tt.modifier))
+			assert.Equal(t, tt.want, InsertModifierIntoName(tt.metricName, tt.modifier))
 		})
 	}
 }
