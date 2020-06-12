@@ -9,7 +9,7 @@ package query
 
 import (
 	"backend-plugin/stablenet"
-	"github.com/grafana/grafana-plugin-model/go/datasource"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -56,66 +56,39 @@ func extractMetricKeysForMeasurements(link string) map[int][]string {
 	return result
 }
 
-func filterWantedMetrics(fromLink []string, realMetrics []stablenet.Metric) []stablenet.Metric {
-	if len(fromLink) == 0 {
-		return realMetrics
-	}
-	result := make([]stablenet.Metric, 0, 0)
+func filterWantedMetrics(fromLink []string, realMetrics []stablenet.Metric) []StringPair {
+	result := make([]StringPair, 0, 0)
 	for _, realMetric := range realMetrics {
 		for _, requestedMetric := range fromLink {
-			if strings.Contains(realMetric.Key, requestedMetric) {
-				result = append(result, realMetric)
+			if len(fromLink) == 0 || strings.Contains(realMetric.Key, requestedMetric) {
+				result = append(result, StringPair{Key: realMetric.Key, Name: realMetric.Name})
 			}
 		}
 	}
 	return result
 }
 
-type statisticLinkHandler struct {
-	*StableNetHandler
-}
+func ParseStatisticLink(originalQuery MetricQuery, metricSupplier func(int, string) ([]stablenet.Metric, error)) ([]MetricQuery, error) {
+	requested := extractMetricKeysForMeasurements(*originalQuery.StatisticLink)
+	if len(requested) == 0 {
+		return nil, fmt.Errorf("the link \"%s\" does not carry at least a measurement id", *originalQuery.StatisticLink)
+	}
+	allQueries := make([]MetricQuery, 0, 0)
+	for measurementId, metricKeys := range requested {
+		realMetrics, err := metricSupplier(measurementId, "")
+		if err != nil {
+			return nil, fmt.Errorf("could not fetch metrics for measurement %d: %v", measurementId, err)
+		}
+		metrics := filterWantedMetrics(metricKeys, realMetrics)
+		if len(metrics) == 0 {
+			continue
+		}
 
-func (s statisticLinkHandler) Process(query Query) (*datasource.QueryResult, error) {
-	panic("not implemented")
-	//link, err := query.GetCustomField("statisticLink")
-	//if err != nil {
-	//	return BuildErrorResult("could not extract statisticLink parameter from query", query.RefId), nil
-	//}
-	//requested := extractMetricKeysForMeasurements(link)
-	//if len(requested) == 0 {
-	//	return BuildErrorResult(fmt.Sprintf("the link \"%s\" does not carry at least a measurement id", link), query.RefId), nil
-	//}
-	//allSeries := make([]*datasource.TimeSeries, 0, 0)
-	//for measurementId, metricKeys := range requested {
-	//	realMetrics, err := s.SnClient.FetchMetricsForMeasurement(measurementId, "")
-	//	if err != nil {
-	//		s.Logger.Error(err.Error())
-	//		return BuildErrorResult(fmt.Sprintf("could not fetch metrics for measurement %d, does it exist?", measurementId), query.RefId), nil
-	//	}
-	//	metrics := filterWantedMetrics(metricKeys, realMetrics)
-	//	if len(metrics) == 0 {
-	//		continue
-	//	}
-	//
-	//	series, err := s.fetchMetrics(query, measurementId, metrics)
-	//	if err != nil {
-	//		e := fmt.Errorf("could not fetch data for statistic link from server: %v", err)
-	//		s.Logger.Error(e.Error())
-	//		return nil, e
-	//	}
-	//	measurementName, err := s.SnClient.FetchMeasurementName(measurementId)
-	//	if err != nil {
-	//		s.Logger.Error(err.Error())
-	//		return BuildErrorResult(fmt.Sprintf("could not fetch name of measurement %d. See Logs for more information", measurementId), query.RefId), nil
-	//	}
-	//	for _, singleSeries := range series {
-	//		singleSeries.Name = *measurementName + " " + singleSeries.Name
-	//		allSeries = append(allSeries, singleSeries)
-	//	}
-	//}
-	//result := datasource.QueryResult{
-	//	RefId:  query.RefId,
-	//	Series: allSeries,
-	//}
-	//return &result, nil
+		query := originalQuery.ShallowClone()
+		query.Metrics = metrics
+		query.MeasurementObid = measurementId
+
+		allQueries = append(allQueries, query)
+	}
+	return allQueries, nil
 }

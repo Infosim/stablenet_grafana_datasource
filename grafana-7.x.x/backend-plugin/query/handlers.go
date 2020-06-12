@@ -33,7 +33,6 @@ func GetHandlersForRequest(request Request) (map[string]Handler, error) {
 	handlers["metricNames"] = metricNameHandler{StableNetHandler: &baseHandler}
 	handlers["testDatasource"] = datasourceTestHandler{StableNetHandler: &baseHandler}
 	handlers["metricData"] = metricDataHandler{StableNetHandler: &baseHandler}
-	handlers["statisticLink"] = statisticLinkHandler{StableNetHandler: &baseHandler}
 	return handlers, nil
 }
 

@@ -62,15 +62,6 @@ func newDataSource(logger hclog.Logger) datasource.ServeOpts {
 	}
 }
 
-func (ds *testDataSource) getSettings(pluginContext backend.PluginContext) (*testDataSourceInstanceSettings, error) {
-	iface, err := ds.im.Get(pluginContext)
-	if err != nil {
-		return nil, err
-	}
-
-	return iface.(*testDataSourceInstanceSettings), nil
-}
-
 func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -84,7 +75,7 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 
 	queries := make([]query2.MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
-		query := query2.MetricQuery{}
+		query := query2.NewQuery(singleRequest)
 		err := json.Unmarshal(singleRequest.JSON, &query)
 		if err != nil {
 			return nil, fmt.Errorf("could not deserialize query %d: %v", index, err)
@@ -93,11 +84,15 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 	}
 	client := stablenet.NewClient(options)
 	handler := query2.StableNetHandler{SnClient: client}
+	queries, err = handler.ExpandStatisticLinks(queries)
+	if err != nil {
+		return nil, err
+	}
 	allFrames := make([]*data.Frame, 0, 0)
-	for index, query := range queries {
-		frames, err := handler.FetchMetrics(req.Queries[index], query)
+	for _, query := range queries {
+		frames, err := handler.FetchMetrics(query)
 		if err != nil {
-			return nil, fmt.Errorf("could not fetch data for query %d: %v", index, err)
+			return nil, fmt.Errorf("could not fetch data for query %v: %v", query, err)
 		}
 		for _, frame := range frames {
 			allFrames = append(allFrames, frame)

@@ -129,14 +129,42 @@ type StableNetHandler struct {
 }
 
 type MetricQuery struct {
+	Start           time.Time
+	End             time.Time
+	Interval        time.Duration
 	IncludeAvgStats bool
 	IncludeMaxStats bool
 	IncludeMinStats bool
+	StatisticLink   *string
 	MeasurementObid int
-	Metrics         []struct {
-		Key  string
-		Name string
+	Metrics         []StringPair
+}
+
+func (m *MetricQuery) ShallowClone() MetricQuery {
+	return MetricQuery{
+		Start:           m.Start,
+		End:             m.End,
+		Interval:        m.Interval,
+		IncludeAvgStats: m.IncludeAvgStats,
+		IncludeMaxStats: m.IncludeMaxStats,
+		IncludeMinStats: m.IncludeMinStats,
+		StatisticLink:   m.StatisticLink,
+		MeasurementObid: m.MeasurementObid,
+		Metrics:         m.Metrics,
 	}
+}
+
+func NewQuery(query backend.DataQuery) MetricQuery {
+	return MetricQuery{
+		Start:    query.TimeRange.From,
+		End:      query.TimeRange.To,
+		Interval: query.Interval,
+	}
+}
+
+type StringPair struct {
+	Key  string
+	Name string
 }
 
 func (m *MetricQuery) metricKeys() []string {
@@ -155,13 +183,31 @@ func (m *MetricQuery) keyNameMap() map[string]string {
 	return result
 }
 
-func (s *StableNetHandler) FetchMetrics(originalQuery backend.DataQuery, metricQuery MetricQuery) ([]*data.Frame, error) {
+func (s *StableNetHandler) ExpandStatisticLinks(queries []MetricQuery) ([]MetricQuery, error) {
+	result := make([]MetricQuery, 0, len(queries))
+	for index, query := range queries {
+		if query.StatisticLink == nil {
+			result = append(result, query)
+			continue
+		}
+		linkQueries, err := ParseStatisticLink(query, s.SnClient.FetchMetricsForMeasurement)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse statistic link of query %d: %v", index, err)
+		}
+		for _, linkQuery := range linkQueries {
+			result = append(result, linkQuery)
+		}
+	}
+	return result, nil
+}
+
+func (s *StableNetHandler) FetchMetrics(metricQuery MetricQuery) ([]*data.Frame, error) {
 	options := stablenet.DataQueryOptions{
 		MeasurementObid: metricQuery.MeasurementObid,
 		Metrics:         metricQuery.metricKeys(),
-		Start:           originalQuery.TimeRange.From,
-		End:             originalQuery.TimeRange.To,
-		Average:         int64(originalQuery.Interval / time.Millisecond),
+		Start:           metricQuery.Start,
+		End:             metricQuery.End,
+		Average:         int64(metricQuery.Interval / time.Millisecond),
 	}
 	snData, err := s.SnClient.FetchDataForMetrics(options)
 	if err != nil {
