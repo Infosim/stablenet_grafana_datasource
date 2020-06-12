@@ -53,22 +53,13 @@ export interface EntityQueryResult {
   };
 }
 
+export interface MetricQueryResult {
+  data: MetricType[];
+}
+
 export interface MetricType {
   key: string;
   name: string;
-}
-
-export interface GenericResponse<T> extends RequestResult {
-  data: {
-    results: {
-      [x: string]: {
-        refId: string;
-        meta: T;
-        tables?: null;
-        series?: [];
-      };
-    };
-  };
 }
 
 export interface TSDBArg extends RequestResult {

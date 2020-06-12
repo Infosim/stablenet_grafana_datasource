@@ -5,12 +5,12 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQueryRequest, DataQueryResponse, DataSourceApi, DataSourceInstanceSettings } from '@grafana/data';
-
-import { StableNetConfigOptions, Query, BasicQuery, TestOptions, SingleQuery } from './Types';
+import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
+import { DataSourceWithBackend } from '@grafana/runtime';
+import { SingleQuery, StableNetConfigOptions, TestOptions } from './Types';
+import { EMPTY } from 'rxjs';
 import { Target } from './QueryInterfaces';
 import {
-  EmptyQueryResult,
   EntityQueryResult,
   LabelValue,
   MetricQueryResult,
@@ -21,11 +21,10 @@ import {
   TSDBArg,
   TSDBResult,
 } from './ReturnTypes';
+import { Observable } from 'rxjs';
 import { WrappedTarget } from './DataQueryAssembler';
 
-const BACKEND_URL = '/api/tsdb/query';
-
-export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
+export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>, private backendSrv) {
     super(instanceSettings);
   }
@@ -101,19 +100,15 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     );
   }
 
-  async query(options: DataQueryRequest<Target>): Promise<DataQueryResponse | EmptyQueryResult> {
-    const { range } = options;
-    const from = range!.from.valueOf().toString(10);
-    const to = range!.to.valueOf().toString(10);
-
-    const { targets } = options;
+  query(request: DataQueryRequest<Target>): Observable<DataQueryResponse> {
+    const { targets } = request;
     const queries: SingleQuery[] = [];
-    if (!('statisticLink' in options.targets[0]) && !('chosenMetrics' in options.targets[0])) {
-      return { data: [] };
+    if (!('statisticLink' in request.targets[0]) && !('chosenMetrics' in request.targets[0])) {
+      return EMPTY;
     }
 
     for (let i = 0; i < targets.length; i++) {
-      const target: WrappedTarget = new WrappedTarget(targets[i], options.intervalMs!, this.id);
+      const target: WrappedTarget = new WrappedTarget(targets[i], request.intervalMs!);
 
       if (target.isValidStatisticLinkMode()) {
         queries.push(target.toStatisticLinkQuery());
@@ -128,26 +123,15 @@ export class DataSource extends DataSourceApi<Target, StableNetConfigOptions> {
     }
 
     if (queries.length === 0) {
-      return { data: [] };
+      return EMPTY;
     }
 
-    const data: Query<SingleQuery> = {
-      from: from,
-      to: to,
-      queries: queries,
+    const req: DataQueryRequest = {
+      ...request,
+      targets: queries,
     };
 
-    return await this.doRequest<TSDBArg>(data).then(handleTsdbResponse);
-  }
-
-  private doRequest<RETURN>(data: Query<BasicQuery>): Promise<RETURN> {
-    const options: TestOptions = {
-      headers: { 'Content-Type': 'application/json' },
-      url: BACKEND_URL,
-      method: 'POST',
-      data: data,
-    };
-    return this.backendSrv.datasourceRequest(options);
+    return super.query(req);
   }
 
   private doResourceRequest<RETURN>(resource: string, data: any): Promise<RETURN> {

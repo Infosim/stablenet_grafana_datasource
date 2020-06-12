@@ -16,10 +16,11 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/hashicorp/go-hclog"
-	"io/ioutil"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 type testDataSourceInstanceSettings struct {
@@ -55,7 +56,6 @@ func newDataSource(logger hclog.Logger) datasource.ServeOpts {
 	mux.HandleFunc("/metrics", handleMetricQuery)
 
 	return datasource.ServeOpts{
-		CheckHealthHandler:  ds,
 		CallResourceHandler: httpadapter.New(mux),
 		QueryDataHandler:    ds,
 	}
@@ -70,36 +70,48 @@ func (ds *testDataSource) getSettings(pluginContext backend.PluginContext) (*tes
 	return iface.(*testDataSourceInstanceSettings), nil
 }
 
-func (ds *testDataSource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-	settings, err := ds.getSettings(req.PluginContext)
-	if err != nil {
-		return nil, err
-	}
+type MetricQuery struct {
+	IncludeAvgStats bool
+	IncludeMaxStats bool
+	IncludeMinStats bool
+	RequestData     []MetricRequest
+}
 
-	// Handle request
-	resp, err := settings.httpClient.Get("http://")
-	if err != nil {
-		return nil, err
+type MetricRequest struct {
+	MeasurementObid int
+	Metrics         []struct {
+		Key  string
+		Name string
 	}
-	resp.Body.Close()
-	return nil, nil
 }
 
 func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	var resp *backend.QueryDataResponse
-	d1 := []byte("hello\ngo\n")
-	err := ioutil.WriteFile("/tmp/dat1", d1, 0644)
-	err = ds.im.Do(req.PluginContext, func(settings *testDataSourceInstanceSettings) error {
-		// Handle request
-		resp, err := settings.httpClient.Get("http://")
-		if err != nil {
-			return err
-		}
-		resp.Body.Close()
-		return nil
-	})
+	_, err := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		return nil, fmt.Errorf("could not extract data source settings: %v", err)
+	}
 
-	return resp, err
+	queries := make([]MetricQuery, 0, len(req.Queries))
+	for index, singleRequest := range req.Queries {
+		query := MetricQuery{}
+		err := json.Unmarshal(singleRequest.JSON, &query)
+		if err != nil {
+			return nil, fmt.Errorf("could not deserialize query %d: %v", index, err)
+		}
+		queries = append(queries, query)
+	}
+	frames := make([]*data.Frame, 0, len(req.Queries))
+	for index, _ := range queries {
+		frame := data.NewFrame(fmt.Sprintf("Frame %d", index), data.NewField("timeValues", nil, []time.Time{}), data.NewField("data", nil, []float64{}))
+		frame.AppendRow(time.Now().Add(-1*time.Hour), 5.3)
+		frame.AppendRow(time.Now().Add(-30*time.Minute), 6.7)
+		frame.AppendRow(time.Now(), 7.8)
+		frames = append(frames, frame)
+	}
+	backend.Logger.Warn(fmt.Sprintf("%v", frames))
+	response := backend.NewQueryDataResponse()
+	response.Responses = backend.Responses{"whatever": backend.DataResponse{Frames: frames}}
+	return response, nil
 }
 
 func (ds *testDataSource) handleTest(rw http.ResponseWriter, req *http.Request) {

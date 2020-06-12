@@ -5,7 +5,7 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataSourceJsonData } from '@grafana/data';
+import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
 export interface BasicQuery {
   refId: string;
@@ -20,17 +20,13 @@ export interface TestOptions {
   data?: Query<BasicQuery>;
 }
 
-export interface MetricQuery extends BasicQuery {
-  measurementObid: number;
-}
-
 export interface Query<T> {
   from?: string;
   to?: string;
   queries: T[];
 }
 
-export interface SingleQuery extends BasicQuery {
+export interface SingleQuery extends DataQuery {
   statisticLink?: string;
   requestData?: Array<{ measurementObid: number; metrics: Array<{ key: string; name: string }> }>;
   intervalMs: number;
