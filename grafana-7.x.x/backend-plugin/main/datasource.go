@@ -22,14 +22,19 @@ import (
 	"strconv"
 )
 
-type testDataSource struct {
+type dataSource struct {
 }
 
 func newDataSource() datasource.ServeOpts {
-	ds := &testDataSource{}
+	ds := &dataSource{}
 
 	addClientThen := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, req *http.Request) {
+			defer func() {
+				if err := recover(); err != nil {
+					backend.Logger.Error(fmt.Sprintf("An error occured in resource query %s: %v\n%s", req.URL.RawPath, err, debug.Stack()))
+				}
+			}()
 			pluginContext := httpadapter.PluginConfigFromContext(req.Context())
 			options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
 			client := stablenet.NewClient(options)
@@ -50,7 +55,7 @@ func newDataSource() datasource.ServeOpts {
 	}
 }
 
-func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))

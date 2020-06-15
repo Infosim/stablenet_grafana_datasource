@@ -92,7 +92,7 @@ func (m *MetricQuery) FetchData(provider func(stablenet.DataQueryOptions) (map[s
 	names := m.keyNameMap()
 	for _, key := range keys {
 		columns := make([]*data.Field, 0, 4)
-		columns = append(columns, data.NewField("timeValues", nil, []time.Time{}))
+		columns = append(columns, data.NewField("Time", nil, []time.Time{}))
 		if m.IncludeMinStats {
 			columns = append(columns, data.NewField("Min", nil, []float64{}))
 		}

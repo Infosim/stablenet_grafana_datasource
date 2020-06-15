@@ -9,7 +9,6 @@ package main
 
 import (
 	"backend-plugin/stablenet"
-	"backend-plugin/util"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +23,7 @@ func TestExpandStatisticLinks(t *testing.T) {
 			Start:         time.Now(),
 			End:           time.Now().Add(5 * time.Hour),
 			Interval:      4000,
-			StatisticLink: util.StringPointer("http://example.com/measurements/?0id=4000&0value1=4&0value0=2"),
+			StatisticLink: ptr("http://example.com/measurements/?0id=4000&0value1=4&0value0=2"),
 		},
 		{
 			Start:           time.Now(),
@@ -48,7 +47,7 @@ func TestExpandStatisticLinks(t *testing.T) {
 		assert.Equal(t, 2121, got[1].MeasurementObid, "measurement obid of second query not correct")
 	})
 	t.Run("expand error", func(t *testing.T) {
-		q := []MetricQuery{{StatisticLink: util.StringPointer("not a link")}}
+		q := []MetricQuery{{StatisticLink: ptr("not a link")}}
 		got, err := ExpandStatisticLinks(q, metricProvider)
 		require.Nil(t, got, "should be nil in case of error")
 		assert.EqualError(t, err, "could not parse statistic link of query 0: the link \"not a link\" does not carry at least a measurement id", "error message wrong")
@@ -63,7 +62,7 @@ func TestParseStatisticLink(t *testing.T) {
 		IncludeAvgStats: true,
 		IncludeMaxStats: true,
 		IncludeMinStats: true,
-		StatisticLink:   util.StringPointer("http://example.com/measurements/?0id=4000&1id=5000&0value1=4&0value0=2&1value0=23&2id=6000"),
+		StatisticLink:   ptr("http://example.com/measurements/?0id=4000&1id=5000&0value1=4&0value0=2&1value0=23&2id=6000"),
 	}
 	metricProvider := func(i int) ([]stablenet.Metric, error) {
 		if i == 4000 {
@@ -93,13 +92,13 @@ func TestParseStatisticLink(t *testing.T) {
 		assert.Equal(t, []StringPair{{Key: "SNMP_2", Name: "Out"}, {Key: "SNMP_4", Name: "Down"}}, one.Metrics, "metrics of first query not correct")
 	})
 	t.Run("carries no link", func(t *testing.T) {
-		q := MetricQuery{StatisticLink: util.StringPointer("not a link")}
+		q := MetricQuery{StatisticLink: ptr("not a link")}
 		got, err := parseStatisticLink(q, metricProvider)
 		assert.Nil(t, got, "should be nil in case of an error")
 		assert.EqualError(t, err, "the link \"not a link\" does not carry at least a measurement id")
 	})
 	t.Run("carries no link", func(t *testing.T) {
-		q := MetricQuery{StatisticLink: util.StringPointer("&id=10000")}
+		q := MetricQuery{StatisticLink: ptr("&id=10000")}
 		got, err := parseStatisticLink(q, metricProvider)
 		assert.Nil(t, got, "should be nil in case of an error")
 		assert.EqualError(t, err, "could not fetch metrics for measurement 10000: measurement 10000 not found")
@@ -186,4 +185,9 @@ func TestFilterWantedMetrics(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ptr(value string) *string {
+	result := value
+	return &result
 }

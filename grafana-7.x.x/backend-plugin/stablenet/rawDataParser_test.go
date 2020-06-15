@@ -8,7 +8,6 @@
 package stablenet
 
 import (
-	"backend-plugin/util"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,9 +19,9 @@ func Test_parseSingleTimestamp(t *testing.T) {
 	input := timestampResponse{
 		Interval: 60000,
 		Row: []measurementData{
-			{Min: util.FloatPointer(1200), Avg: util.FloatPointer(1277), Max: util.FloatPointer(1300)},
-			{Min: util.FloatPointer(0), Avg: util.FloatPointer(0), Max: util.FloatPointer(0)},
-			{Min: util.FloatPointer(1800), Avg: util.FloatPointer(1949), Max: util.FloatPointer(2000)},
+			{Min: ptr(1200), Avg: ptr(1277), Max: ptr(1300)},
+			{Min: ptr(0), Avg: ptr(0), Max: ptr(0)},
+			{Min: ptr(1800), Avg: ptr(1949), Max: ptr(2000)},
 		},
 		TimeStamp: 1574839297028,
 	}
@@ -68,4 +67,9 @@ func assertMetricDataCorrect(test *assert.Assertions, expected MetricData, actua
 	test.Equal(expected.Min, actual.Min, fmt.Sprintf("%s: min is different", msg))
 	test.Equal(expected.Max, actual.Max, fmt.Sprintf("%s: max is different", msg))
 	test.Equal(expected.Avg, actual.Avg, fmt.Sprintf("%s: avg kis different", msg))
+}
+
+func ptr(value float64) *float64 {
+	result := value
+	return &result
 }

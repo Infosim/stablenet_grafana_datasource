@@ -9,7 +9,6 @@ package main
 
 import (
 	"backend-plugin/stablenet"
-	"backend-plugin/util"
 	"context"
 	"encoding/json"
 	"errors"
@@ -58,7 +57,8 @@ func TestQueryTest(t *testing.T) {
 			if tt.snVersion != nil {
 				provider.version = tt.snVersion
 			} else {
-				provider.errString = util.StringPointer("internal version error")
+				errStr := "internal version error"
+				provider.errString = &errStr
 			}
 			ctx := context.WithValue(request.Context(), "SnClient", provider)
 			request = request.WithContext(ctx)

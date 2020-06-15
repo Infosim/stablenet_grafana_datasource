@@ -9,7 +9,6 @@ package main
 
 import (
 	"backend-plugin/stablenet"
-	"backend-plugin/util"
 	"errors"
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -19,6 +18,7 @@ import (
 )
 
 func TestShallowClone(t *testing.T) {
+	url := "http://example.org"
 	original := MetricQuery{
 		Start:           time.Now(),
 		End:             time.Now().Add(4 * time.Hour),
@@ -26,7 +26,7 @@ func TestShallowClone(t *testing.T) {
 		IncludeAvgStats: true,
 		IncludeMaxStats: true,
 		IncludeMinStats: true,
-		StatisticLink:   util.StringPointer("http://example.org"),
+		StatisticLink:   &url,
 		MeasurementObid: 232,
 		Metrics:         []StringPair{{Key: "SNMP_10", Name: "Host"}},
 	}
@@ -68,14 +68,14 @@ func TestMetricQuery_FetchData(t *testing.T) {
 		wantReadsFirstLine []interface{}
 		wantHeader         []string
 	}{
-		{min: false, max: false, avg: false, wantReadsFirstLine: []interface{}{now}, wantHeader: []string{"timeValues"}},
-		{min: false, max: false, avg: true, wantReadsFirstLine: []interface{}{now, 8.0}, wantHeader: []string{"timeValues", "Avg"}},
-		{min: false, max: true, avg: false, wantReadsFirstLine: []interface{}{now, 10.0}, wantHeader: []string{"timeValues", "Max"}},
-		{min: false, max: true, avg: true, wantReadsFirstLine: []interface{}{now, 10.0, 8.0}, wantHeader: []string{"timeValues", "Max", "Avg"}},
-		{min: true, max: false, avg: false, wantReadsFirstLine: []interface{}{now, 6.0}, wantHeader: []string{"timeValues", "Min"}},
-		{min: true, max: false, avg: true, wantReadsFirstLine: []interface{}{now, 6.0, 8.0}, wantHeader: []string{"timeValues", "Min", "Avg"}},
-		{min: true, max: true, avg: false, wantReadsFirstLine: []interface{}{now, 6.0, 10.0}, wantHeader: []string{"timeValues", "Min", "Max"}},
-		{min: true, max: true, avg: true, wantReadsFirstLine: []interface{}{now, 6.0, 10.0, 8.0}, wantHeader: []string{"timeValues", "Min", "Max", "Avg"}},
+		{min: false, max: false, avg: false, wantReadsFirstLine: []interface{}{now}, wantHeader: []string{"Time"}},
+		{min: false, max: false, avg: true, wantReadsFirstLine: []interface{}{now, 8.0}, wantHeader: []string{"Time", "Avg"}},
+		{min: false, max: true, avg: false, wantReadsFirstLine: []interface{}{now, 10.0}, wantHeader: []string{"Time", "Max"}},
+		{min: false, max: true, avg: true, wantReadsFirstLine: []interface{}{now, 10.0, 8.0}, wantHeader: []string{"Time", "Max", "Avg"}},
+		{min: true, max: false, avg: false, wantReadsFirstLine: []interface{}{now, 6.0}, wantHeader: []string{"Time", "Min"}},
+		{min: true, max: false, avg: true, wantReadsFirstLine: []interface{}{now, 6.0, 8.0}, wantHeader: []string{"Time", "Min", "Avg"}},
+		{min: true, max: true, avg: false, wantReadsFirstLine: []interface{}{now, 6.0, 10.0}, wantHeader: []string{"Time", "Min", "Max"}},
+		{min: true, max: true, avg: true, wantReadsFirstLine: []interface{}{now, 6.0, 10.0, 8.0}, wantHeader: []string{"Time", "Min", "Max", "Avg"}},
 	}
 	writes := stablenet.MetricDataSeries{{
 		Time: now.Add(time.Minute),

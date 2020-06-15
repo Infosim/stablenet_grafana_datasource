@@ -19,13 +19,9 @@ import (
 	"time"
 )
 
-type Client interface {
-	QueryStableNetVersion() (*ServerVersion, *string)
-	QueryDevices(string) (*DeviceQueryResult, error)
-	FetchMeasurementsForDevice(int) (*MeasurementQueryResult, error)
-	FetchMeasurementName(int) (*string, error)
-	FetchMetricsForMeasurement(int) ([]Metric, error)
+type QueryDataProvider interface {
 	FetchDataForMetrics(DataQueryOptions) (map[string]MetricDataSeries, error)
+	FetchMetricsForMeasurement(int) ([]Metric, error)
 }
 
 type VersionProvider interface {
@@ -51,14 +47,14 @@ type ConnectOptions struct {
 	Password string `json:"snpassword"`
 }
 
-func NewClient(options *ConnectOptions) Client {
-	client := ClientImpl{ConnectOptions: *options, client: resty.New()}
+func NewClient(options *ConnectOptions) *Client {
+	client := Client{ConnectOptions: *options, client: resty.New()}
 	client.client.SetBasicAuth(options.Username, options.Password)
 	client.client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	return &client
 }
 
-type ClientImpl struct {
+type Client struct {
 	ConnectOptions
 	client *resty.Client
 }
@@ -67,7 +63,7 @@ type ClientImpl struct {
 // this function returns a string point instead of an error in case the version cannot be fetched.
 // The reason is that the returned string is meant to be presented to the end user, while an error type string
 // should generally not be presented to the end user.
-func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
+func (c *Client) QueryStableNetVersion() (*ServerVersion, *string) {
 	var errorStr string
 	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
 	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
@@ -93,7 +89,7 @@ func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 	return &result.ServerVersion, nil
 }
 
-func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {
+func (c *Client) buildStatusError(msg string, resp *resty.Response) error {
 	return fmt.Errorf("%s: status code: %d, response: %s", msg, resp.StatusCode(), string(resp.Body()))
 }
 
@@ -102,7 +98,7 @@ type DeviceQueryResult struct {
 	HasMore bool     `json:"hasMore"`
 }
 
-func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
+func (c *Client) QueryDevices(filter string) (*DeviceQueryResult, error) {
 	var url string
 	if len(filter) != 0 {
 		filterParam := fmt.Sprintf("name ct '%s'", filter)
@@ -125,7 +121,7 @@ func (c *ClientImpl) QueryDevices(filter string) (*DeviceQueryResult, error) {
 	return &result, nil
 }
 
-func (c *ClientImpl) buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
+func (c *Client) buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
 	if len(orderBy) != 0 {
 		url = fmt.Sprintf("%s&$orderBy=%s", url, orderBy)
@@ -143,7 +139,7 @@ func (c *ClientImpl) buildJsonApiUrl(endpoint string, orderBy string, filters ..
 	return url + filter
 }
 
-func (c *ClientImpl) buildJsonApiUrlWithLimit(endpoint string, limit bool) string {
+func (c *Client) buildJsonApiUrlWithLimit(endpoint string, limit bool) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
 	if !limit {
 		url = fmt.Sprintf("https://%s:%d/api/1/%s?top=-1", c.Host, c.Port, endpoint)
@@ -156,7 +152,7 @@ type MeasurementQueryResult struct {
 	HasMore      bool          `json:"hasMore"`
 }
 
-func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) (*MeasurementQueryResult, error) {
+func (c *Client) FetchMeasurementsForDevice(deviceObid int) (*MeasurementQueryResult, error) {
 	deviceFilter := fmt.Sprintf("destDeviceId eq '%d'", deviceObid)
 	url := c.buildJsonApiUrl("measurements", "name", deviceFilter)
 	resp, err := c.client.R().Get(url)
@@ -174,7 +170,7 @@ func (c *ClientImpl) FetchMeasurementsForDevice(deviceObid int) (*MeasurementQue
 	return &result, nil
 }
 
-func (c *ClientImpl) FetchMeasurementName(id int) (*string, error) {
+func (c *Client) FetchMeasurementName(id int) (*string, error) {
 	url := c.buildJsonApiUrl("measurements", "name", fmt.Sprintf("obid eq '%d'", id))
 	resp, err := c.client.R().Get(url)
 	if err != nil {
@@ -194,7 +190,7 @@ func (c *ClientImpl) FetchMeasurementName(id int) (*string, error) {
 	return &responseData.Measurements[0].Name, nil
 }
 
-func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
+func (c *Client) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
 	endpoint := fmt.Sprintf("measurements/%d/metrics", measurementObid)
 	//orderby is empty because it' currently not supported by the endpoint
 	url := c.buildJsonApiUrl(endpoint, "")
@@ -213,7 +209,7 @@ func (c *ClientImpl) FetchMetricsForMeasurement(measurementObid int) ([]Metric, 
 	return responseData, nil
 }
 
-func (c *ClientImpl) FetchDataForMetrics(options DataQueryOptions) (map[string]MetricDataSeries, error) {
+func (c *Client) FetchDataForMetrics(options DataQueryOptions) (map[string]MetricDataSeries, error) {
 	startMillis := options.Start.UnixNano() / int64(time.Millisecond)
 	endMillis := options.End.UnixNano() / int64(time.Millisecond)
 	query := DataQuery{Start: startMillis, End: endMillis, Metrics: options.Metrics, Raw: false, Average: options.Average}
@@ -248,7 +244,7 @@ func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]Metr
 	return resultMap, nil
 }
 
-func (c *ClientImpl) formatMetricIds(valueIds []int) string {
+func (c *Client) formatMetricIds(valueIds []int) string {
 	if len(valueIds) == 1 {
 		return fmt.Sprintf("value=%d", valueIds[0])
 	}

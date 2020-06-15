@@ -8,7 +8,6 @@
 package stablenet
 
 import (
-	"backend-plugin/util"
 	"errors"
 	"fmt"
 	"github.com/jarcoal/httpmock"
@@ -32,10 +31,10 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 		wantErrStr     *string
 	}{
 		{name: "success", returnedBody: versionXml, returnedStatus: http.StatusOK, wantVersion: &ServerVersion{Version: "8.6.0"}, wantErrStr: nil},
-		{name: "connection error", httpError: errors.New("server running low on schnitzels"), wantErrStr: util.StringPointer("Connecting to StableNet® failed: Get \"https://127.0.0.1:443/rest/info\": server running low on schnitzels")},
-		{name: "authentication error", returnedBody: "Forbidden", returnedStatus: http.StatusUnauthorized, wantErrStr: util.StringPointer("The StableNet® server could be reached, but the credentials were invalid.")},
-		{name: "status error", returnedBody: "Internal Server Error", returnedStatus: http.StatusInternalServerError, wantErrStr: util.StringPointer("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: 500")},
-		{name: "unmarshal error", returnedBody: "this is no xml", returnedStatus: http.StatusOK, wantErrStr: util.StringPointer("Log in to StableNet® successful, but the StableNet® answer \"this is no xml\" could not be parsed: EOF")},
+		{name: "connection error", httpError: errors.New("server running low on schnitzels"), wantErrStr: strPtr("Connecting to StableNet® failed: Get \"https://127.0.0.1:443/rest/info\": server running low on schnitzels")},
+		{name: "authentication error", returnedBody: "Forbidden", returnedStatus: http.StatusUnauthorized, wantErrStr: strPtr("The StableNet® server could be reached, but the credentials were invalid.")},
+		{name: "status error", returnedBody: "Internal Server Error", returnedStatus: http.StatusInternalServerError, wantErrStr: strPtr("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: 500")},
+		{name: "unmarshal error", returnedBody: "this is no xml", returnedStatus: http.StatusOK, wantErrStr: strPtr("Log in to StableNet® successful, but the StableNet® answer \"this is no xml\" could not be parsed: EOF")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -47,8 +46,7 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 				httpmock.RegisterResponder("GET", "https://127.0.0.1:443/rest/info", httpmock.NewErrorResponder(tt.httpError))
 			}
 			client := NewClient(&ConnectOptions{Port: 443, Host: "127.0.0.1"})
-			clientImpl := client.(*ClientImpl)
-			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, errStr := client.QueryStableNetVersion()
 			testify.Equal(t, tt.wantVersion, actual, "queried server version wrong")
 			if tt.wantErrStr != nil {
@@ -59,6 +57,11 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 			httpmock.Reset()
 		})
 	}
+}
+
+func strPtr(value string) *string {
+	result := value
+	return &result
 }
 
 func TestClientImpl_QueryDevices(t *testing.T) {
@@ -80,8 +83,7 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 			defer httpmock.Deactivate()
 			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, devices))
 			client := NewClient(&ConnectOptions{Port: 5443, Host: "127.0.0.1"})
-			clientImpl := client.(*ClientImpl)
-			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, err := client.QueryDevices(tt.filter)
 			require.NoError(t, err)
 
@@ -98,7 +100,7 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 
 func TestClientImpl_QueryDevice_Error(t *testing.T) {
 	url := "https://127.0.0.1:5443/api/1/devices?$top=100&$orderBy=name&$filter=name+ct+%27lab%27"
-	shouldReturnError := func(client Client) (interface{}, error) {
+	shouldReturnError := func(client *Client) (interface{}, error) {
 		return client.QueryDevices("lab")
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
@@ -123,8 +125,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 			defer httpmock.Deactivate()
 			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, rawData))
 			client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-			clientImpl := client.(*ClientImpl)
-			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid)
 			require.NoError(t, err)
 			require.Equal(t, 10, len(actual.Measurements), "number of queried measurements wrong")
@@ -138,7 +139,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 
 func TestClientImpl_FetchMeasurementsForDevice_Error(t *testing.T) {
 	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"
-	shouldReturnError := func(client Client) (interface{}, error) {
+	shouldReturnError := func(client *Client) (interface{}, error) {
 		return client.FetchMeasurementsForDevice(1024)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
@@ -156,8 +157,7 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	defer httpmock.Deactivate()
 	httpmock.RegisterResponder("GET", mockUrl, httpmock.NewBytesResponder(200, rawData))
 	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-	clientImpl := client.(*ClientImpl)
-	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+	httpmock.ActivateNonDefault(client.client.GetClient())
 	metrics, err := client.FetchMetricsForMeasurement(1643)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(metrics), "number of queried metrics wrong")
@@ -177,16 +177,15 @@ func TestClientImpl_FetchMeasurementName(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "{\"count\": 2264, \"hasMore\": false, \"data\": [{\"name\": \"ThinkStation Host\", \"obid\": 1643}]}"))
 	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-	clientImpl := client.(*ClientImpl)
-	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-	name, err := clientImpl.FetchMeasurementName(1643)
+	httpmock.ActivateNonDefault(client.client.GetClient())
+	name, err := client.FetchMeasurementName(1643)
 	require.NoError(t, err, "no error expected")
 	require.Equal(t, "ThinkStation Host", *name, "name not correct")
 }
 
 func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
 	url := "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100"
-	shouldReturnError := func(client Client) (i interface{}, e error) {
+	shouldReturnError := func(client *Client) (i interface{}, e error) {
 		return client.FetchMetricsForMeasurement(1643)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
@@ -205,8 +204,7 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	require.NoError(t, err)
 	httpmock.RegisterResponder("POST", url, httpmock.NewBytesResponder(200, rawData))
 	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-	clientImpl := client.(*ClientImpl)
-	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+	httpmock.ActivateNonDefault(client.client.GetClient())
 	options := DataQueryOptions{
 		MeasurementObid: 5555,
 		Metrics:         []string{"System Processes", "System Users", "System Uptime"},
@@ -246,7 +244,7 @@ func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 		Start:           start,
 		End:             end,
 	}
-	shouldReturnError := func(client Client) (i interface{}, e error) {
+	shouldReturnError := func(client *Client) (i interface{}, e error) {
 		return client.FetchDataForMetrics(options)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "POST", url))
@@ -254,30 +252,28 @@ func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	t.Run("rest error", errorResponseTest(shouldReturnError, "POST", url, "metric data for measurement 5555"))
 }
 
-func invalidJsonTest(shouldReturnError func(Client) (interface{}, error), method string, url string) func(*testing.T) {
+func invalidJsonTest(shouldReturnError func(*Client) (interface{}, error), method string, url string) func(*testing.T) {
 	return func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder(method, url, httpmock.NewStringResponder(200, "<>"))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-		clientImpl := client.(*ClientImpl)
-		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+		httpmock.ActivateNonDefault(client.client.GetClient())
 		result, err := shouldReturnError(client)
 		testify.Nil(t, result, "the result should be nil")
 		require.EqualError(t, err, "could not unmarshal json: invalid character '<' looking for beginning of value", "error message wrong")
 	}
 }
 
-func errorResponseTest(shouldReturnError func(Client) (interface{}, error), method string, url string, msg string) func(*testing.T) {
+func errorResponseTest(shouldReturnError func(*Client) (interface{}, error), method string, url string, msg string) func(*testing.T) {
 	return func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder(method, url, httpmock.NewErrorResponder(fmt.Errorf("custom error")))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-		clientImpl := client.(*ClientImpl)
-		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+		httpmock.ActivateNonDefault(client.client.GetClient())
 		_, err := shouldReturnError(client)
 		capitalizedMethod := []byte(strings.ToLower(method))
 		capitalizedMethod[0] = byte(method[0])
@@ -286,15 +282,14 @@ func errorResponseTest(shouldReturnError func(Client) (interface{}, error), meth
 	}
 }
 
-func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error), method string, url string, msg string) func(*testing.T) {
+func wrongStatusResponseTest(shouldReturnError func(*Client) (interface{}, error), method string, url string, msg string) func(*testing.T) {
 	return func(t *testing.T) {
 		httpmock.Activate()
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder(method, url, httpmock.NewStringResponder(404, "entity not found"))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-		clientImpl := client.(*ClientImpl)
-		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+		httpmock.ActivateNonDefault(client.client.GetClient())
 		_, err := shouldReturnError(client)
 		wantErr := fmt.Sprintf("retrieving %s failed: status code: 404, response: entity not found", msg)
 		require.EqualError(t, err, wantErr, "error message wrong")
@@ -303,7 +298,7 @@ func wrongStatusResponseTest(shouldReturnError func(Client) (interface{}, error)
 
 func TestClientImpl_FetchMeasurementName_Error(t *testing.T) {
 	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=obid+eq+%271643%27"
-	shouldReturnError := func(client Client) (i interface{}, e error) {
+	shouldReturnError := func(client *Client) (i interface{}, e error) {
 		return client.FetchMeasurementName(1643)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
@@ -315,9 +310,8 @@ func TestClientImpl_FetchMeasurementName_Error(t *testing.T) {
 
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "{\"count\": 2264, \"hasMore\": false, \"data\": []}"))
 		client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-		clientImpl := client.(*ClientImpl)
-		httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-		_, err := clientImpl.FetchMeasurementName(1643)
+		httpmock.ActivateNonDefault(client.client.GetClient())
+		_, err := client.FetchMeasurementName(1643)
 		require.EqualError(t, err, "measurement with id 1643 does not exist", "error message wrong")
 	})
 }
@@ -333,7 +327,7 @@ func TestClientImpl_formatMetricIds(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := ClientImpl{}
+			client := Client{}
 			got := client.formatMetricIds(tt.args)
 			testify.Equal(t, tt.want, got)
 		})
@@ -354,7 +348,7 @@ func TestClientImpl_buildJsonApiUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &ClientImpl{
+			c := &Client{
 				ConnectOptions: ConnectOptions{
 					Host: "127.0.0.1",
 					Port: 5443,
