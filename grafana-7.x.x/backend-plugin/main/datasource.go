@@ -8,7 +8,6 @@
 package main
 
 import (
-	query2 "backend-plugin/query"
 	"backend-plugin/stablenet"
 	"context"
 	"encoding/json"
@@ -59,9 +58,9 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 	}()
 	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
 
-	queries := make([]query2.MetricQuery, 0, len(req.Queries))
+	queries := make([]MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
-		query := query2.NewQuery(singleRequest)
+		query := NewQuery(singleRequest)
 		err := json.Unmarshal(singleRequest.JSON, &query)
 		if err != nil {
 			return nil, fmt.Errorf("could not deserialize query %d: %v", index, err)
@@ -69,14 +68,13 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 		queries = append(queries, query)
 	}
 	client := stablenet.NewClient(options)
-	handler := query2.StableNetHandler{SnClient: client}
-	queries, err := handler.ExpandStatisticLinks(queries)
+	queries, err := ExpandStatisticLinks(queries, client.FetchMetricsForMeasurement)
 	if err != nil {
 		return nil, err
 	}
 	allFrames := make([]*data.Frame, 0, 0)
 	for _, query := range queries {
-		frames, err := handler.FetchMetrics(query)
+		frames, err := query.FetchData(client.FetchDataForMetrics)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch data for query %v: %v", query, err)
 		}

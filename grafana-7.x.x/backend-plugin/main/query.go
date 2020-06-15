@@ -1,11 +1,11 @@
 /*
- * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
  * Company: Infosim GmbH & Co. KG,
  *                  Landsteinerstraße 4,
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-package query
+package main
 
 import (
 	"backend-plugin/stablenet"
@@ -15,33 +15,6 @@ import (
 	"sort"
 	"time"
 )
-
-type measurementDataRequest struct {
-	MeasurementObid int            `json:"measurementObid"`
-	Metrics         metricsRequest `json:"metrics"`
-}
-
-type metricsRequest []stablenet.Metric
-
-func (m metricsRequest) metricKeys() []string {
-	result := make([]string, 0, len(m))
-	for _, metric := range m {
-		result = append(result, metric.Key)
-	}
-	return result
-}
-
-func (m metricsRequest) keyNameMap() map[string]string {
-	result := make(map[string]string)
-	for _, metric := range m {
-		result[metric.Key] = metric.Name
-	}
-	return result
-}
-
-type StableNetHandler struct {
-	SnClient stablenet.Client
-}
 
 type MetricQuery struct {
 	Start           time.Time
@@ -55,7 +28,7 @@ type MetricQuery struct {
 	Metrics         []StringPair
 }
 
-func (m *MetricQuery) ShallowClone() MetricQuery {
+func (m *MetricQuery) shallowClone() MetricQuery {
 	return MetricQuery{
 		Start:           m.Start,
 		End:             m.End,
@@ -98,33 +71,15 @@ func (m *MetricQuery) keyNameMap() map[string]string {
 	return result
 }
 
-func (s *StableNetHandler) ExpandStatisticLinks(queries []MetricQuery) ([]MetricQuery, error) {
-	result := make([]MetricQuery, 0, len(queries))
-	for index, query := range queries {
-		if query.StatisticLink == nil {
-			result = append(result, query)
-			continue
-		}
-		linkQueries, err := ParseStatisticLink(query, s.SnClient.FetchMetricsForMeasurement)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse statistic link of query %d: %v", index, err)
-		}
-		for _, linkQuery := range linkQueries {
-			result = append(result, linkQuery)
-		}
-	}
-	return result, nil
-}
-
-func (s *StableNetHandler) FetchMetrics(metricQuery MetricQuery) ([]*data.Frame, error) {
+func (m *MetricQuery) FetchData(provider func(stablenet.DataQueryOptions) (map[string]stablenet.MetricDataSeries, error)) ([]*data.Frame, error) {
 	options := stablenet.DataQueryOptions{
-		MeasurementObid: metricQuery.MeasurementObid,
-		Metrics:         metricQuery.metricKeys(),
-		Start:           metricQuery.Start,
-		End:             metricQuery.End,
-		Average:         int64(metricQuery.Interval / time.Millisecond),
+		MeasurementObid: m.MeasurementObid,
+		Metrics:         m.metricKeys(),
+		Start:           m.Start,
+		End:             m.End,
+		Average:         int64(m.Interval / time.Millisecond),
 	}
-	snData, err := s.SnClient.FetchDataForMetrics(options)
+	snData, err := provider(options)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
@@ -134,25 +89,24 @@ func (s *StableNetHandler) FetchMetrics(metricQuery MetricQuery) ([]*data.Frame,
 	}
 	sort.Strings(keys)
 	frames := make([]*data.Frame, 0, len(snData))
-	names := metricQuery.keyNameMap()
+	names := m.keyNameMap()
 	for _, key := range keys {
 		columns := make([]*data.Field, 0, 4)
 		columns = append(columns, data.NewField("timeValues", nil, []time.Time{}))
-		if metricQuery.IncludeMinStats {
+		if m.IncludeMinStats {
 			columns = append(columns, data.NewField("Min", nil, []float64{}))
 		}
-		if metricQuery.IncludeMaxStats {
+		if m.IncludeMaxStats {
 			columns = append(columns, data.NewField("Max", nil, []float64{}))
 		}
-		if metricQuery.IncludeAvgStats {
+		if m.IncludeAvgStats {
 			columns = append(columns, data.NewField("Avg", nil, []float64{}))
 		}
 		frame := data.NewFrame(names[key], columns...)
-		for _, row := range snData[key].AsTable(metricQuery.IncludeMinStats, metricQuery.IncludeMaxStats, metricQuery.IncludeAvgStats) {
+		for _, row := range snData[key].AsTable(m.IncludeMinStats, m.IncludeMaxStats, m.IncludeAvgStats) {
 			frame.AppendRow(row...)
 		}
 		frames = append(frames, frame)
 	}
-
 	return frames, nil
 }

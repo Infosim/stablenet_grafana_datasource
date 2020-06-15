@@ -1,24 +1,21 @@
 /*
- * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2019
+ * Copyright: Infosim GmbH & Co. KG Copyright (c) 2000-2020
  * Company: Infosim GmbH & Co. KG,
  *                  Landsteinerstraße 4,
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-package query
+package main
 
 import (
 	"backend-plugin/stablenet"
-	"bufio"
-	"bytes"
-	"github.com/grafana/grafana-plugin-model/go/datasource"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"sort"
 	"testing"
-	"time"
 )
+
+func TestParseStatisticLink(t *testing.T) {
+
+}
 
 func TestFindMeasurementIdsInLink(t *testing.T) {
 	cases := []struct {
@@ -100,66 +97,4 @@ func TestFilterWantedMetrics(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_statisticLinkHandler2_Successful(t *testing.T) {
-	startTime := time.Now().Add(-5 * time.Hour)
-	endTime := time.Now()
-
-	metrics1643 := []stablenet.Metric{{Key: "SNMP1000", Name: "Uptime"}, {Key: "SNMP1001", Name: "Processes"}, {Key: "SNMP1002", Name: "Users"}}
-	metrics3886 := []stablenet.Metric{{Key: "PING1", Name: "Ping"}}
-
-	data1643 := map[string]stablenet.MetricDataSeries{"SNMP1000": {{Min: 5, Max: 7, Avg: 6, Interval: 300000, Time: endTime.Add(-1 * time.Hour)}}, "SNMP1002": {{Min: 1, Max: 1, Avg: 1, Interval: 300000, Time: endTime.Add(-1 * time.Hour)}}}
-	data3886 := map[string]stablenet.MetricDataSeries{"PING1": {{Min: 300, Max: 400, Avg: 350, Interval: 300000, Time: endTime.Add(-1 * time.Hour)}}}
-
-	name1643 := "ThinkStation Host"
-	name3886 := "ThinkStation Ping"
-
-	options1 := stablenet.DataQueryOptions{
-		MeasurementObid: 1643,
-		Metrics:         []string{"SNMP1000", "SNMP1002"},
-		Start:           startTime,
-		End:             endTime,
-		Average:         250,
-	}
-	options2 := stablenet.DataQueryOptions{
-		MeasurementObid: 3886,
-		Metrics:         []string{"PING1"},
-		Start:           startTime,
-		End:             endTime,
-		Average:         250,
-	}
-
-	client := new(mockSnClient)
-	client.On("FetchMetricsForMeasurement", 1643, "").Return(metrics1643, nil)
-	client.On("FetchMetricsForMeasurement", 3886, "").Return(metrics3886, nil)
-	client.On("FetchDataForMetrics", options1).Return(data1643, nil)
-	client.On("FetchDataForMetrics", options2).Return(data3886, nil)
-	client.On("FetchMeasurementName", 1643).Return(&name1643, nil)
-	client.On("FetchMeasurementName", 3886).Return(&name3886, nil)
-
-	link := "https://localhost:5443/PlotServlet?multicharttype=0&dns=1&log=0&width=1252&height=1126&quality=-1.0&0last=0,1440&0offset=0,0&0interval=60000&0id=1643&0chart=5504&0value0=1000&0value1=1002&1last=0,1440&1offset=0,0&1interval=60000&1id=3886&1chart=5504&1value0=1"
-	logData := bytes.Buffer{}
-	logReceiver := bufio.NewWriter(&logData)
-	snHandler := StableNetHandler{SnClient: client, Logger: hclog.New(&hclog.LoggerOptions{Output: logReceiver, TimeFormat: "no time"})}
-	handler := statisticLinkHandler{StableNetHandler: &snHandler}
-	query := Query{Query: datasource.Query{RefId: "A", ModelJson: "{\"includeAvgStats\": true, \"statisticLink\": \"" + link + "\"}", IntervalMs: 250}, StartTime: startTime, EndTime: endTime}
-	got, err := handler.Process(query)
-	require.NoError(t, err, "no error expected")
-	assert.Equal(t, "A", got.RefId, "refId is wrong")
-	series := got.Series
-	sort.Slice(series, func(i, j int) bool {
-		return len(series[i].Name) < len(series[j].Name)
-	})
-	require.Equal(t, 3, len(series), "number of series is wrong")
-
-	assert.Equal(t, "ThinkStation Ping Avg Ping", series[0].Name, "name of first series wrong")
-	assert.Equal(t, 1, len(series[0].Points), "number of data points of first series wrong")
-	assert.Equal(t, 350.0, series[0].Points[0].Value, "value of data of first series wrong")
-	assert.Equal(t, "ThinkStation Host Avg Users", series[1].Name, "name of second series wrong")
-	assert.Equal(t, 1, len(series[1].Points), "number of data points of second series wrong")
-	assert.Equal(t, 1.0, series[1].Points[0].Value, "value of data of second series wrong")
-	assert.Equal(t, "ThinkStation Host Avg Uptime", series[2].Name, "name of third series wrong")
-	assert.Equal(t, 1, len(series[2].Points), "number of data points of third series wrong")
-	assert.Equal(t, 6.0, series[2].Points[0].Value, "value of data of third series wrong")
 }
