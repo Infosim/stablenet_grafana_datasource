@@ -28,6 +28,22 @@ type Client interface {
 	FetchDataForMetrics(DataQueryOptions) (map[string]MetricDataSeries, error)
 }
 
+type VersionProvider interface {
+	QueryStableNetVersion() (*ServerVersion, *string)
+}
+
+type DeviceProvider interface {
+	QueryDevices(string) (*DeviceQueryResult, error)
+}
+
+type MeasurementProvider interface {
+	FetchMeasurementsForDevice(int) (*MeasurementQueryResult, error)
+}
+
+type MetricProvider interface {
+	FetchMetricsForMeasurement(int) ([]Metric, error)
+}
+
 type ConnectOptions struct {
 	Host     string `json:"snip"`
 	Port     int    `json:"snport"`

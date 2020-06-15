@@ -90,10 +90,10 @@ func (ds *testDataSource) QueryData(ctx context.Context, req *backend.QueryDataR
 }
 
 func handleTest(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.Client)
+	snClient := req.Context().Value("SnClient").(stablenet.VersionProvider)
 	version, errStr := snClient.QueryStableNetVersion()
 	if errStr != nil {
-		http.Error(rw, *errStr, http.StatusBadRequest)
+		http.Error(rw, *errStr, http.StatusInternalServerError)
 		return
 	}
 	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
@@ -105,21 +105,18 @@ func handleTest(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.Client)
+	snClient := req.Context().Value("SnClient").(stablenet.DeviceProvider)
 	filter := req.URL.Query().Get("filter")
 	devices, err := snClient.QueryDevices(filter)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query devices: %v", err), http.StatusInternalServerError)
 		return
 	}
-	err = json.NewEncoder(rw).Encode(devices)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not serialize devices: %v", err), http.StatusInternalServerError)
-	}
+	encodeJson(rw, devices)
 }
 
 func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.Client)
+	snClient := req.Context().Value("SnClient").(stablenet.MeasurementProvider)
 	deviceObid, err := strconv.Atoi(req.URL.Query().Get("deviceObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not parse deviceObid query param: %v", err), http.StatusBadRequest)
@@ -130,17 +127,14 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, fmt.Sprintf("could not query measurements: %v", err), http.StatusInternalServerError)
 		return
 	}
-	err = json.NewEncoder(rw).Encode(measurements)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not serialize measurements: %v", err), http.StatusInternalServerError)
-	}
+	encodeJson(rw, measurements)
 }
 
 func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.Client)
+	snClient := req.Context().Value("SnClient").(stablenet.MetricProvider)
 	measurementObid, err := strconv.Atoi(req.URL.Query().Get("measurementObid"))
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v", err), http.StatusInternalServerError)
+		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v", err), http.StatusBadRequest)
 		return
 	}
 	metrics, err := snClient.FetchMetricsForMeasurement(measurementObid)
@@ -148,8 +142,15 @@ func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, fmt.Sprintf("could not query metrics: %v", err), http.StatusInternalServerError)
 		return
 	}
-	err = json.NewEncoder(rw).Encode(metrics)
+	encodeJson(rw, metrics)
+}
+
+//Encoding a json only results in an error if the data to be serialized does
+//contain unserializable types, e.g. functions, channels, etc.
+//Since we have absolute control over our types, we panic in case the json cannot be created.
+func encodeJson(rw http.ResponseWriter, data interface{}) {
+	err := json.NewEncoder(rw).Encode(data)
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("could not serialize measurements: %v", err), http.StatusInternalServerError)
+		panic(fmt.Errorf("unable to marshal data: %v", err))
 	}
 }
