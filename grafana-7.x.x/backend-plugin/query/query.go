@@ -138,17 +138,17 @@ func (s *StableNetHandler) FetchMetrics(metricQuery MetricQuery) ([]*data.Frame,
 	for _, key := range keys {
 		columns := make([]*data.Field, 0, 4)
 		columns = append(columns, data.NewField("timeValues", nil, []time.Time{}))
-		if metricQuery.IncludeMaxStats {
-			columns = append(columns, data.NewField("Max", nil, []float64{}))
-		}
 		if metricQuery.IncludeMinStats {
 			columns = append(columns, data.NewField("Min", nil, []float64{}))
+		}
+		if metricQuery.IncludeMaxStats {
+			columns = append(columns, data.NewField("Max", nil, []float64{}))
 		}
 		if metricQuery.IncludeAvgStats {
 			columns = append(columns, data.NewField("Avg", nil, []float64{}))
 		}
 		frame := data.NewFrame(names[key], columns...)
-		for _, row := range snData[key].AsTable(metricQuery.IncludeMaxStats, metricQuery.IncludeMinStats, metricQuery.IncludeAvgStats) {
+		for _, row := range snData[key].AsTable(metricQuery.IncludeMinStats, metricQuery.IncludeMaxStats, metricQuery.IncludeAvgStats) {
 			frame.AppendRow(row...)
 		}
 		frames = append(frames, frame)

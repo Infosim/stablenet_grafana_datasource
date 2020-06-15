@@ -143,22 +143,12 @@ func (c *ClientImpl) buildJsonApiUrl(endpoint string, orderBy string, filters ..
 	return url + filter
 }
 
-func (c *ClientImpl) buildJsonApiUrlWithLimit(endpoint string, limit bool, filters ...string) string {
+func (c *ClientImpl) buildJsonApiUrlWithLimit(endpoint string, limit bool) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
 	if !limit {
 		url = fmt.Sprintf("https://%s:%d/api/1/%s?top=-1", c.Host, c.Port, endpoint)
 	}
-	nonEmpty := make([]string, 0, len(filters))
-	for _, f := range filters {
-		if len(f) > 0 {
-			nonEmpty = append(nonEmpty, f)
-		}
-	}
-	if len(nonEmpty) == 0 {
-		return url
-	}
-	filter := "&$filter=" + url2.QueryEscape(strings.Join(nonEmpty, " and "))
-	return url + filter
+	return url
 }
 
 type MeasurementQueryResult struct {
@@ -247,10 +237,7 @@ func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]Metr
 	}
 	resultMap := make(map[string]MetricDataSeries)
 	for _, record := range data {
-		converted, err := parseSingleTimestamp(record, metricKeys)
-		if err != nil {
-			return nil, fmt.Errorf("parsing an entry from RawStatisticServlet failed: %v", err)
-		}
+		converted := parseSingleTimestamp(record, metricKeys)
 		for key, measurementData := range converted {
 			if _, ok := resultMap[key]; !ok {
 				resultMap[key] = make([]MetricData, 0, 0)

@@ -11,7 +11,6 @@ import (
 	"backend-plugin/util"
 	"errors"
 	"fmt"
-	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/jarcoal/httpmock"
 	testify "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,17 +109,13 @@ func TestClientImpl_QueryDevice_Error(t *testing.T) {
 func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 	rawData, err := ioutil.ReadFile("./test-data/measurements.json")
 	require.NoError(t, err)
-	deviceId := 1024
 	tests := []struct {
 		name       string
-		deviceObid *int
-		nameFilter string
+		deviceObid int
 		mockUrl    string
 	}{
-		{name: "no filter", deviceObid: nil, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name"},
-		{name: "device filter", deviceObid: &deviceId, nameFilter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"},
-		{name: "name filter", deviceObid: nil, nameFilter: "Host", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=name+ct+%27Host%27"},
-		{name: "device and name filter", deviceObid: &deviceId, nameFilter: "Host", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"},
+		{name: "no filter", deviceObid: -1, mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%27-1%27"},
+		{name: "device filter", deviceObid: 1024, mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -130,7 +125,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 			client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 			clientImpl := client.(*ClientImpl)
 			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid, tt.nameFilter)
+			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid)
 			require.NoError(t, err)
 			require.Equal(t, 10, len(actual.Measurements), "number of queried measurements wrong")
 			test := testify.New(t)
@@ -142,48 +137,37 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 }
 
 func TestClientImpl_FetchMeasurementsForDevice_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27Host%27"
-	deviceId := 1024
+	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"
 	shouldReturnError := func(client Client) (interface{}, error) {
-		return client.FetchMeasurementsForDevice(&deviceId, "Host")
+		return client.FetchMeasurementsForDevice(1024)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
-	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
-	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\" and name filter \"name ct 'Host'\""))
+	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\""))
+	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\""))
 }
 
 func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	rawData, err := ioutil.ReadFile("./test-data/metrics.json")
 	require.NoError(t, err)
-	tests := []struct {
-		name    string
-		filter  string
-		mockUrl string
-	}{
-		{name: "without filter", filter: "", mockUrl: "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100"},
-		{name: "with filter", filter: "Processor", mockUrl: "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100&$filter=name+ct+%27Processor%27"},
-	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			httpmock.Activate()
-			defer httpmock.Deactivate()
-			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, rawData))
-			client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
-			clientImpl := client.(*ClientImpl)
-			httpmock.ActivateNonDefault(clientImpl.client.GetClient())
-			metrics, err := client.FetchMetricsForMeasurement(1643, tt.filter)
-			require.NoError(t, err)
-			require.Equal(t, 3, len(metrics), "number of queried metrics wrong")
-			test := testify.New(t)
-			test.Equal("SNMP_1000", metrics[0].Key, "Key of first metric wrong")
-			test.Equal("System Users", metrics[0].Name, "name of first metric wrong")
-			test.Equal("SNMP_1001", metrics[1].Key, "Key of first second wrong")
-			test.Equal("System Processes", metrics[1].Name, "name of second metric wrong")
-			test.Equal("SNMP_1002", metrics[2].Key, "Key of third metric wrong")
-			test.Equal("System Uptime", metrics[2].Name, "name of third metric wrong")
-		})
-	}
+	mockUrl := "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100"
+
+	httpmock.Activate()
+	defer httpmock.Deactivate()
+	httpmock.RegisterResponder("GET", mockUrl, httpmock.NewBytesResponder(200, rawData))
+	client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
+	clientImpl := client.(*ClientImpl)
+	httpmock.ActivateNonDefault(clientImpl.client.GetClient())
+	metrics, err := client.FetchMetricsForMeasurement(1643)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(metrics), "number of queried metrics wrong")
+	test := testify.New(t)
+	test.Equal("SNMP_1000", metrics[0].Key, "Key of first metric wrong")
+	test.Equal("System Users", metrics[0].Name, "name of first metric wrong")
+	test.Equal("SNMP_1001", metrics[1].Key, "Key of first second wrong")
+	test.Equal("System Processes", metrics[1].Name, "name of second metric wrong")
+	test.Equal("SNMP_1002", metrics[2].Key, "Key of third metric wrong")
+	test.Equal("System Uptime", metrics[2].Name, "name of third metric wrong")
 }
 
 func TestClientImpl_FetchMeasurementName(t *testing.T) {
@@ -201,9 +185,9 @@ func TestClientImpl_FetchMeasurementName(t *testing.T) {
 }
 
 func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100&$filter=name+ct+%27Processor%27"
+	url := "https://127.0.0.1:5443/api/1/measurements/1643/metrics?$top=100"
 	shouldReturnError := func(client Client) (i interface{}, e error) {
-		return client.FetchMetricsForMeasurement(1643, "Processor")
+		return client.FetchMetricsForMeasurement(1643)
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
 	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "metrics for measurement 1643"))
@@ -241,15 +225,15 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	assert.NotNil(systemUptime, "systemUptime must not be nil")
 	assert.Equal(3, len(actual), "number of downloaded metrics")
 
-	var systemUptimeAvg = []*datasource.Point{
-		{Timestamp: 1574839083813, Value: 0.207},
-		{Timestamp: 1574839383813, Value: 0.210},
-		{Timestamp: 1574839683813, Value: 0.214},
-		{Timestamp: 1574839983813, Value: 0.217},
-		{Timestamp: 1574840283813, Value: 0.221},
-		{Timestamp: 1574840583813, Value: 0.224},
-		{Timestamp: 1574840883813, Value: 0.228}}
-	assert.Equal(systemUptimeAvg, systemUptime.AvgValues(), "system uptime data")
+	var systemUptimeAvg = [][]interface{}{
+		{time.Unix(0, 1574839083813*int64(time.Millisecond)), 0.207},
+		{time.Unix(0, 1574839383813*int64(time.Millisecond)), 0.210},
+		{time.Unix(0, 1574839683813*int64(time.Millisecond)), 0.214},
+		{time.Unix(0, 1574839983813*int64(time.Millisecond)), 0.217},
+		{time.Unix(0, 1574840283813*int64(time.Millisecond)), 0.221},
+		{time.Unix(0, 1574840583813*int64(time.Millisecond)), 0.224},
+		{time.Unix(0, 1574840883813*int64(time.Millisecond)), 0.228}}
+	assert.Equal(systemUptimeAvg, systemUptime.AsTable(false, false, true), "system uptime data")
 }
 
 func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {

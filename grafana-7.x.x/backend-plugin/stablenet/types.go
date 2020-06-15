@@ -36,16 +36,18 @@ type MetricData struct {
 
 type MetricDataSeries []MetricData
 
-func (s MetricDataSeries) AsTable(max, min, avg bool) [][]interface{} {
+//Returns the data series as two-dimensional array of interfaces. The columns are as follows:
+//time, min, max avg. The columns min max avg are only present, if the respective parameter is true.
+func (s MetricDataSeries) AsTable(min, max, avg bool) [][]interface{} {
 	table := make([][]interface{}, 0, len(s))
 	for _, data := range s {
 		row := make([]interface{}, 0, 4)
 		row = append(row, data.Time)
-		if max {
-			row = append(row, data.Max)
-		}
 		if min {
 			row = append(row, data.Min)
+		}
+		if max {
+			row = append(row, data.Max)
 		}
 		if avg {
 			row = append(row, data.Avg)

@@ -27,8 +27,7 @@ func Test_parseSingleTimestamp(t *testing.T) {
 		TimeStamp: 1574839297028,
 	}
 	names := []string{"OneDrive", "Script Execution Success", "Total Time"}
-	actual, err := parseSingleTimestamp(input, names)
-	require.NoError(t, err, "no error expected")
+	actual := parseSingleTimestamp(input, names)
 	require.NotNil(t, actual["OneDrive Time"], "OneDrive Measurement Data is not present")
 	require.NotNil(t, actual["Script Execution Success"], "Script Execution Success Measurement Data is not present")
 	require.NotNil(t, actual["Total Time"], "Total time Measurement Data is not present")

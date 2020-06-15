@@ -8,38 +8,55 @@
 package stablenet
 
 import (
-	"github.com/grafana/grafana-plugin-model/go/datasource"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
 
-func TestMetricDataSeries(t *testing.T) {
-	const length = 10
-	series := make([]MetricData, 0, length)
-	wantedMin := make([]*datasource.Point, 0, length)
-	wantedMax := make([]*datasource.Point, 0, length)
-	wantedAvg := make([]*datasource.Point, 0, length)
-	aMoment := time.Now()
-	for i := 0; i < length; i++ {
-		min := float64(i * 1000)
-		avg := float64(i * 2000)
-		max := float64(i * 3000)
-		series = append(series, MetricData{
-			Time: aMoment,
-			Min:  min,
-			Avg:  avg,
-			Max:  max,
-		})
-		unix := aMoment.UnixNano() / int64(time.Millisecond)
-		wantedMin = append(wantedMin, &datasource.Point{Timestamp: unix, Value: min})
-		wantedAvg = append(wantedAvg, &datasource.Point{Timestamp: unix, Value: avg})
-		wantedMax = append(wantedMax, &datasource.Point{Timestamp: unix, Value: max})
-		aMoment = aMoment.Add(5 * time.Minute)
+func TestMetricDataSeries_AsTable(t *testing.T) {
+	now := time.Now()
+	five := now.Add(5 * time.Minute)
+	ten := now.Add(10 * time.Minute)
+	series := MetricDataSeries{
+		{
+			Interval: 5000,
+			Time:     now,
+			Min:      1,
+			Max:      101,
+			Avg:      11},
+		{
+			Interval: 5000,
+			Time:     five,
+			Min:      2,
+			Max:      102,
+			Avg:      12},
+		{
+			Interval: 500,
+			Time:     ten,
+			Min:      0,
+			Max:      100,
+			Avg:      10},
 	}
-	test := assert.New(t)
-	dataSeries := MetricDataSeries(series)
-	test.Equal(wantedMin, dataSeries.MinValues(), "min Values differ")
-	test.Equal(wantedAvg, dataSeries.AvgValues(), "avg Values differ")
-	test.Equal(wantedMax, dataSeries.MaxValues(), "max Values differ")
+	tests := []struct {
+		name string
+		min  bool
+		max  bool
+		avg  bool
+		want [][]interface{}
+	}{
+		{name: "all false", want: [][]interface{}{{now}, {five}, {ten}}},
+		{name: "min", min: true, want: [][]interface{}{{now, 1.0}, {five, 2.0}, {ten, 0.0}}},
+		{name: "min,max", min: true, max: true, want: [][]interface{}{{now, 1.0, 101.0}, {five, 2.0, 102.0}, {ten, 0.0, 100.0}}},
+		{name: "min,max,avg", min: true, max: true, avg: true, want: [][]interface{}{{now, 1.0, 101.0, 11.0}, {five, 2.0, 102.0, 12.0}, {ten, 0.0, 100.0, 10.0}}},
+		{name: "min,avg", min: true, avg: true, want: [][]interface{}{{now, 1.0, 11.0}, {five, 2.0, 12.0}, {ten, 0.0, 10.0}}},
+		{name: "max,avg", max: true, avg: true, want: [][]interface{}{{now, 101.0, 11.0}, {five, 102.0, 12.0}, {ten, 100.0, 10.0}}},
+		{name: "avg", avg: true, want: [][]interface{}{{now, 11.0}, {five, 12.0}, {ten, 10.0}}},
+		{name: "max", max: true, want: [][]interface{}{{now, 101.0}, {five, 102.0}, {ten, 100.0}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := series.AsTable(tt.min, tt.max, tt.avg)
+			assert.Equal(t, tt.want, got, "computed table is wrong")
+		})
+	}
 }

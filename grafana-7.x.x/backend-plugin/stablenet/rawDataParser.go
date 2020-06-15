@@ -23,7 +23,7 @@ type timestampResponse struct {
 	TimeStamp int64             `json:"timestamp"`
 }
 
-func parseSingleTimestamp(data timestampResponse, metricKeys []string) (map[string]MetricData, error) {
+func parseSingleTimestamp(data timestampResponse, metricKeys []string) map[string]MetricData {
 	measurementTime := time.Unix(0, data.TimeStamp*int64(time.Millisecond))
 	interval := time.Duration(data.Interval) * time.Millisecond
 	result := make(map[string]MetricData)
@@ -42,5 +42,5 @@ func parseSingleTimestamp(data timestampResponse, metricKeys []string) (map[stri
 		value.Time = measurementTime
 		result[metricKeys[index]] = value
 	}
-	return result, nil
+	return result
 }
