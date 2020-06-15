@@ -9,12 +9,101 @@ package main
 
 import (
 	"backend-plugin/stablenet"
+	"backend-plugin/util"
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"sort"
 	"testing"
+	"time"
 )
 
-func TestParseStatisticLink(t *testing.T) {
+func TestExpandStatisticLinks(t *testing.T) {
+	queries := []MetricQuery{
+		{
+			Start:         time.Now(),
+			End:           time.Now().Add(5 * time.Hour),
+			Interval:      4000,
+			StatisticLink: util.StringPointer("http://example.com/measurements/?0id=4000&0value1=4&0value0=2"),
+		},
+		{
+			Start:           time.Now(),
+			End:             time.Now().Add(5 * time.Hour),
+			Interval:        4000,
+			MeasurementObid: 2121,
+			Metrics:         []StringPair{{Name: "Host Uptime", Key: "SNMP_10"}},
+		},
+	}
+	metricProvider := func(i int) ([]stablenet.Metric, error) {
+		if i == 4000 {
+			return []stablenet.Metric{{Key: "SNMP_1", Name: "In"}, {Key: "SNMP_2", Name: "Out"}, {Key: "SNMP_3", Name: "Up"}, {Key: "SNMP_4", Name: "Down"}}, nil
+		}
+		return nil, fmt.Errorf("measurement %d not found", i)
+	}
+	t.Run("success", func(t *testing.T) {
+		got, err := ExpandStatisticLinks(queries, metricProvider)
+		require.Nil(t, err, "no error expected")
+		require.Equal(t, 2, len(got), "expanded queries wrong")
+		assert.Equal(t, 4000, got[0].MeasurementObid, "measurement obid of first query not correct")
+		assert.Equal(t, 2121, got[1].MeasurementObid, "measurement obid of second query not correct")
+	})
+	t.Run("expand error", func(t *testing.T) {
+		q := []MetricQuery{{StatisticLink: util.StringPointer("not a link")}}
+		got, err := ExpandStatisticLinks(q, metricProvider)
+		require.Nil(t, got, "should be nil in case of error")
+		assert.EqualError(t, err, "could not parse statistic link of query 0: the link \"not a link\" does not carry at least a measurement id", "error message wrong")
+	})
+}
 
+func TestParseStatisticLink(t *testing.T) {
+	query := MetricQuery{
+		Start:           time.Now(),
+		End:             time.Now().Add(5 * time.Hour),
+		Interval:        4000,
+		IncludeAvgStats: true,
+		IncludeMaxStats: true,
+		IncludeMinStats: true,
+		StatisticLink:   util.StringPointer("http://example.com/measurements/?0id=4000&1id=5000&0value1=4&0value0=2&1value0=23&2id=6000"),
+	}
+	metricProvider := func(i int) ([]stablenet.Metric, error) {
+		if i == 4000 {
+			return []stablenet.Metric{{Key: "SNMP_1", Name: "In"}, {Key: "SNMP_2", Name: "Out"}, {Key: "SNMP_3", Name: "Up"}, {Key: "SNMP_4", Name: "Down"}}, nil
+		} else if i == 5000 {
+			return []stablenet.Metric{{Key: "SNMP_2", Name: "Disc Space"}, {Key: "SCRIPT_23", Name: "VMs"}}, nil
+		} else if i == 6000 {
+			return []stablenet.Metric{}, nil
+		}
+		return nil, fmt.Errorf("measurement %d not found", i)
+	}
+	t.Run("success", func(t *testing.T) {
+		got, err := parseStatisticLink(query, metricProvider)
+		require.NoError(t, err, "no error expected")
+		require.Equal(t, 2, len(got), "number of expanded queries")
+		sort.Slice(got, func(i, j int) bool {
+			return got[i].MeasurementObid < got[j].MeasurementObid
+		})
+		one := got[0]
+		assert.Equal(t, query.Start, one.Start, "start of first query not correct")
+		assert.Equal(t, query.End, one.End, "end of first query not correct")
+		assert.Equal(t, query.Interval, one.Interval, "Interval of first query not correct")
+		assert.Equal(t, query.IncludeMinStats, one.IncludeMinStats, "min of first query not correct")
+		assert.Equal(t, query.IncludeMaxStats, one.IncludeMaxStats, "max of first query not correct")
+		assert.Equal(t, query.IncludeAvgStats, one.IncludeAvgStats, "avg of first query not correct")
+		assert.Equal(t, 4000, one.MeasurementObid, "measurementObid of first query not correct")
+		assert.Equal(t, []StringPair{{Key: "SNMP_2", Name: "Out"}, {Key: "SNMP_4", Name: "Down"}}, one.Metrics, "metrics of first query not correct")
+	})
+	t.Run("carries no link", func(t *testing.T) {
+		q := MetricQuery{StatisticLink: util.StringPointer("not a link")}
+		got, err := parseStatisticLink(q, metricProvider)
+		assert.Nil(t, got, "should be nil in case of an error")
+		assert.EqualError(t, err, "the link \"not a link\" does not carry at least a measurement id")
+	})
+	t.Run("carries no link", func(t *testing.T) {
+		q := MetricQuery{StatisticLink: util.StringPointer("&id=10000")}
+		got, err := parseStatisticLink(q, metricProvider)
+		assert.Nil(t, got, "should be nil in case of an error")
+		assert.EqualError(t, err, "could not fetch metrics for measurement 10000: measurement 10000 not found")
+	})
 }
 
 func TestFindMeasurementIdsInLink(t *testing.T) {

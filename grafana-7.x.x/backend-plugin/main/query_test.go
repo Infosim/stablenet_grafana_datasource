@@ -119,6 +119,7 @@ func TestMetricQuery_FetchData(t *testing.T) {
 				assert.Equal(t, query.End, options.End, "end option must be set correctly")
 				assert.Equal(t, query.MeasurementObid, options.MeasurementObid, "measurement obid option must be set correctly")
 				assert.Equal(t, []string{"SNMP_10", "SNMP_20"}, options.Metrics, "metrics option must be set correctly")
+				assert.Equal(t, int64(query.Interval/time.Millisecond), options.Average, "average option must be set correctly")
 				return map[string]stablenet.MetricDataSeries{"SNMP_10": writes, "SNMP_20": reads}, nil
 			})
 			assert.Nil(t, err, "no error expected")
