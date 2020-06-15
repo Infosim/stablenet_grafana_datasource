@@ -96,7 +96,7 @@ func handleTest(rw http.ResponseWriter, req *http.Request) {
 	snClient := req.Context().Value("SnClient").(stablenet.VersionProvider)
 	version, errStr := snClient.QueryStableNetVersion()
 	if errStr != nil {
-		http.Error(rw, *errStr, http.StatusInternalServerError)
+		http.Error(rw, *errStr, http.StatusBadRequest)
 		return
 	}
 	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
