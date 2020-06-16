@@ -48,7 +48,7 @@ func TestQueryTest(t *testing.T) {
 		{name: "recent", snVersion: &stablenet.ServerVersion{Version: "9.0.0"}, wantStatus: http.StatusNoContent},
 		{name: "recent with productname should fail", snVersion: &stablenet.ServerVersion{Version: "StableNet 9.0.0"}, wantStatus: http.StatusInternalServerError, wantBody: "The StableNet® version StableNet 9.0.0 does not support Grafana®\n"},
 		{name: "future", snVersion: &stablenet.ServerVersion{Version: "10.1.0"}, wantStatus: http.StatusNoContent},
-		{name: "internal error", snVersion: nil, wantStatus: http.StatusInternalServerError, wantBody: "internal version error\n"},
+		{name: "internal error", snVersion: nil, wantStatus: http.StatusBadRequest, wantBody: "internal version error\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

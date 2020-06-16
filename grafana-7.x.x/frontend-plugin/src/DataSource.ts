@@ -27,7 +27,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
 
   async testDatasource(): Promise<TestResult> {
     return super
-      .getResource('/test', {})
+      .getResource('test', {})
       .then(() => {
         return {
           status: 'success',
