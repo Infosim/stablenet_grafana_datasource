@@ -70,7 +70,7 @@ export class QueryEditor extends PureComponent<Props> {
   onDeviceChange = (v: SelectableValue<number>) => {
     const { onChange, query, onRunQuery, datasource } = this.props;
     datasource
-      .findMeasurementsForDevice(v.value!)
+      .findMeasurementsForDevice(v.value!, '')
       .then(r => {
         onChange({
           ...query,
@@ -89,6 +89,25 @@ export class QueryEditor extends PureComponent<Props> {
         });
       })
       .then(() => onRunQuery());
+  };
+
+  getMeasurements = (v: string) => {
+    const { query } = this.props;
+    if (!query.measurements) {
+      return Promise.resolve([]);
+    }
+    return Promise.resolve(query.measurements.filter(m => m.label.includes(v)));
+  };
+
+  onMeasurementInputChange = (v: string) => {
+    const { onChange, query, datasource } = this.props;
+    datasource.findMeasurementsForDevice(query.selectedDevice.value, v).then(r => {
+      onChange({
+        ...query,
+        moreMeasurements: r.hasMore || !!query.moreMeasurements,
+        measurements: r.data,
+      });
+    });
   };
 
   onMeasurementChange = (v: SelectableValue<number>) => {
@@ -201,10 +220,11 @@ export class QueryEditor extends PureComponent<Props> {
               />
               {/**Measurement dropdown, more measurements*/}
               <MeasurementMenu
-                get={query.measurements || []}
+                get={this.getMeasurements}
                 selected={query.selectedMeasurement}
                 onChange={this.onMeasurementChange}
                 more={query.moreMeasurements}
+                onInput={this.onMeasurementInputChange}
               />
             </div>
             {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (

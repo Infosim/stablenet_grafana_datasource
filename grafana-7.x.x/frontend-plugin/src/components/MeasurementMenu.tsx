@@ -6,7 +6,7 @@
  *                  www.infosim.net
  */
 import React from 'react';
-import { Select, LegacyForms } from '@grafana/ui';
+import { AsyncSelect, LegacyForms } from '@grafana/ui';
 
 const { FormField } = LegacyForms;
 
@@ -24,15 +24,17 @@ export const MeasurementMenu = props => {
         }
         inputEl={
           <div tabIndex={0}>
-            <Select<number>
-              options={props.get}
+            <AsyncSelect<number>
+              loadOptions={props.get}
               value={props.selected}
               onChange={props.onChange}
-              className={'width-19'}
-              menuPlacement={'bottom'}
               noOptionsMessage={`No measurements match this search.`}
+              loadingMessage={`Fetching measurements...`}
+              className={'width-19'}
               placeholder={'none'}
+              menuPlacement={'bottom'}
               isSearchable={true}
+              onInputChange={props.onInput}
             />
           </div>
         }
