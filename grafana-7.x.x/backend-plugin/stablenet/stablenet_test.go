@@ -114,10 +114,12 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 	tests := []struct {
 		name       string
 		deviceObid int
+		filter     string
 		mockUrl    string
 	}{
 		{name: "no filter", deviceObid: -1, mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%27-1%27"},
 		{name: "device filter", deviceObid: 1024, mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"},
+		{name: "device filter and name filter", deviceObid: 1024, filter: "processor load", mockUrl: "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27+and+name+ct+%27processor+load%27"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -126,7 +128,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, rawData))
 			client := NewClient(&ConnectOptions{Host: "127.0.0.1", Port: 5443, Username: "infosim", Password: "stablenet"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
-			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid)
+			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid, tt.filter)
 			require.NoError(t, err)
 			require.Equal(t, 10, len(actual.Measurements), "number of queried measurements wrong")
 			test := testify.New(t)
@@ -140,7 +142,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 func TestClientImpl_FetchMeasurementsForDevice_Error(t *testing.T) {
 	url := "https://127.0.0.1:5443/api/1/measurements?$top=100&$orderBy=name&$filter=destDeviceId+eq+%271024%27"
 	shouldReturnError := func(client *Client) (interface{}, error) {
-		return client.FetchMeasurementsForDevice(1024)
+		return client.FetchMeasurementsForDevice(1024, "")
 	}
 	t.Run("json error", invalidJsonTest(shouldReturnError, "GET", url))
 	t.Run("status error", wrongStatusResponseTest(shouldReturnError, "GET", url, "measurements for device filter \"destDeviceId eq '1024'\""))
@@ -237,7 +239,7 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
-	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data?top=-1")
+	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data?top=all")
 	options := DataQueryOptions{
 		MeasurementObid: 5555,
 		Metrics:         []string{"1", "2", "3"},

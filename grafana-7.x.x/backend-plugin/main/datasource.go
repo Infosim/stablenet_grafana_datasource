@@ -120,12 +120,13 @@ func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
 
 func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 	snClient := req.Context().Value("SnClient").(stablenet.MeasurementProvider)
+	filter := req.URL.Query().Get("filter")
 	deviceObid, err := strconv.Atoi(req.URL.Query().Get("deviceObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not parse deviceObid query param: %v", err), http.StatusBadRequest)
 		return
 	}
-	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid)
+	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid, filter)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query measurements: %v", err), http.StatusInternalServerError)
 		return

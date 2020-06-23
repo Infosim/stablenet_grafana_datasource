@@ -24,6 +24,7 @@ import (
 type handlerTests struct {
 	name       string
 	urlParams  string
+	filter     string
 	wantStatus int
 	wantErrMsg string
 }
@@ -117,12 +118,14 @@ func TestHandleDeviceQuery(t *testing.T) {
 
 type mockMeasurementProvider struct {
 	measurements *stablenet.MeasurementQueryResult
+	filter       string
 	err          error
 	obid         int
 }
 
-func (m *mockMeasurementProvider) FetchMeasurementsForDevice(obid int) (*stablenet.MeasurementQueryResult, error) {
+func (m *mockMeasurementProvider) FetchMeasurementsForDevice(obid int, filter string) (*stablenet.MeasurementQueryResult, error) {
 	m.obid = obid
+	m.filter = filter
 	return m.measurements, m.err
 }
 
@@ -132,7 +135,7 @@ func TestHandleMeasurementQuery(t *testing.T) {
 		{name: "unparsable device obid", urlParams: "?deviceObid=a_string", wantStatus: 400, wantErrMsg: "could not parse deviceObid query param: strconv.Atoi: parsing \"a_string\": invalid syntax"},
 		{name: "measurement provider error", urlParams: "?deviceObid=4500", wantStatus: 500, wantErrMsg: "could not query measurements: internal measurement error"},
 		{name: "success", urlParams: "?deviceObid=4500", wantStatus: 200},
-		{name: "success", urlParams: "?deviceObid=-1", wantStatus: 200},
+		{name: "success", urlParams: "?deviceObid=-1&filter=processor", wantStatus: 200},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -150,6 +153,7 @@ func TestHandleMeasurementQuery(t *testing.T) {
 			handleMeasurementQuery(recorder, request)
 			assert.Equal(t, tt.wantStatus, recorder.Result().StatusCode, "status is wrong")
 			if len(tt.wantErrMsg) == 0 {
+				assert.Equal(t, request.URL.Query().Get("filter"), provider.filter, "filter should be set")
 				assert.Equal(t, request.URL.Query().Get("deviceObid"), fmt.Sprintf("%d", provider.obid), "provider not called with correct obid")
 				var got stablenet.MeasurementQueryResult
 				err := json.Unmarshal(recorder.Body.Bytes(), &got)

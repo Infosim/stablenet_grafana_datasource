@@ -33,7 +33,7 @@ type DeviceProvider interface {
 }
 
 type MeasurementProvider interface {
-	FetchMeasurementsForDevice(int) (*MeasurementQueryResult, error)
+	FetchMeasurementsForDevice(int, string) (*MeasurementQueryResult, error)
 }
 
 type MetricProvider interface {
@@ -142,7 +142,7 @@ func (c *Client) buildJsonApiUrl(endpoint string, orderBy string, filters ...str
 func (c *Client) buildJsonApiUrlWithLimit(endpoint string, limit bool) string {
 	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
 	if !limit {
-		url = fmt.Sprintf("https://%s:%d/api/1/%s?top=-1", c.Host, c.Port, endpoint)
+		url = fmt.Sprintf("https://%s:%d/api/1/%s?top=all", c.Host, c.Port, endpoint)
 	}
 	return url
 }
@@ -152,9 +152,14 @@ type MeasurementQueryResult struct {
 	HasMore      bool          `json:"hasMore"`
 }
 
-func (c *Client) FetchMeasurementsForDevice(deviceObid int) (*MeasurementQueryResult, error) {
+func (c *Client) FetchMeasurementsForDevice(deviceObid int, filter string) (*MeasurementQueryResult, error) {
+	var nameFilter string
+	if len(filter) != 0 {
+		nameFilter = fmt.Sprintf("name ct '%s'", filter)
+	}
 	deviceFilter := fmt.Sprintf("destDeviceId eq '%d'", deviceObid)
-	url := c.buildJsonApiUrl("measurements", "name", deviceFilter)
+
+	url := c.buildJsonApiUrl("measurements", "name", deviceFilter, nameFilter)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving measurements for device filter \"%s\" failed: %v", deviceFilter, err)
