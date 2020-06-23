@@ -61,7 +61,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   }
 
   async findMeasurementsForDevice(obid: number, input: string): Promise<QueryResult> {
-    return super.getResource('measurements', { deviceObid: obid, input: input }).then(result => {
+    return super.getResource('measurements', { deviceObid: obid, filter: input }).then(result => {
       const res: LabelValue[] = result.data.map(measurement => {
         return {
           label: measurement.name,
