@@ -8,6 +8,7 @@
 import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
 import {
+  EmptyResult,
   LabelValue,
   MetricResult,
   QueryResult,
@@ -87,11 +88,11 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     );
   }
 
-  query(request: DataQueryRequest<Target>): Observable<DataQueryResponse> | any {
+  query(request: DataQueryRequest<Target>): Observable<DataQueryResponse> {
     const { targets } = request;
     const queries: SingleQuery[] = [];
     if (!('statisticLink' in request.targets[0]) && !('chosenMetrics' in request.targets[0])) {
-      return Promise.resolve({ data: [] });
+      return EmptyResult;
     }
 
     for (let i = 0; i < targets.length; i++) {
@@ -110,7 +111,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     }
 
     if (queries.length === 0) {
-      return Promise.resolve({ data: [] });
+      return EmptyResult;
     }
 
     const req: DataQueryRequest = {
