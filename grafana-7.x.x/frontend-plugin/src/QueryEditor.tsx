@@ -109,12 +109,27 @@ export class QueryEditor extends PureComponent<Props> {
   };
 
   onMeasurementFilterChange = (v: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
-    onChange({
-      ...query,
-      measurementFilter: v.target.value,
-    });
-    onRunQuery();
+    const { datasource, onChange, query, onRunQuery } = this.props;
+    const x = v.target.value;
+    datasource
+      .findMeasurementsForDevice(query.selectedDevice.value, v.target.value)
+      .then(r => {
+        onChange({
+          ...query,
+          moreMeasurements: r.hasMore || !!query.moreMeasurements,
+          measurements: r.data,
+          measurementFilter: x,
+          metricPrefix: '',
+          metrics: [],
+          chosenMetrics: {},
+          mode: Mode.MEASUREMENT,
+          includeAvgStats: query.includeAvgStats === undefined ? true : query.includeAvgStats,
+          includeMaxStats: query.includeMaxStats === undefined ? false : query.includeMaxStats,
+          includeMinStats: query.includeMinStats === undefined ? false : query.includeMinStats,
+          averageUnit: query.averageUnit ? query.averageUnit : Unit.MINUTES,
+        });
+      })
+      .then(() => onRunQuery());
   };
 
   onMetricPrefixChange = (v: ChangeEvent<HTMLInputElement>) => {
