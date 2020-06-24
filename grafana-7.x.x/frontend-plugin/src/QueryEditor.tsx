@@ -199,11 +199,13 @@ export class QueryEditor extends PureComponent<Props> {
                 onChange={this.onDeviceChange}
                 more={query.moreDevices}
               />
+            </div>
+            <div className="gf-form-inline">
               {/**Measurement dropdown, more measurements*/}
               <MeasurementMenu
                 get={query.measurements || []}
                 selected={query.selectedMeasurement}
-                onChange={this.onMeasurementChange}
+                menuChange={this.onMeasurementChange}
                 more={query.moreMeasurements}
               />
             </div>

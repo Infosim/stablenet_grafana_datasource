@@ -12,7 +12,7 @@ const { FormField } = LegacyForms;
 
 export const DeviceMenu = props => {
   return (
-    <div className="gf-form" style={{ marginRight: '4px' } as React.CSSProperties}>
+    <div className="gf-form">
       <FormField
         label={'Device:'}
         labelWidth={11}

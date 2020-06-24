@@ -27,7 +27,7 @@ export const MeasurementMenu = props => {
             <Select<number>
               options={props.get}
               value={props.selected}
-              onChange={props.onChange}
+              onChange={props.menuChange}
               className={'width-19'}
               menuPlacement={'bottom'}
               noOptionsMessage={`No measurements match this search.`}
