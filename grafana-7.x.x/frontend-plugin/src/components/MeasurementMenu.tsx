@@ -14,6 +14,17 @@ export const MeasurementMenu = props => {
   return (
     <div className="gf-form">
       <FormField
+        label={'Measurement Filter:'}
+        labelWidth={11}
+        inputWidth={19}
+        tooltip={'The dropdown menu on the right will only include entries containing the input of this field.'}
+        value={props.filter}
+        onChange={props.filterChange}
+        spellCheck={false}
+        placeholder={'no filter'}
+        tabIndex={0}
+      />
+      <FormField
         label={'Measurement:'}
         labelWidth={11}
         tooltip={
@@ -32,7 +43,7 @@ export const MeasurementMenu = props => {
               menuPlacement={'bottom'}
               noOptionsMessage={`No measurements match this search.`}
               placeholder={'none'}
-              isSearchable={true}
+              isSearchable={false}
             />
           </div>
         }
