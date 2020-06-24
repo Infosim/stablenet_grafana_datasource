@@ -76,6 +76,7 @@ export class QueryEditor extends PureComponent<Props> {
           ...query,
           moreMeasurements: r.hasMore || !!query.moreMeasurements,
           measurements: r.data,
+          measurementFilter: '',
           selectedDevice: { label: v.label!, value: v.value! },
           selectedMeasurement: { label: '', value: -1 },
           metricPrefix: '',
@@ -105,6 +106,15 @@ export class QueryEditor extends PureComponent<Props> {
         });
       })
       .then(() => onRunQuery());
+  };
+
+  onMeasurementFilterChange = (v: ChangeEvent<HTMLInputElement>) => {
+    const { onChange, query, onRunQuery } = this.props;
+    onChange({
+      ...query,
+      measurementFilter: v.target.value,
+    });
+    onRunQuery();
   };
 
   onMetricPrefixChange = (v: ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +217,9 @@ export class QueryEditor extends PureComponent<Props> {
                 selected={query.selectedMeasurement}
                 menuChange={this.onMeasurementChange}
                 more={query.moreMeasurements}
+                filter={query.measurementFilter || ''}
+                filterChange={this.onMeasurementFilterChange}
+                disabled={query.selectedDevice === undefined}
               />
             </div>
             {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (

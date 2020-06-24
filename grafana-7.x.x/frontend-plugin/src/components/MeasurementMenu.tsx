@@ -23,6 +23,7 @@ export const MeasurementMenu = props => {
         spellCheck={false}
         placeholder={'no filter'}
         tabIndex={0}
+        disabled={props.disabled}
       />
       <FormField
         label={'Measurement:'}
