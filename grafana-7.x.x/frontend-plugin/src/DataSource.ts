@@ -16,7 +16,6 @@ import {
   Target,
   TestResult,
 } from './Types';
-import { EMPTY } from 'rxjs';
 import { Observable } from 'rxjs';
 import { WrappedTarget } from './DataQueryAssembler';
 
@@ -88,11 +87,11 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     );
   }
 
-  query(request: DataQueryRequest<Target>): Observable<DataQueryResponse> {
+  query(request: DataQueryRequest<Target>): Observable<DataQueryResponse> | any {
     const { targets } = request;
     const queries: SingleQuery[] = [];
     if (!('statisticLink' in request.targets[0]) && !('chosenMetrics' in request.targets[0])) {
-      return EMPTY;
+      return Promise.resolve({ data: [] });
     }
 
     for (let i = 0; i < targets.length; i++) {
@@ -111,7 +110,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     }
 
     if (queries.length === 0) {
-      return EMPTY;
+      return Promise.resolve({ data: [] });
     }
 
     const req: DataQueryRequest = {
