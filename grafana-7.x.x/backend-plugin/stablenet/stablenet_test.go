@@ -239,7 +239,7 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
 	start := time.Now()
 	end := start.Add(5 * time.Minute)
-	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data?top=all")
+	url := fmt.Sprintf("https://127.0.0.1:5443/api/1/measurements/5555/data?$top=100")
 	options := DataQueryOptions{
 		MeasurementObid: 5555,
 		Metrics:         []string{"1", "2", "3"},

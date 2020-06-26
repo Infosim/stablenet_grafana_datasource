@@ -139,14 +139,6 @@ func (c *Client) buildJsonApiUrl(endpoint string, orderBy string, filters ...str
 	return url + filter
 }
 
-func (c *Client) buildJsonApiUrlWithLimit(endpoint string, limit bool) string {
-	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
-	if !limit {
-		url = fmt.Sprintf("https://%s:%d/api/1/%s?top=all", c.Host, c.Port, endpoint)
-	}
-	return url
-}
-
 type MeasurementQueryResult struct {
 	Measurements []Measurement `json:"data"`
 	HasMore      bool          `json:"hasMore"`
@@ -219,7 +211,7 @@ func (c *Client) FetchDataForMetrics(options DataQueryOptions) (map[string]Metri
 	endMillis := options.End.UnixNano() / int64(time.Millisecond)
 	query := DataQuery{Start: startMillis, End: endMillis, Metrics: options.Metrics, Raw: false, Average: options.Average}
 	endpoint := fmt.Sprintf("measurements/%d/data", options.MeasurementObid)
-	url := c.buildJsonApiUrlWithLimit(endpoint, false)
+	url := c.buildJsonApiUrl(endpoint, "")
 	resp, err := c.client.R().SetHeader("Content-Type", "application/json").SetBody(query).Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", options.MeasurementObid, err)
