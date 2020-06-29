@@ -52,7 +52,9 @@ export interface SingleQuery extends DataQuery {
   statisticLink?: string;
   measurementObid?: number;
   metrics?: Array<{ key: string; name: string }>;
-  intervalMs: number;
+  // Do not use the name intervalMs here because this property gets overridden by Grafana.
+  // We want to use our own average period.
+  customInterval: number;
   includeMinStats: boolean;
   includeAvgStats: boolean;
   includeMaxStats: boolean;

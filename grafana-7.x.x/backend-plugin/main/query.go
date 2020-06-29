@@ -17,9 +17,11 @@ import (
 )
 
 type MetricQuery struct {
-	Start           time.Time
-	End             time.Time
-	Interval        time.Duration
+	Start time.Time
+	End   time.Time
+	// Do not use `json:"intervalMs" here because this property gets overridden by Grafana.
+	// We want to use our own average period.
+	Interval        int64 `json:"customInterval"`
 	IncludeAvgStats bool
 	IncludeMaxStats bool
 	IncludeMinStats bool
@@ -44,9 +46,8 @@ func (m *MetricQuery) shallowClone() MetricQuery {
 
 func NewQuery(query backend.DataQuery) MetricQuery {
 	return MetricQuery{
-		Start:    query.TimeRange.From,
-		End:      query.TimeRange.To,
-		Interval: query.Interval,
+		Start: query.TimeRange.From,
+		End:   query.TimeRange.To,
 	}
 }
 
@@ -77,7 +78,7 @@ func (m *MetricQuery) FetchData(provider func(stablenet.DataQueryOptions) (map[s
 		Metrics:         m.metricKeys(),
 		Start:           m.Start,
 		End:             m.End,
-		Average:         int64(m.Interval / time.Millisecond),
+		Average:         m.Interval,
 	}
 	snData, err := provider(options)
 	if err != nil {

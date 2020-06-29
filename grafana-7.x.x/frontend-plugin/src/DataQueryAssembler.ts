@@ -27,7 +27,7 @@ export class WrappedTarget {
       refId: this.target.refId,
       queryType: 'statisticLink',
       statisticLink: this.target.statisticLink,
-      intervalMs: this.target.useCustomAverage
+      customInterval: this.target.useCustomAverage
         ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit
         : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
@@ -42,7 +42,7 @@ export class WrappedTarget {
       refId: this.target.refId,
       measurementObid: this.target.selectedMeasurement.value,
       metrics: keys,
-      intervalMs: this.target.useCustomAverage
+      customInterval: this.target.useCustomAverage
         ? parseInt(this.target.averagePeriod, 10) * this.target.averageUnit
         : this.intervalMs,
       includeMinStats: this.target.includeMinStats,
