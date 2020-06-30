@@ -5,12 +5,14 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQuery, DataSourceJsonData, SelectableValue } from '@grafana/data';
+import { DataQuery, DataQueryResponse, DataSourceJsonData, SelectableValue } from '@grafana/data';
+import { of, Observable } from 'rxjs';
 
 export interface Target extends DataQuery {
   mode: number;
   selectedDevice: LabelValue;
   selectedMeasurement: LabelValue;
+  measurementFilter: string;
   chosenMetrics: object;
   metricPrefix: string;
   includeMinStats: boolean;
@@ -47,6 +49,8 @@ export interface MetricResult {
   text: string;
   measurementObid: number;
 }
+
+export const EmptyResult: Observable<DataQueryResponse> = of({ data: [] });
 
 export interface SingleQuery extends DataQuery {
   statisticLink?: string;

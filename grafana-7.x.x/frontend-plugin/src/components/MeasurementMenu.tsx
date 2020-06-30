@@ -27,15 +27,27 @@ export const MeasurementMenu = props => {
             <Select<number>
               options={props.get}
               value={props.selected}
-              onChange={props.onChange}
+              onChange={props.menuChange}
               className={'width-19'}
               menuPlacement={'bottom'}
               noOptionsMessage={`No measurements match this search.`}
               placeholder={'none'}
-              isSearchable={true}
+              isSearchable={false}
             />
           </div>
         }
+      />
+      <FormField
+        label={'Measurement Filter:'}
+        labelWidth={11}
+        inputWidth={19}
+        tooltip={'The dropdown menu on the right will only include entries containing the input of this field.'}
+        value={props.filter}
+        onChange={props.filterChange}
+        spellCheck={false}
+        placeholder={'no filter'}
+        tabIndex={0}
+        disabled={props.disabled}
       />
     </div>
   );

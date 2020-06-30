@@ -8,6 +8,7 @@
 import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
 import {
+  EmptyResult,
   LabelValue,
   MetricResult,
   QueryResult,
@@ -16,7 +17,6 @@ import {
   Target,
   TestResult,
 } from './Types';
-import { EMPTY } from 'rxjs';
 import { Observable } from 'rxjs';
 import { WrappedTarget } from './DataQueryAssembler';
 
@@ -60,8 +60,8 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     });
   }
 
-  async findMeasurementsForDevice(obid: number): Promise<QueryResult> {
-    return super.getResource('measurements', { deviceObid: obid }).then(result => {
+  async findMeasurementsForDevice(obid: number, input: string): Promise<QueryResult> {
+    return super.getResource('measurements', { deviceObid: obid, filter: input }).then(result => {
       const res: LabelValue[] = result.data.map(measurement => {
         return {
           label: measurement.name,
@@ -92,7 +92,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     const { targets } = request;
     const queries: SingleQuery[] = [];
     if (!('statisticLink' in request.targets[0]) && !('chosenMetrics' in request.targets[0])) {
-      return EMPTY;
+      return EmptyResult;
     }
 
     for (let i = 0; i < targets.length; i++) {
@@ -111,7 +111,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
     }
 
     if (queries.length === 0) {
-      return EMPTY;
+      return EmptyResult;
     }
 
     const req: DataQueryRequest = {
