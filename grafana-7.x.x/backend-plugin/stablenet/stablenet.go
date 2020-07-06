@@ -28,18 +28,6 @@ type VersionProvider interface {
 	QueryStableNetVersion() (*ServerVersion, *string)
 }
 
-type DeviceProvider interface {
-	QueryDevices(string) (*DeviceQueryResult, error)
-}
-
-type MeasurementProvider interface {
-	FetchMeasurementsForDevice(int, string) (*MeasurementQueryResult, error)
-}
-
-type MetricProvider interface {
-	FetchMetricsForMeasurement(int) ([]Metric, error)
-}
-
 type ConnectOptions struct {
 	Address  string `json:"snip"`
 	Username string `json:"snusername"`
@@ -65,7 +53,7 @@ type Client struct {
 func (c *Client) QueryStableNetVersion() (*ServerVersion, *string) {
 	var errorStr string
 	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
-	url := fmt.Sprintf("https://%s/rest/info", c.Address)
+	url := fmt.Sprintf("%s/rest/info", c.Address)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		errorStr = fmt.Sprintf("Connecting to StableNet® failed: %v", err.Error())
@@ -121,7 +109,7 @@ func (c *Client) QueryDevices(filter string) (*DeviceQueryResult, error) {
 }
 
 func (c *Client) buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
-	url := fmt.Sprintf("https://%s/api/1/%s?$top=100", c.Address, endpoint)
+	url := fmt.Sprintf("%s/api/1/%s?$top=100", c.Address, endpoint)
 	if len(orderBy) != 0 {
 		url = fmt.Sprintf("%s&$orderBy=%s", url, orderBy)
 	}
@@ -222,7 +210,7 @@ func (c *Client) FetchDataForMetrics(options DataQueryOptions) (map[string]Metri
 }
 
 func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]MetricDataSeries, error) {
-	var data []timestampResponse
+	var data []TimestampResponse
 	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)

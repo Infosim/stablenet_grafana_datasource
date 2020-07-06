@@ -40,7 +40,7 @@ func stableNetOptions(settings *backend.DataSourceInstanceSettings) *stablenet.C
 	if portErr != nil {
 		panic(fmt.Sprintf("the field \"snport\" could not be parsed into a number: %v", portErr))
 	}
-	address := fmt.Sprintf("%s:%d", options["snip"], port)
+	address := fmt.Sprintf("https://%s:%d", options["snip"], port)
 	return &stablenet.ConnectOptions{
 		Address:  address,
 		Username: options["snusername"],

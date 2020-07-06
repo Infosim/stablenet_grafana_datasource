@@ -63,6 +63,12 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 	}()
 	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
 
+	// We need this for testing purposes. Go's httptest package only allows to mock http, not https, and
+	// it is not meant to separate ip and port. Thus, for testing purposes, we inject the test url here.
+	if ctx.Value("sn_address") != nil {
+		options.Address = ctx.Value("sn_address").(string)
+	}
+
 	queries := make([]MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
 		query := NewQuery(singleRequest)
@@ -108,7 +114,7 @@ func handleTest(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.DeviceProvider)
+	snClient := req.Context().Value("SnClient").(*stablenet.Client)
 	filter := req.URL.Query().Get("filter")
 	devices, err := snClient.QueryDevices(filter)
 	if err != nil {
@@ -119,7 +125,7 @@ func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.MeasurementProvider)
+	snClient := req.Context().Value("SnClient").(*stablenet.Client)
 	filter := req.URL.Query().Get("filter")
 	deviceObid, err := strconv.Atoi(req.URL.Query().Get("deviceObid"))
 	if err != nil {
@@ -135,7 +141,7 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.MetricProvider)
+	snClient := req.Context().Value("SnClient").(*stablenet.Client)
 	measurementObid, err := strconv.Atoi(req.URL.Query().Get("measurementObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v", err), http.StatusBadRequest)

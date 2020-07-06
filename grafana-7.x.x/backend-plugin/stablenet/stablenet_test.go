@@ -45,7 +45,7 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 			} else {
 				httpmock.RegisterResponder("GET", "https://127.0.0.1:443/rest/info", httpmock.NewErrorResponder(tt.httpError))
 			}
-			client := NewClient(&ConnectOptions{Address: "127.0.0.1:443"})
+			client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:443"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, errStr := client.QueryStableNetVersion()
 			testify.Equal(t, tt.wantVersion, actual, "queried server version wrong")
@@ -82,7 +82,7 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 			httpmock.Activate()
 			defer httpmock.Deactivate()
 			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, devices))
-			client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443"})
+			client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, err := client.QueryDevices(tt.filter)
 			require.NoError(t, err)
@@ -126,7 +126,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 			httpmock.Activate()
 			defer httpmock.Deactivate()
 			httpmock.RegisterResponder("GET", tt.mockUrl, httpmock.NewBytesResponder(200, rawData))
-			client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+			client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid, tt.filter)
 			require.NoError(t, err)
@@ -158,7 +158,7 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.Deactivate()
 	httpmock.RegisterResponder("GET", mockUrl, httpmock.NewBytesResponder(200, rawData))
-	client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+	client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 	httpmock.ActivateNonDefault(client.client.GetClient())
 	metrics, err := client.FetchMetricsForMeasurement(1643)
 	require.NoError(t, err)
@@ -178,7 +178,7 @@ func TestClientImpl_FetchMeasurementName(t *testing.T) {
 	defer httpmock.Deactivate()
 
 	httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "{\"count\": 2264, \"hasMore\": false, \"data\": [{\"name\": \"ThinkStation Address\", \"obid\": 1643}]}"))
-	client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+	client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 	httpmock.ActivateNonDefault(client.client.GetClient())
 	name, err := client.FetchMeasurementName(1643)
 	require.NoError(t, err, "no error expected")
@@ -205,7 +205,7 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	rawData, err := ioutil.ReadFile("./test-data/measurement-raw-data.json")
 	require.NoError(t, err)
 	httpmock.RegisterResponder("POST", url, httpmock.NewBytesResponder(200, rawData))
-	client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+	client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 	httpmock.ActivateNonDefault(client.client.GetClient())
 	options := DataQueryOptions{
 		MeasurementObid: 5555,
@@ -260,7 +260,7 @@ func invalidJsonTest(shouldReturnError func(*Client) (interface{}, error), metho
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder(method, url, httpmock.NewStringResponder(200, "<>"))
-		client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+		client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 		httpmock.ActivateNonDefault(client.client.GetClient())
 		result, err := shouldReturnError(client)
 		testify.Nil(t, result, "the result should be nil")
@@ -274,7 +274,7 @@ func errorResponseTest(shouldReturnError func(*Client) (interface{}, error), met
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder(method, url, httpmock.NewErrorResponder(fmt.Errorf("custom error")))
-		client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+		client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 		httpmock.ActivateNonDefault(client.client.GetClient())
 		_, err := shouldReturnError(client)
 		capitalizedMethod := []byte(strings.ToLower(method))
@@ -290,7 +290,7 @@ func wrongStatusResponseTest(shouldReturnError func(*Client) (interface{}, error
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder(method, url, httpmock.NewStringResponder(404, "entity not found"))
-		client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+		client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 		httpmock.ActivateNonDefault(client.client.GetClient())
 		_, err := shouldReturnError(client)
 		wantErr := fmt.Sprintf("retrieving %s failed: status code: 404, response: entity not found", msg)
@@ -311,7 +311,7 @@ func TestClientImpl_FetchMeasurementName_Error(t *testing.T) {
 		defer httpmock.Deactivate()
 
 		httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(200, "{\"count\": 2264, \"hasMore\": false, \"data\": []}"))
-		client := NewClient(&ConnectOptions{Address: "127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
+		client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 		httpmock.ActivateNonDefault(client.client.GetClient())
 		_, err := client.FetchMeasurementName(1643)
 		require.EqualError(t, err, "measurement with id 1643 does not exist", "error message wrong")
@@ -351,7 +351,7 @@ func TestClientImpl_buildJsonApiUrl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Client{
-				ConnectOptions: ConnectOptions{Address: "127.0.0.1:5443"},
+				ConnectOptions: ConnectOptions{Address: "https://127.0.0.1:5443"},
 			}
 			got := c.buildJsonApiUrl(tt.endpoint, tt.orderBy, tt.filters...)
 			require.Equal(t, tt.want, got, "constructed url not correct")

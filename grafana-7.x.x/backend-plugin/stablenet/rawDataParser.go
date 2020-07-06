@@ -12,18 +12,18 @@ import (
 	"time"
 )
 
-type measurementData struct {
+type MeasurementData struct {
 	Min *float64 `json:"min"`
 	Avg *float64 `json:"avg"`
 	Max *float64 `json:"max"`
 }
-type timestampResponse struct {
+type TimestampResponse struct {
 	Interval  int               `json:"interval"`
-	Row       []measurementData `json:"row"`
+	Row       []MeasurementData `json:"row"`
 	TimeStamp int64             `json:"timestamp"`
 }
 
-func parseSingleTimestamp(data timestampResponse, metricKeys []string) map[string]MetricData {
+func parseSingleTimestamp(data TimestampResponse, metricKeys []string) map[string]MetricData {
 	measurementTime := time.Unix(0, data.TimeStamp*int64(time.Millisecond))
 	interval := time.Duration(data.Interval) * time.Millisecond
 	result := make(map[string]MetricData)

@@ -51,7 +51,7 @@ func TestStableNetSettings(t *testing.T) {
 				options := stableNetOptions(settings)
 				assert.Equal(t, "infosim", options.Username, "username not correct")
 				assert.Equal(t, "stablenet", options.Password, "password not correct")
-				assert.Equal(t, "55.66.77.88:12345", options.Address, "host not correct")
+				assert.Equal(t, "https://55.66.77.88:12345", options.Address, "host not correct")
 			}
 		})
 	}

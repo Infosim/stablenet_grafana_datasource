@@ -16,9 +16,9 @@ import (
 )
 
 func Test_parseSingleTimestamp(t *testing.T) {
-	input := timestampResponse{
+	input := TimestampResponse{
 		Interval: 60000,
-		Row: []measurementData{
+		Row: []MeasurementData{
 			{Min: ptr(1200), Avg: ptr(1277), Max: ptr(1300)},
 			{Min: ptr(0), Avg: ptr(0), Max: ptr(0)},
 			{Min: ptr(1800), Avg: ptr(1949), Max: ptr(2000)},

@@ -8,15 +8,16 @@
 package main
 
 import (
+	"backend-plugin/mock"
 	"backend-plugin/stablenet"
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -36,6 +37,44 @@ type mockVersionProvider struct {
 
 func (m *mockVersionProvider) QueryStableNetVersion() (*stablenet.ServerVersion, *string) {
 	return m.version, m.errString
+}
+
+func TestDataSource_QueryData(t *testing.T) {
+	snServer := mock.CreateMockServer("infosim", "stablenet")
+	handler := mock.CreateHandler(snServer)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	jsonData := map[string]string{
+		"snusername": snServer.Username,
+		"snip":       "to be changed by context",
+		"snport":     "5443",
+	}
+	secureJsonData := map[string]string{
+		"snpassword": snServer.Password,
+	}
+	byteData, _ := json.Marshal(jsonData)
+	instanceSettings := backend.DataSourceInstanceSettings{JSONData: byteData, DecryptedSecureJSONData: secureJsonData}
+	dataQueryJsonData := map[string]interface{}{
+		"statisticLink":   "?id=1001",
+		"includeMinStats": true,
+	}
+	dataQueryByteData, _ := json.Marshal(dataQueryJsonData)
+	query := backend.DataQuery{JSON: dataQueryByteData}
+	request := backend.QueryDataRequest{
+		PluginContext: backend.PluginContext{DataSourceInstanceSettings: &instanceSettings},
+		Queries:       []backend.DataQuery{query},
+	}
+	ctx := context.WithValue(context.Background(), "sn_address", server.URL)
+	datasource := dataSource{}
+	got, err := datasource.QueryData(ctx, &request)
+	require.NoError(t, err, "no error expected")
+	require.Equal(t, 1, len(got.Responses), "number of responses wrong")
+	frames := got.Responses["queryResponse"].Frames
+	require.Equal(t, 1, len(frames), "number of frames wrong")
+	name := frames[0].Name
+	assert.Equal(t, snServer.Metrics[0].Name, name, "name of frame is wrong")
+	assert.Equal(t, 5.0, frames[0].Fields[1].At(0), "value is wrong")
 }
 
 func TestQueryTest(t *testing.T) {
@@ -71,145 +110,165 @@ func TestQueryTest(t *testing.T) {
 	}
 }
 
-type mockDeviceProvider struct {
-	devices *stablenet.DeviceQueryResult
-	err     error
-	filter  string
-}
-
-func (m *mockDeviceProvider) QueryDevices(filter string) (*stablenet.DeviceQueryResult, error) {
-	m.filter = filter
-	return m.devices, m.err
-}
-
 func TestHandleDeviceQuery(t *testing.T) {
-	tests := []handlerTests{
-		{name: "empty device filter", urlParams: "", wantStatus: 200},
-		{name: "device filter", urlParams: "?filter=bach", wantStatus: 200},
-		{name: "internal device query error", urlParams: "?filter=bach", wantStatus: 500, wantErrMsg: "could not query devices: internal device error"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest("GET", "http://example.org/"+tt.urlParams, strings.NewReader(""))
-			provider := &mockDeviceProvider{}
-			devices := &stablenet.DeviceQueryResult{Devices: []stablenet.Device{{Name: "Berlin", Obid: 2323}, {Name: "Dallas", Obid: 923}}}
-			if len(tt.wantErrMsg) > 0 {
-				provider.err = errors.New("internal device error")
-			} else {
-				provider.devices = devices
-			}
-			ctx := context.WithValue(request.Context(), "SnClient", provider)
-			request = request.WithContext(ctx)
-			recorder := httptest.NewRecorder()
-			handleDeviceQuery(recorder, request)
-			assert.Equal(t, tt.wantStatus, recorder.Result().StatusCode, "status is wrong")
-			if len(tt.wantErrMsg) == 0 {
-				assert.Equal(t, request.URL.Query().Get("filter"), provider.filter, "provider not called with correct filter")
-				var got stablenet.DeviceQueryResult
-				err := json.Unmarshal(recorder.Body.Bytes(), &got)
-				require.NoError(t, err, "no error expected")
-				assert.Equal(t, *devices, got, "measurements differ")
-			} else {
-				assert.Equal(t, tt.wantErrMsg+"\n", recorder.Body.String(), "error message is wrong")
-			}
-		})
-	}
-}
-
-type mockMeasurementProvider struct {
-	measurements *stablenet.MeasurementQueryResult
-	filter       string
-	err          error
-	obid         int
-}
-
-func (m *mockMeasurementProvider) FetchMeasurementsForDevice(obid int, filter string) (*stablenet.MeasurementQueryResult, error) {
-	m.obid = obid
-	m.filter = filter
-	return m.measurements, m.err
+	snServer := mock.CreateMockServer("infosim", "stablenet")
+	handler := mock.CreateHandler(snServer)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := stablenet.NewClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
+	t.Run("empty device filter", func(t *testing.T) {
+		request := httptest.NewRequest("GET", "http://example.org/", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleDeviceQuery(recorder, request)
+		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
+		var got stablenet.DeviceQueryResult
+		_ = json.Unmarshal(recorder.Body.Bytes(), &got)
+		assert.Equal(t, snServer.Devices, got.Devices, "devices wrong")
+		wantQueryParam := map[string][]string{
+			"$orderBy": {"name"},
+			"$top":     {"100"},
+		}
+		assert.Equal(t, url.Values(wantQueryParam), snServer.LastQueries, "no queries wrong params")
+	})
+	t.Run("device filter", func(t *testing.T) {
+		request := httptest.NewRequest("GET", "http://example.org?filter=bach", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleDeviceQuery(recorder, request)
+		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
+		var got stablenet.DeviceQueryResult
+		_ = json.Unmarshal(recorder.Body.Bytes(), &got)
+		assert.Equal(t, snServer.Devices, got.Devices, "devices wrong")
+		wantQueryParam := map[string][]string{
+			"$orderBy": {"name"},
+			"$filter":  {"name ct 'bach'"},
+			"$top":     {"100"},
+		}
+		assert.Equal(t, url.Values(wantQueryParam), snServer.LastQueries, "no queries wrong params")
+	})
+	t.Run("server error", func(t *testing.T) {
+		client := stablenet.NewClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
+		request := httptest.NewRequest("GET", "http://example.org/", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleDeviceQuery(recorder, request)
+		assert.Equal(t, 500, recorder.Result().StatusCode, "status is wrong")
+		assert.Equal(t, "could not query devices: retrieving devices matching query \"\" failed: status code: 401, response: Authentication Error\n\n", recorder.Body.String(), "error message is wrong")
+	})
 }
 
 func TestHandleMeasurementQuery(t *testing.T) {
-	tests := []handlerTests{
+	snServer := mock.CreateMockServer("infosim", "stablenet")
+	handler := mock.CreateHandler(snServer)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := stablenet.NewClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
+	requestErrorTests := []handlerTests{
 		{name: "no device obid", urlParams: "?obid=4500&filter=host", wantStatus: 400, wantErrMsg: "could not parse deviceObid query param: strconv.Atoi: parsing \"\": invalid syntax"},
 		{name: "unparsable device obid", urlParams: "?deviceObid=a_string", wantStatus: 400, wantErrMsg: "could not parse deviceObid query param: strconv.Atoi: parsing \"a_string\": invalid syntax"},
-		{name: "measurement provider error", urlParams: "?deviceObid=4500", wantStatus: 500, wantErrMsg: "could not query measurements: internal measurement error"},
-		{name: "success", urlParams: "?deviceObid=4500", wantStatus: 200},
-		{name: "success", urlParams: "?deviceObid=-1&filter=processor", wantStatus: 200},
 	}
-	for _, tt := range tests {
+	for _, tt := range requestErrorTests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest("GET", "http://example.org/"+tt.urlParams, strings.NewReader(""))
-			provider := &mockMeasurementProvider{}
-			measurements := &stablenet.MeasurementQueryResult{Measurements: []stablenet.Measurement{{Name: "Host", Obid: 2323}, {Name: "Uptime", Obid: 923}}}
-			if len(tt.wantErrMsg) > 0 {
-				provider.err = errors.New("internal measurement error")
-			} else {
-				provider.measurements = measurements
-			}
-			ctx := context.WithValue(request.Context(), "SnClient", provider)
-			request = request.WithContext(ctx)
+			request = request.WithContext(context.WithValue(request.Context(), "SnClient", client))
 			recorder := httptest.NewRecorder()
 			handleMeasurementQuery(recorder, request)
 			assert.Equal(t, tt.wantStatus, recorder.Result().StatusCode, "status is wrong")
-			if len(tt.wantErrMsg) == 0 {
-				assert.Equal(t, request.URL.Query().Get("filter"), provider.filter, "filter should be set")
-				assert.Equal(t, request.URL.Query().Get("deviceObid"), fmt.Sprintf("%d", provider.obid), "provider not called with correct obid")
-				var got stablenet.MeasurementQueryResult
-				err := json.Unmarshal(recorder.Body.Bytes(), &got)
-				require.NoError(t, err, "no error expected")
-				assert.Equal(t, *measurements, got, "measurements differ")
-			} else {
-				assert.Equal(t, tt.wantErrMsg+"\n", recorder.Body.String(), "error message is wrong")
-			}
+			assert.Equal(t, tt.wantErrMsg+"\n", recorder.Body.String(), "error message is wrong")
 		})
 	}
-}
 
-type mockMetricProvider struct {
-	metrics []stablenet.Metric
-	err     error
-	obid    int
-}
-
-func (m *mockMetricProvider) FetchMetricsForMeasurement(obid int) ([]stablenet.Metric, error) {
-	m.obid = obid
-	return m.metrics, m.err
+	t.Run("success without filter", func(t *testing.T) {
+		request := httptest.NewRequest("GET", "http://example.org/?deviceObid=4500", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleMeasurementQuery(recorder, request)
+		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
+		wantValues := map[string][]string{
+			"$filter":  {"destDeviceId eq '4500'"},
+			"$orderBy": {"name"},
+			"$top":     {"100"},
+		}
+		assert.Equal(t, url.Values(wantValues), snServer.LastQueries, "query params are wrong")
+		var got stablenet.MeasurementQueryResult
+		err := json.Unmarshal(recorder.Body.Bytes(), &got)
+		require.NoError(t, err, "no error expected")
+		assert.Equal(t, snServer.Measurements, got.Measurements, "measurements differ")
+	})
+	t.Run("success with filter", func(t *testing.T) {
+		request := httptest.NewRequest("GET", "http://example.org/?deviceObid=4500&filter=processor", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleMeasurementQuery(recorder, request)
+		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
+		wantValues := map[string][]string{
+			"$filter":  {"destDeviceId eq '4500' and name ct 'processor'"},
+			"$orderBy": {"name"},
+			"$top":     {"100"},
+		}
+		assert.Equal(t, url.Values(wantValues), snServer.LastQueries, "query params are wrong")
+		var got stablenet.MeasurementQueryResult
+		err := json.Unmarshal(recorder.Body.Bytes(), &got)
+		require.NoError(t, err, "no error expected")
+		assert.Equal(t, snServer.Measurements, got.Measurements, "measurements differ")
+	})
+	t.Run("server error", func(t *testing.T) {
+		client := stablenet.NewClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
+		request := httptest.NewRequest("GET", "http://example.org/?deviceObid=1111", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleMeasurementQuery(recorder, request)
+		assert.Equal(t, 500, recorder.Result().StatusCode, "status is wrong")
+		assert.Equal(t, "could not query measurements: retrieving measurements for device filter \"destDeviceId eq '1111'\" failed: status code: 401, response: Authentication Error\n\n", recorder.Body.String(), "error message is wrong")
+	})
 }
 
 func TestHandleMetricQuery(t *testing.T) {
+	snServer := mock.CreateMockServer("infosim", "stablenet")
+	handler := mock.CreateHandler(snServer)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	client := stablenet.NewClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
 	tests := []handlerTests{
 		{name: "no measurement obid", urlParams: "?obid=4500&filter=host", wantStatus: 400, wantErrMsg: "could not extract measurementObid from request body: strconv.Atoi: parsing \"\": invalid syntax"},
 		{name: "unparsable measurement obid", urlParams: "?measurementObid=string", wantStatus: 400, wantErrMsg: "could not extract measurementObid from request body: strconv.Atoi: parsing \"string\": invalid syntax"},
-		{name: "metric provider error", urlParams: "?measurementObid=4500", wantStatus: 500, wantErrMsg: "could not query metrics: internal metric error"},
-		{name: "success", urlParams: "?measurementObid=4500", wantStatus: 200},
+		{name: "success", urlParams: "?measurementObid=1001", wantStatus: 200},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest("GET", "http://example.org/"+tt.urlParams, strings.NewReader(""))
-			provider := &mockMetricProvider{}
-			metrics := []stablenet.Metric{{Name: "Host", Key: "SNMP_1"}, {Name: "Uptime", Key: "SNMP_2"}}
-			if len(tt.wantErrMsg) > 0 {
-				provider.err = errors.New("internal metric error")
-			} else {
-				provider.metrics = metrics
-			}
-			ctx := context.WithValue(request.Context(), "SnClient", provider)
+			ctx := context.WithValue(request.Context(), "SnClient", client)
 			request = request.WithContext(ctx)
 			recorder := httptest.NewRecorder()
 			handleMetricQuery(recorder, request)
 			assert.Equal(t, tt.wantStatus, recorder.Result().StatusCode, "status is wrong")
 			if len(tt.wantErrMsg) == 0 {
-				assert.Equal(t, 4500, provider.obid, "provider not called with correct obid")
 				var got []stablenet.Metric
 				err := json.Unmarshal(recorder.Body.Bytes(), &got)
 				require.NoError(t, err, "no error expected")
-				assert.Equal(t, metrics, got, "metrics differ")
+				assert.Equal(t, snServer.Metrics, got, "metrics differ")
 			} else {
 				assert.Equal(t, tt.wantErrMsg+"\n", recorder.Body.String(), "error message is wrong")
 			}
 		})
 	}
+	t.Run("server error", func(t *testing.T) {
+		client := stablenet.NewClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
+		request := httptest.NewRequest("GET", "http://example.org/?measurementObid=1001", strings.NewReader(""))
+		ctx := context.WithValue(request.Context(), "SnClient", client)
+		request = request.WithContext(ctx)
+		recorder := httptest.NewRecorder()
+		handleMetricQuery(recorder, request)
+		assert.Equal(t, 500, recorder.Result().StatusCode, "status is wrong")
+		assert.Equal(t, "could not query metrics: retrieving metrics for measurement 1001 failed: status code: 401, response: Authentication Error\n\n", recorder.Body.String(), "error message is wrong")
+	})
 }
 
 func TestEncodeVersion(t *testing.T) {
