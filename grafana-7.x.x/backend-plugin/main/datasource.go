@@ -149,9 +149,9 @@ func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
 	encodeJson(rw, metrics)
 }
 
-//Encoding a json only results in an error if the data to be serialized does
-//contain unserializable types, e.g. functions, channels, etc.
-//Since we have absolute control over our types, we panic in case the json cannot be created.
+// Encoding a json only results in an error if the data to be serialized does
+// contain unserializable types, e.g. functions, channels, etc.
+// Since we have absolute control over our types, we panic in case the json cannot be created.
 func encodeJson(rw http.ResponseWriter, data interface{}) {
 	err := json.NewEncoder(rw).Encode(data)
 	if err != nil {

@@ -41,8 +41,7 @@ type MetricProvider interface {
 }
 
 type ConnectOptions struct {
-	Host     string `json:"snip"`
-	Port     int    `json:"snport"`
+	Address  string `json:"snip"`
 	Username string `json:"snusername"`
 	Password string `json:"snpassword"`
 }
@@ -66,7 +65,7 @@ type Client struct {
 func (c *Client) QueryStableNetVersion() (*ServerVersion, *string) {
 	var errorStr string
 	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
-	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
+	url := fmt.Sprintf("https://%s/rest/info", c.Address)
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		errorStr = fmt.Sprintf("Connecting to StableNet® failed: %v", err.Error())
@@ -122,7 +121,7 @@ func (c *Client) QueryDevices(filter string) (*DeviceQueryResult, error) {
 }
 
 func (c *Client) buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
-	url := fmt.Sprintf("https://%s:%d/api/1/%s?$top=100", c.Host, c.Port, endpoint)
+	url := fmt.Sprintf("https://%s/api/1/%s?$top=100", c.Address, endpoint)
 	if len(orderBy) != 0 {
 		url = fmt.Sprintf("%s&$orderBy=%s", url, orderBy)
 	}
@@ -189,7 +188,7 @@ func (c *Client) FetchMeasurementName(id int) (*string, error) {
 
 func (c *Client) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
 	endpoint := fmt.Sprintf("measurements/%d/metrics", measurementObid)
-	//orderby is empty because it' currently not supported by the endpoint
+	// orderby is empty because it' currently not supported by the endpoint
 	url := c.buildJsonApiUrl(endpoint, "")
 	resp, err := c.client.R().Get(url)
 	if err != nil {

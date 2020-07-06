@@ -22,7 +22,7 @@ func stableNetOptions(settings *backend.DataSourceInstanceSettings) *stablenet.C
 		panic("datasource settings are nil, are you in a datasource environment?")
 	}
 	options := make(map[string]string)
-	//error checking of unmarshal is done by checking the specific fields
+	// error checking of unmarshal is done by checking the specific fields
 	_ = json.Unmarshal(settings.JSONData, &options)
 	if _, ok := options["snip"]; !ok {
 		panic("field \"snip\" is missing in the JSONData of the datasource")
@@ -40,9 +40,9 @@ func stableNetOptions(settings *backend.DataSourceInstanceSettings) *stablenet.C
 	if portErr != nil {
 		panic(fmt.Sprintf("the field \"snport\" could not be parsed into a number: %v", portErr))
 	}
+	address := fmt.Sprintf("%s:%d", options["snip"], port)
 	return &stablenet.ConnectOptions{
-		Host:     options["snip"],
-		Port:     port,
+		Address:  address,
 		Username: options["snusername"],
 		Password: settings.DecryptedSecureJSONData["snpassword"],
 	}
