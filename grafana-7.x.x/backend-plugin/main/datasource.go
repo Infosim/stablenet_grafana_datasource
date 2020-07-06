@@ -44,13 +44,13 @@ func newDataSource() datasource.ServeOpts {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/test", addClientThen(handleTest))
 	mux.HandleFunc("/devices", addClientThen(handleDeviceQuery))
 	mux.HandleFunc("/measurements", addClientThen(handleMeasurementQuery))
 	mux.HandleFunc("/metrics", addClientThen(handleMetricQuery))
 
 	return datasource.ServeOpts{
 		CallResourceHandler: httpadapter.New(mux),
+		CheckHealthHandler:  ds,
 		QueryDataHandler:    ds,
 	}
 }
@@ -98,19 +98,30 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 	return response, nil
 }
 
-func handleTest(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(stablenet.VersionProvider)
-	version, errStr := snClient.QueryStableNetVersion()
+func (ds *dataSource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))
+		}
+	}()
+	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
+
+	// We need this for testing purposes. Go's httptest package only allows to mock http, not https, and
+	// it is not meant to separate ip and port. Thus, for testing purposes, we inject the test url here.
+	if ctx.Value("sn_address") != nil {
+		options.Address = ctx.Value("sn_address").(string)
+	}
+
+	client := stablenet.NewClient(options)
+	version, errStr := client.QueryStableNetVersion()
 	if errStr != nil {
-		http.Error(rw, *errStr, http.StatusBadRequest)
-		return
+		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: *errStr}, nil
 	}
 	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
 	if !versionRegex.MatchString(version.Version) {
-		http.Error(rw, fmt.Sprintf("The StableNet® version %s does not support Grafana®", version.Version), http.StatusInternalServerError)
-		return
+		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: fmt.Sprintf("The StableNet® version %s does not support Grafana®", version.Version)}, nil
 	}
-	rw.WriteHeader(http.StatusNoContent)
+	return &backend.CheckHealthResult{Status: backend.HealthStatusOk}, nil
 }
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {

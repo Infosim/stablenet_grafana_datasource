@@ -26,22 +26,7 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   }
 
   async testDatasource(): Promise<TestResult> {
-    return super
-      .getResource('test', {})
-      .then(() => {
-        return {
-          status: 'success',
-          message: 'Data source is working and can connect to StableNet®.',
-          title: 'Success',
-        };
-      })
-      .catch(err => {
-        return {
-          status: 'error',
-          message: err.data.message,
-          title: 'Failure',
-        };
-      });
+    return super.testDatasource();
   }
 
   async queryDevices(queryString: string): Promise<QueryResult> {
