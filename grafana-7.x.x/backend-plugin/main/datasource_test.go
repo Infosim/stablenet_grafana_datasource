@@ -15,7 +15,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -54,7 +53,7 @@ func TestDataSource_QueryData(t *testing.T) {
 		"snpassword": snServer.Password,
 	}
 	byteData, _ := json.Marshal(jsonData)
-	instanceSettings := backend.DataSourceInstanceSettings{JSONData: byteData, DecryptedSecureJSONData: secureJsonData}
+	instanceSettings := backend.DataSourceInstanceSettings{JSONData: byteData, DecryptedSecureJSONData: secureJsonData, ID: 5}
 	dataQueryJsonData := map[string]interface{}{
 		"statisticLink":   "?id=1001",
 		"includeMinStats": true,
@@ -66,7 +65,7 @@ func TestDataSource_QueryData(t *testing.T) {
 		Queries:       []backend.DataQuery{query},
 	}
 	ctx := context.WithValue(context.Background(), "sn_address", server.URL)
-	datasource := dataSource{}
+	datasource := dataSource{validationStore: map[int64]bool{5: true}}
 	got, err := datasource.QueryData(ctx, &request)
 	require.NoError(t, err, "no error expected")
 	require.Equal(t, 1, len(got.Responses), "number of responses wrong")
@@ -75,39 +74,6 @@ func TestDataSource_QueryData(t *testing.T) {
 	name := frames[0].Name
 	assert.Equal(t, snServer.Metrics[0].Name, name, "name of frame is wrong")
 	assert.Equal(t, 5.0, frames[0].Fields[1].At(0), "value is wrong")
-}
-
-func TestQueryTest(t *testing.T) {
-	tests := []struct {
-		name       string
-		snVersion  *stablenet.ServerVersion
-		wantStatus int
-		wantBody   string
-	}{
-		{name: "too old", snVersion: &stablenet.ServerVersion{Version: "8.5.0"}, wantStatus: http.StatusInternalServerError, wantBody: "The StableNet® version 8.5.0 does not support Grafana®\n"},
-		{name: "recent", snVersion: &stablenet.ServerVersion{Version: "9.0.0"}, wantStatus: http.StatusNoContent},
-		{name: "recent with productname should fail", snVersion: &stablenet.ServerVersion{Version: "StableNet 9.0.0"}, wantStatus: http.StatusInternalServerError, wantBody: "The StableNet® version StableNet 9.0.0 does not support Grafana®\n"},
-		{name: "future", snVersion: &stablenet.ServerVersion{Version: "10.1.0"}, wantStatus: http.StatusNoContent},
-		{name: "internal error", snVersion: nil, wantStatus: http.StatusBadRequest, wantBody: "internal version error\n"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest("GET", "http://example.org/", strings.NewReader(""))
-			provider := &mockVersionProvider{}
-			if tt.snVersion != nil {
-				provider.version = tt.snVersion
-			} else {
-				errStr := "internal version error"
-				provider.errString = &errStr
-			}
-			ctx := context.WithValue(request.Context(), "SnClient", provider)
-			request = request.WithContext(ctx)
-			recorder := httptest.NewRecorder()
-			handleTest(recorder, request)
-			assert.Equal(t, tt.wantStatus, recorder.Result().StatusCode, "status is wrong")
-			assert.Equal(t, tt.wantBody, recorder.Body.String(), "response body is wrong")
-		})
-	}
 }
 
 func TestHandleDeviceQuery(t *testing.T) {

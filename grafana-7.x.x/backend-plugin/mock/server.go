@@ -10,6 +10,7 @@ package mock
 import (
 	"backend-plugin/stablenet"
 	"encoding/json"
+	"encoding/xml"
 	"net/http"
 	"net/url"
 )
@@ -21,6 +22,7 @@ type SnServer struct {
 	Measurements []stablenet.Measurement
 	Metrics      []stablenet.Metric
 	Data         []stablenet.TimestampResponse
+	Info         stablenet.ServerInfo
 	LastQueries  url.Values
 }
 
@@ -72,6 +74,7 @@ func CreateHandler(server *SnServer) http.Handler {
 	r.HandleFunc("/api/1/measurements", authMiddleware(server.getMeasurements))
 	r.HandleFunc("/api/1/measurements/1001/metrics", authMiddleware(server.getMetrics))
 	r.HandleFunc("/api/1/measurements/1001/data", authMiddleware(server.getData))
+	r.HandleFunc("/rest/info", authMiddleware(server.getInfo))
 	return r
 }
 
@@ -98,5 +101,11 @@ func (s *SnServer) getMetrics(rw http.ResponseWriter, req *http.Request) {
 func (s *SnServer) getData(rw http.ResponseWriter, req *http.Request) {
 	s.LastQueries = req.URL.Query()
 	payload, _ := json.Marshal(s.Data)
+	_, _ = rw.Write(payload)
+}
+
+func (s *SnServer) getInfo(rw http.ResponseWriter, req *http.Request) {
+	s.LastQueries = req.URL.Query()
+	payload, _ := xml.Marshal(s.Info)
 	_, _ = rw.Write(payload)
 }

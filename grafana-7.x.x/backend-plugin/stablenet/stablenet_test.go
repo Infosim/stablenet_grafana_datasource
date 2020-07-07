@@ -20,17 +20,23 @@ import (
 	"time"
 )
 
-func TestClientImpl_QueryStableNetVersion(t *testing.T) {
-	versionXml := "<info><serverversion version=\"8.6.0\" /></info>"
+func TestClientImpl_QueryStableNetInfo(t *testing.T) {
+	versionXml := "<info><serverversion version=\"8.6.0\" /><license><modules><module name=\"rest-reporting\"/><module name=\"nqa\"/></modules></license></info>"
+	wantInfo := &ServerInfo{
+		ServerVersion: ServerVersion{Version: "8.6.0"},
+		License: License{
+			Modules: Modules{Modules: []Module{{Name: "rest-reporting"}, {Name: "nqa"}}},
+		},
+	}
 	tests := []struct {
 		name           string
 		returnedBody   string
 		returnedStatus int
 		httpError      error
-		wantVersion    *ServerVersion
+		wantInfo       *ServerInfo
 		wantErrStr     *string
 	}{
-		{name: "success", returnedBody: versionXml, returnedStatus: http.StatusOK, wantVersion: &ServerVersion{Version: "8.6.0"}, wantErrStr: nil},
+		{name: "success", returnedBody: versionXml, returnedStatus: http.StatusOK, wantInfo: wantInfo, wantErrStr: nil},
 		{name: "connection error", httpError: errors.New("server running low on schnitzels"), wantErrStr: strPtr("Connecting to StableNet® failed: Get \"https://127.0.0.1:443/rest/info\": server running low on schnitzels")},
 		{name: "authentication error", returnedBody: "Forbidden", returnedStatus: http.StatusUnauthorized, wantErrStr: strPtr("The StableNet® server could be reached, but the credentials were invalid.")},
 		{name: "status error", returnedBody: "Internal Server Error", returnedStatus: http.StatusInternalServerError, wantErrStr: strPtr("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: 500")},
@@ -48,7 +54,7 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 			client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:443"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, errStr := client.QueryStableNetInfo()
-			testify.Equal(t, tt.wantVersion, actual, "queried server version wrong")
+			testify.Equal(t, tt.wantInfo, actual, "queried server version wrong")
 			if tt.wantErrStr != nil {
 				testify.Equal(t, *tt.wantErrStr, *errStr, "returned error string wrong")
 			} else {

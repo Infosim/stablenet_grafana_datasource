@@ -43,7 +43,6 @@ func (ds *dataSource) checkAndUpdateHealth(options *stablenet.ConnectOptions, da
 	if errStr != nil {
 		return false, *errStr
 	}
-	backend.Logger.Error(fmt.Sprintf("%v", info))
 	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
 	if !versionRegex.MatchString(info.ServerVersion.Version) {
 		ds.validationStore[datasourceId] = false
