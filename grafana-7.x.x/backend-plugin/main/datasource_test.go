@@ -35,7 +35,7 @@ type mockVersionProvider struct {
 	errString *string
 }
 
-func (m *mockVersionProvider) QueryStableNetVersion() (*stablenet.ServerVersion, *string) {
+func (m *mockVersionProvider) QueryStableNetInfo() (*stablenet.ServerVersion, *string) {
 	return m.version, m.errString
 }
 

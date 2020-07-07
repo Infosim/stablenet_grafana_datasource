@@ -11,22 +11,23 @@ import (
 	"backend-plugin/stablenet"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"net/http"
-	"regexp"
 	"runtime/debug"
 	"strconv"
 )
 
 type dataSource struct {
+	validationStore map[int64]bool
 }
 
 func newDataSource() datasource.ServeOpts {
-	ds := &dataSource{}
+	ds := &dataSource{validationStore: make(map[int64]bool)}
 
 	addClientThen := func(next http.HandlerFunc) http.HandlerFunc {
 		return func(rw http.ResponseWriter, req *http.Request) {
@@ -37,6 +38,15 @@ func newDataSource() datasource.ServeOpts {
 			}()
 			pluginContext := httpadapter.PluginConfigFromContext(req.Context())
 			options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+			valid, present := ds.validationStore[pluginContext.DataSourceInstanceSettings.ID]
+			backend.Logger.Error("%v", ds.validationStore)
+			if !present {
+				valid, _ = ds.checkAndUpdateHealth(options, pluginContext.DataSourceInstanceSettings.ID)
+			}
+			if !valid {
+				http.Error(rw, "The datasource is not valid, please check the data source configuration and make sure that the test is successful.", http.StatusInternalServerError)
+				return
+			}
 			client := stablenet.NewClient(options)
 			ctx := context.WithValue(req.Context(), "SnClient", client)
 			next.ServeHTTP(rw, req.WithContext(ctx))
@@ -68,6 +78,16 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 	if ctx.Value("sn_address") != nil {
 		options.Address = ctx.Value("sn_address").(string)
 	}
+	valid, present := ds.validationStore[req.PluginContext.DataSourceInstanceSettings.ID]
+	if !present {
+		valid, _ = ds.checkAndUpdateHealth(options, req.PluginContext.DataSourceInstanceSettings.ID)
+	}
+	if !valid {
+		//noinspection GoErrorStringFormat
+		responses := backend.Responses{"queryResponse": backend.DataResponse{Error: errors.New("The datasource is not valid, please check the data source configuration and make sure that the test is successful.")}}
+		return &backend.QueryDataResponse{Responses: responses}, nil
+
+	}
 
 	queries := make([]MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
@@ -96,32 +116,6 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 	response := backend.NewQueryDataResponse()
 	response.Responses = backend.Responses{"queryResponse": backend.DataResponse{Frames: allFrames}}
 	return response, nil
-}
-
-func (ds *dataSource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))
-		}
-	}()
-	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
-
-	// We need this for testing purposes. Go's httptest package only allows to mock http, not https, and
-	// it is not meant to separate ip and port. Thus, for testing purposes, we inject the test url here.
-	if ctx.Value("sn_address") != nil {
-		options.Address = ctx.Value("sn_address").(string)
-	}
-
-	client := stablenet.NewClient(options)
-	version, errStr := client.QueryStableNetVersion()
-	if errStr != nil {
-		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: *errStr}, nil
-	}
-	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
-	if !versionRegex.MatchString(version.Version) {
-		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: fmt.Sprintf("The StableNet® version %s does not support Grafana®", version.Version)}, nil
-	}
-	return &backend.CheckHealthResult{Status: backend.HealthStatusOk}, nil
 }
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {

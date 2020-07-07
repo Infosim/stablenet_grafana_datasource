@@ -47,7 +47,7 @@ func TestClientImpl_QueryStableNetVersion(t *testing.T) {
 			}
 			client := NewClient(&ConnectOptions{Address: "https://127.0.0.1:443"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
-			actual, errStr := client.QueryStableNetVersion()
+			actual, errStr := client.QueryStableNetInfo()
 			testify.Equal(t, tt.wantVersion, actual, "queried server version wrong")
 			if tt.wantErrStr != nil {
 				testify.Equal(t, *tt.wantErrStr, *errStr, "returned error string wrong")
