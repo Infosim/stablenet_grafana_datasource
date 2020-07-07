@@ -39,7 +39,6 @@ func newDataSource() datasource.ServeOpts {
 			pluginContext := httpadapter.PluginConfigFromContext(req.Context())
 			options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
 			valid, present := ds.validationStore[pluginContext.DataSourceInstanceSettings.ID]
-			backend.Logger.Error("%v", ds.validationStore)
 			if !present {
 				valid, _ = ds.checkAndUpdateHealth(options, pluginContext.DataSourceInstanceSettings.ID)
 			}
