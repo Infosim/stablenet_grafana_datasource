@@ -13,30 +13,32 @@ const { FormField } = LegacyForms;
 export const MeasurementMenu = props => {
   return (
     <div className="gf-form">
-      <FormField
-        label={'Measurement:'}
-        labelWidth={11}
-        tooltip={
-          props.more
-            ? `There are more measurements available, but only the first 100 are displayed.
+      <div style={{ marginRight: '4px' } as React.CSSProperties}>
+        <FormField
+          label={'Measurement:'}
+          labelWidth={11}
+          tooltip={
+            props.more
+              ? `There are more measurements available, but only the first 100 are displayed.
               Use a stricter search to reduce the number of shown measurements.`
-            : ''
-        }
-        inputEl={
-          <div tabIndex={0}>
-            <Select<number>
-              options={props.get}
-              value={props.selected}
-              onChange={props.menuChange}
-              className={'width-19'}
-              menuPlacement={'bottom'}
-              noOptionsMessage={`No measurements match this search.`}
-              placeholder={'none'}
-              isSearchable={false}
-            />
-          </div>
-        }
-      />
+              : ''
+          }
+          inputEl={
+            <div tabIndex={0}>
+              <Select<number>
+                options={props.get}
+                value={props.selected}
+                onChange={props.menuChange}
+                className={'width-19'}
+                menuPlacement={'bottom'}
+                noOptionsMessage={`No measurements match this search.`}
+                placeholder={'none'}
+                isSearchable={false}
+              />
+            </div>
+          }
+        />
+      </div>
       <FormField
         label={'Measurement Filter:'}
         labelWidth={11}
