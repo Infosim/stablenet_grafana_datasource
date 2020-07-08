@@ -19,15 +19,6 @@ import (
 	"time"
 )
 
-type QueryDataProvider interface {
-	FetchDataForMetrics(DataQueryOptions) (map[string]MetricDataSeries, error)
-	FetchMetricsForMeasurement(int) ([]Metric, error)
-}
-
-type VersionProvider interface {
-	QueryStableNetInfo() (*ServerVersion, *string)
-}
-
 type ConnectOptions struct {
 	Address  string `json:"snip"`
 	Username string `json:"snusername"`
