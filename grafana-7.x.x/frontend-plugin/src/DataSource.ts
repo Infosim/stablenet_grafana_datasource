@@ -103,7 +103,6 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
       ...request,
       targets: queries,
     };
-    console.log(req);
 
     return super.query(req);
   }
