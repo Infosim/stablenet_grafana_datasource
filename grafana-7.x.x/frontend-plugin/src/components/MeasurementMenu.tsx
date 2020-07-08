@@ -13,7 +13,7 @@ const { FormField } = LegacyForms;
 export const MeasurementMenu = props => {
   return (
     <div className="gf-form">
-      <div style={{ marginRight: '4px' } as React.CSSProperties}>
+      <div style={{ marginRight: 4 }}>
         <FormField
           label={'Measurement:'}
           labelWidth={11}
