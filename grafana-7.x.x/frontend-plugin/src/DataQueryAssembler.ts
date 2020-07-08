@@ -24,6 +24,7 @@ export class WrappedTarget {
 
   toStatisticLinkQuery(): SingleQuery {
     return {
+      datasource: this.target.datasource,
       refId: this.target.refId,
       queryType: 'statisticLink',
       statisticLink: this.target.statisticLink,
@@ -39,6 +40,7 @@ export class WrappedTarget {
   toDeviceQuery(): SingleQuery {
     const keys: StringPair[] = this.getRequestedMetricsAsKeys();
     return {
+      datasource: this.target.datasource,
       refId: this.target.refId,
       measurementObid: this.target.selectedMeasurement.value,
       metrics: keys,
