@@ -24,6 +24,7 @@ export class WrappedTarget {
 
   toStatisticLinkQuery(): SingleQuery {
     return {
+      datasource: this.target.datasource,
       refId: this.target.refId,
       queryType: 'statisticLink',
       statisticLink: this.target.statisticLink,

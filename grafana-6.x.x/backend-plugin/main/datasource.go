@@ -21,20 +21,21 @@ type BackendPlugin interface {
 }
 
 func NewBackendPlugin(logger hclog.Logger) BackendPlugin {
-	snPlugin := jsonDatasource{logger: logger}
+	snPlugin := jsonDatasource{logger: logger, validationStore: make(map[int64]bool)}
 	snPlugin.handlerFactory = query.GetHandlersForRequest
 	return &snPlugin
 }
 
 type jsonDatasource struct {
 	plugin.NetRPCUnsupportedPlugin
-	logger         hclog.Logger
-	handlerFactory func(query.Request) (map[string]query.Handler, error)
+	logger          hclog.Logger
+	validationStore map[int64]bool
+	handlerFactory  func(query.Request, map[int64]bool, int64) (map[string]query.Handler, error)
 }
 
 func (j *jsonDatasource) Query(ctx context.Context, datasourceRequest *datasource.DatasourceRequest) (*datasource.DatasourceResponse, error) {
 	request := query.Request{DatasourceRequest: datasourceRequest, Logger: j.logger}
-	handlers, err := j.handlerFactory(request)
+	handlers, err := j.handlerFactory(request, j.validationStore, datasourceRequest.Datasource.Id)
 	if err != nil {
 		return &datasource.DatasourceResponse{Results: []*datasource.QueryResult{query.BuildErrorResult(err.Error(), "")}}, nil
 	}

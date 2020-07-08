@@ -34,22 +34,22 @@ func TestGetHandlersForRequest(t *testing.T) {
 			},
 		},
 	}
-	handlers, err := GetHandlersForRequest(request)
+	handlers, err := GetHandlersForRequest(request, make(map[int64]bool), 5)
 	require.NoError(t, err, "no error expected")
 	assert.Equal(t, 6, len(handlers), "expected six handlers")
-	assert.IsType(t, deviceHandler{}, handlers["devices"], "deviceQuery handler hast not correct type")
-	assert.IsType(t, measurementHandler{}, handlers["measurements"], "measurement handler hast not correct type")
-	assert.IsType(t, metricNameHandler{}, handlers["metricNames"], "metric name handler hast not correct type")
-	assert.IsType(t, metricDataHandler{}, handlers["metricData"], "metric data handler hast not correct type")
-	assert.IsType(t, statisticLinkHandler{}, handlers["statisticLink"], "statistic link handler hast not correct type")
-	assert.IsType(t, datasourceTestHandler{}, handlers["testDatasource"], "datasource test handler hast not correct type")
+	assert.IsType(t, deviceHandler{}, handlers["devices"].(*middleware).next, "deviceQuery handler hast not correct type")
+	assert.IsType(t, measurementHandler{}, handlers["measurements"].(*middleware).next, "measurement handler hast not correct type")
+	assert.IsType(t, metricNameHandler{}, handlers["metricNames"].(*middleware).next, "metric name handler hast not correct type")
+	assert.IsType(t, metricDataHandler{}, handlers["metricData"].(*middleware).next, "metric data handler hast not correct type")
+	assert.IsType(t, statisticLinkHandler{}, handlers["statisticLink"].(*middleware).next, "statistic link handler hast not correct type")
+	assert.IsType(t, DatasourceTestHandler{}, handlers["testDatasource"], "datasource test handler hast not correct type")
 }
 
 func TestGetHandlersForRequest_Error(t *testing.T) {
 	request := Request{
 		DatasourceRequest: &datasource.DatasourceRequest{},
 	}
-	handlers, err := GetHandlersForRequest(request)
+	handlers, err := GetHandlersForRequest(request, make(map[int64]bool), 5)
 	require.EqualError(t, err, "could not extract StableNet(R) connect options: datasource info is nil", "error message not correct")
 	require.Nil(t, handlers, "handlers should be nil")
 }
@@ -260,11 +260,16 @@ type handlerServerTestCase struct {
 }
 
 func datasourceTestHandlerTest() *handlerServerTestCase {
-	clientReturn := &stablenet.ServerVersion{Version: "9.0.1"}
+	clientReturn := &stablenet.ServerInfo{
+		ServerVersion: stablenet.ServerVersion{Version: "9.0.1"},
+		License:       stablenet.License{Modules: stablenet.Modules{Modules: []stablenet.Module{{Name: "rest-reporting"}}}},
+	}
 	return &handlerServerTestCase{
-		handler:       func(h *StableNetHandler) Handler { return datasourceTestHandler{StableNetHandler: h} },
+		handler: func(h *StableNetHandler) Handler {
+			return DatasourceTestHandler{StableNetHandler: h, validationStore: make(map[int64]bool)}
+		},
 		queryArgs:     []arg{},
-		clientMethod:  "QueryStableNetVersion",
+		clientMethod:  "QueryStableNetInfo",
 		clientArgs:    []arg{},
 		clientReturn:  clientReturn,
 		successResult: &datasource.QueryResult{},
@@ -369,8 +374,8 @@ func sampleStatisticData() (map[string]stablenet.MetricDataSeries, []*datasource
 
 func TestDatasourceTestHandler_Process_Error(t *testing.T) {
 	rawHandler, _ := setUpHandlerAndLogReceiver()
-	rawHandler.SnClient.(*mockSnClient).On("QueryStableNetVersion").Return(nil, util.StringPointer("login not possible"))
-	handler := datasourceTestHandler{StableNetHandler: rawHandler}
+	rawHandler.SnClient.(*mockSnClient).On("QueryStableNetInfo").Return(nil, util.StringPointer("login not possible"))
+	handler := DatasourceTestHandler{StableNetHandler: rawHandler}
 	result, err := handler.Process(Query{})
 	assert.NoError(t, err, "no error is expected to be thrown")
 	require.NotNil(t, result, "the result must not be nil")
@@ -379,8 +384,8 @@ func TestDatasourceTestHandler_Process_Error(t *testing.T) {
 
 func TestDatasourceTestHandler_Process_Wrong_Version(t *testing.T) {
 	rawHandler, _ := setUpHandlerAndLogReceiver()
-	rawHandler.SnClient.(*mockSnClient).On("QueryStableNetVersion").Return(&stablenet.ServerVersion{Version: "8.6.0"}, nil)
-	handler := datasourceTestHandler{StableNetHandler: rawHandler}
+	rawHandler.SnClient.(*mockSnClient).On("QueryStableNetInfo").Return(&stablenet.ServerInfo{ServerVersion: stablenet.ServerVersion{Version: "8.6.0"}}, nil)
+	handler := DatasourceTestHandler{StableNetHandler: rawHandler, validationStore: make(map[int64]bool)}
 	result, err := handler.Process(Query{})
 	assert.NoError(t, err, "no error is expected to be thrown")
 	require.NotNil(t, result, "the result must not be nil")
@@ -401,12 +406,12 @@ type mockSnClient struct {
 	mock.Mock
 }
 
-func (m *mockSnClient) QueryStableNetVersion() (*stablenet.ServerVersion, *string) {
+func (m *mockSnClient) QueryStableNetInfo() (*stablenet.ServerInfo, *string) {
 	errStr := m.Called().Get(1)
 	if errStr != nil {
 		return nil, errStr.(*string)
 	}
-	return m.Called().Get(0).(*stablenet.ServerVersion), nil
+	return m.Called().Get(0).(*stablenet.ServerInfo), nil
 }
 
 func (m *mockSnClient) QueryDevices(query string) (*stablenet.DeviceQueryResult, error) {

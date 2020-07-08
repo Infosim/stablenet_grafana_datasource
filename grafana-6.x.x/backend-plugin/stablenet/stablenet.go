@@ -20,7 +20,7 @@ import (
 )
 
 type Client interface {
-	QueryStableNetVersion() (*ServerVersion, *string)
+	QueryStableNetInfo() (*ServerInfo, *string)
 	QueryDevices(string) (*DeviceQueryResult, error)
 	FetchMeasurementsForDevice(*int, string) (*MeasurementQueryResult, error)
 	FetchMeasurementName(int) (*string, error)
@@ -51,7 +51,7 @@ type ClientImpl struct {
 // this function returns a string point instead of an error in case the version cannot be fetched.
 // The reason is that the returned string is meant to be presented to the end user, while an error type string
 // should generally not be presented to the end user.
-func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
+func (c *ClientImpl) QueryStableNetInfo() (*ServerInfo, *string) {
 	var errorStr string
 	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
 	url := fmt.Sprintf("https://%s:%d/rest/info", c.Host, c.Port)
@@ -65,7 +65,7 @@ func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 		return nil, &errorStr
 	}
 	if resp.StatusCode() != http.StatusOK {
-		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: %d", resp.StatusCode())
+		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® server info could not be queried. Status Code: %d", resp.StatusCode())
 		return nil, &errorStr
 	}
 	var result ServerInfo
@@ -74,7 +74,7 @@ func (c *ClientImpl) QueryStableNetVersion() (*ServerVersion, *string) {
 		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
 		return nil, &errorStr
 	}
-	return &result.ServerVersion, nil
+	return &result, nil
 }
 
 func (c *ClientImpl) buildStatusError(msg string, resp *resty.Response) error {

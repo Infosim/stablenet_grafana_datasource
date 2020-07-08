@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func GetHandlersForRequest(request Request) (map[string]Handler, error) {
+func GetHandlersForRequest(request Request, validationStore map[int64]bool, datasourceId int64) (map[string]Handler, error) {
 	connectOptions, err := request.stableNetOptions()
 	if err != nil {
 		return nil, fmt.Errorf("could not extract StableNet(R) connect options: %v", err)
@@ -28,13 +28,19 @@ func GetHandlersForRequest(request Request) (map[string]Handler, error) {
 		Logger:   request.Logger,
 		SnClient: snClient,
 	}
+
 	handlers := make(map[string]Handler)
-	handlers["devices"] = deviceHandler{StableNetHandler: &baseHandler}
-	handlers["measurements"] = measurementHandler{StableNetHandler: &baseHandler}
-	handlers["metricNames"] = metricNameHandler{StableNetHandler: &baseHandler}
-	handlers["testDatasource"] = datasourceTestHandler{StableNetHandler: &baseHandler}
-	handlers["metricData"] = metricDataHandler{StableNetHandler: &baseHandler}
-	handlers["statisticLink"] = statisticLinkHandler{StableNetHandler: &baseHandler}
+	deviceHandler := deviceHandler{StableNetHandler: &baseHandler}
+	measurementHandler := measurementHandler{StableNetHandler: &baseHandler}
+	metricHandler := metricNameHandler{StableNetHandler: &baseHandler}
+	metricData := metricDataHandler{StableNetHandler: &baseHandler}
+	statisticLinkHandler := statisticLinkHandler{StableNetHandler: &baseHandler}
+	handlers["devices"] = &middleware{StableNetHandler: &baseHandler, validationStore: validationStore, datasourceId: datasourceId, next: deviceHandler}
+	handlers["measurements"] = &middleware{StableNetHandler: &baseHandler, validationStore: validationStore, datasourceId: datasourceId, next: measurementHandler}
+	handlers["metricNames"] = &middleware{StableNetHandler: &baseHandler, validationStore: validationStore, datasourceId: datasourceId, next: metricHandler}
+	handlers["testDatasource"] = DatasourceTestHandler{validationStore: validationStore, datasourceId: datasourceId, StableNetHandler: &baseHandler}
+	handlers["metricData"] = &middleware{StableNetHandler: &baseHandler, validationStore: validationStore, datasourceId: datasourceId, next: metricData}
+	handlers["statisticLink"] = &middleware{StableNetHandler: &baseHandler, validationStore: validationStore, datasourceId: datasourceId, next: statisticLinkHandler}
 	return handlers, nil
 }
 
@@ -85,6 +91,26 @@ func (r *Request) ToTimeRange() (startTime time.Time, endTime time.Time) {
 
 type Handler interface {
 	Process(Query) (*datasource.QueryResult, error)
+}
+
+type middleware struct {
+	*StableNetHandler
+	next            Handler
+	datasourceId    int64
+	validationStore map[int64]bool
+}
+
+func (m *middleware) Process(q Query) (*datasource.QueryResult, error) {
+	valid, present := m.validationStore[m.datasourceId]
+	if !present {
+		valid = checkStableNetVersion(m.SnClient)
+		m.validationStore[m.datasourceId] = valid
+	}
+	if !valid {
+		msg := "The datasource is not valid, please check the data source configuration and make sure that the test is successful."
+		return BuildErrorResult(msg, q.RefId), nil
+	}
+	return m.next.Process(q)
 }
 
 type deviceHandler struct {
@@ -165,30 +191,53 @@ func (m metricDataHandler) Process(query Query) (*datasource.QueryResult, error)
 	return &result, nil
 }
 
-type datasourceTestHandler struct {
+type DatasourceTestHandler struct {
 	*StableNetHandler
+	datasourceId    int64
+	validationStore map[int64]bool
 }
 
-func (d datasourceTestHandler) Process(query Query) (*datasource.QueryResult, error) {
-	version, errStr := d.SnClient.QueryStableNetVersion()
+func (d DatasourceTestHandler) Process(query Query) (*datasource.QueryResult, error) {
+	info, errStr := d.SnClient.QueryStableNetInfo()
 	if errStr != nil {
 		return BuildErrorResult(*errStr, query.RefId), nil
 	}
 	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
-	if !versionRegex.MatchString(version.Version) {
-		return BuildErrorResult(fmt.Sprintf("The StableNet® version %s does not support Grafana®.", version.Version), query.RefId), nil
+	if !versionRegex.MatchString(info.ServerVersion.Version) {
+		d.validationStore[d.datasourceId] = false
+		return BuildErrorResult(fmt.Sprintf("The StableNet® version %s does not support Grafana®.", info.ServerVersion.Version), query.RefId), nil
 	}
+	if !info.License.Modules.IsRestReportingLicensed() {
+		d.validationStore[d.datasourceId] = false
+		return BuildErrorResult(fmt.Sprintf("The StableNet® server does not have the required license \"rest-reporting\"."), query.RefId), nil
+	}
+	d.validationStore[d.datasourceId] = true
 	return &datasource.QueryResult{
 		Series: []*datasource.TimeSeries{},
 		RefId:  query.RefId,
 	}, nil
 }
 
+func checkStableNetVersion(client stablenet.Client) bool {
+	info, errStr := client.QueryStableNetInfo()
+	if errStr != nil {
+		return false
+	}
+	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
+	if !versionRegex.MatchString(info.ServerVersion.Version) {
+		return false
+	}
+	if !info.License.Modules.IsRestReportingLicensed() {
+		return false
+	}
+	return true
+}
+
 func createResponseWithCustomData(data interface{}, refId string) *datasource.QueryResult {
 	payload, err := json.Marshal(data)
 	if err != nil {
-		//json.Marshal returns a non-nil error if the data contains an invalid type such as channels or math.Inf(1)
-		//since these types are programming errors, the program should panic in that case.
+		// json.Marshal returns a non-nil error if the data contains an invalid type such as channels or math.Inf(1)
+		// since these types are programming errors, the program should panic in that case.
 		panic(fmt.Sprintf("marshalling failed: %v", err))
 	}
 	result := datasource.QueryResult{

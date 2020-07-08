@@ -69,10 +69,32 @@ func (s MetricDataSeries) AvgValues() []*datasource.Point {
 
 type ServerInfo struct {
 	ServerVersion ServerVersion `xml:"serverversion"`
+	License       License       `xml:"license"`
 }
 
 type ServerVersion struct {
 	Version string `xml:"version,attr"`
+}
+
+type License struct {
+	Modules Modules `xml:"modules"`
+}
+
+type Modules struct {
+	Modules []Module `xml:"module"`
+}
+
+func (m *Modules) IsRestReportingLicensed() bool {
+	for _, module := range m.Modules {
+		if module.Name == "rest-reporting" {
+			return true
+		}
+	}
+	return false
+}
+
+type Module struct {
+	Name string `xml:"name,attr"`
 }
 
 type DataQuery struct {
