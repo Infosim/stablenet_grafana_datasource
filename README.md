@@ -11,12 +11,18 @@ A Grafana® plugin consists of a frontend part and a backend part. The frontend 
 place in the Grafana® users' browsers. The backend part is written in Go and runs as Grafana® subprocess alongside
 the Grafana® server. 
 
+Go Version
+---
+
+Please make sure to have Go 1.14 installed.
+
 Publishing
 ---
 
-In order to publish a plugin, execute
+In order to publish a plugin, the StableNet® doc repository has to be checked out and its path exported
+to an environment variable.
 ```
-export SN_DOCU_HOME=/path/to/sn/docu/repo
+export SN_DOCU_HOME=/path/to/sn/doc
 make ship_all
 ```
 This commands builds the Grafana documentation pdf as well as all zip files for all supported Grafana® versions.

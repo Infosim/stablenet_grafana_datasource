@@ -31,7 +31,7 @@ func TestDataSource_CheckHealth(t *testing.T) {
 		{name: "recent", snVersion: "9.0.0", wantStatus: backend.HealthStatusOk, wantBody: "Connection to StableNet® successful"},
 		{name: "recent with productname should fail", snVersion: "StableNet 9.0.0", wantStatus: backend.HealthStatusError, wantBody: "The StableNet® version StableNet 9.0.0 does not support Grafana®."},
 		{name: "future", snVersion: "10.1.0", wantStatus: backend.HealthStatusOk, wantBody: "Connection to StableNet® successful"},
-		{name: "rest-reporting not licensed", snVersion: "9.0.2", wantLicenseError: true, wantStatus: backend.HealthStatusError, wantBody: "The StableNet® server does not have the required license \"REST_REPORTING\"."},
+		{name: "rest-reporting not licensed", snVersion: "9.0.2", wantLicenseError: true, wantStatus: backend.HealthStatusError, wantBody: "The StableNet® server does not have the required license \"rest-reporting\"."},
 	}
 	snServer := mock.CreateMockServer("infosim", "stablenet")
 	handler := mock.CreateHandler(snServer)

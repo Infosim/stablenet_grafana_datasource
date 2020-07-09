@@ -50,7 +50,7 @@ func (ds *dataSource) checkAndUpdateHealth(options *stablenet.ConnectOptions, da
 	}
 	if !info.License.Modules.IsRestReportingLicensed() {
 		ds.validationStore[datasourceId] = false
-		return false, fmt.Sprintf("The StableNet® server does not have the required license \"REST_REPORTING\".")
+		return false, fmt.Sprintf("The StableNet® server does not have the required license \"rest-reporting\".")
 	}
 	ds.validationStore[datasourceId] = true
 	return true, "Connection to StableNet® successful"
