@@ -4,7 +4,7 @@ ship_7.x.x: docu grafana_7.x.x clean_docu
 
 docu:
 	cd ${SN_DOCU_HOME}/stablenet-documents && mvn clean package && cd stablenet/target
-	java -jar ${SN_DOCU_HOME}/stablenet-documents/stablenet/target/documentation.jar -target 'ADM - Grafana Data Source' -basedir ${SN_DOCU_HOME}/stablenet-documents -additionaloutdir ./
+	java -jar ${SN_DOCU_HOME}/stablenet-documents/stablenet/target/documentation.jar -target 'ADM - Grafana Data Source' -basedir ${SN_DOCU_HOME}/stablenet-documents -draftmode false -additionaloutdir ./
 
 grafana_6.x.x:
 	cd ./grafana-6.x.x; make build; cd ..

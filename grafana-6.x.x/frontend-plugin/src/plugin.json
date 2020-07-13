@@ -21,8 +21,8 @@
     "links": [
       {"name": "StableNet® by Infosim®", "url": "https://www.infosim.net/stablenet"}
     ],
-    "version": "1.1.0",
-    "updated": "2020-01-23"
+    "version": "1.1.1",
+    "updated": "2020-07-10"
   },
 
   "dependencies": {
