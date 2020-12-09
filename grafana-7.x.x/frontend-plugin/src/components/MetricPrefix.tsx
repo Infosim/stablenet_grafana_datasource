@@ -18,7 +18,7 @@ export const MetricPrefix = props => (
       inputWidth={19}
       tooltip={
         "The input of this field will be added as a prefix to the metrics' names on the chart. " +
-        'This only applies if there are two or data series are shown in the chart.'
+        'This only applies if there are two or more data series are shown in the chart.'
       }
       value={props.value}
       onChange={props.onChange}

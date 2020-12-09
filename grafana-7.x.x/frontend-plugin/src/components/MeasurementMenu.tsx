@@ -43,7 +43,9 @@ export const MeasurementMenu = props => {
         label={'Measurement Filter:'}
         labelWidth={11}
         inputWidth={19}
-        tooltip={'The dropdown menu on the right will only include entries containing the input of this field.'}
+        tooltip={
+          'The dropdown on the left only shows at most 100 measurements. Use this measurement filter to search for specific measurements.'
+        }
         value={props.filter}
         onChange={props.filterChange}
         spellCheck={false}
