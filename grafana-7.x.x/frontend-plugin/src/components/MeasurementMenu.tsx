@@ -44,7 +44,7 @@ export const MeasurementMenu = props => {
         labelWidth={11}
         inputWidth={19}
         tooltip={
-          'The dropdown on the left only shows at most 100 measurements. Use this measurement filter to search for specific measurements.'
+          'The dropdown menu on the left only shows at most 100 measurements. Use this text field to query measurements that are not shown on the left, or to search for specific measurements.'
         }
         value={props.filter}
         onChange={props.filterChange}
