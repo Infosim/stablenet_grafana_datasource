@@ -1,20 +1,34 @@
-ship_all: docu grafana_6.x.x grafana_7.x.x clean_docu
-ship_6.x.x: docu grafana_6.x.x clean_docu
-ship_7.x.x: docu grafana_7.x.x clean_docu
+all: clean build_frontend build_linux build_windows build_darwin combine deploy
+compile: clean build_frontend build_linux build_windows
+build: clean docu build_frontend build_linux build_windows build_darwin combine
+
+clean:
+	rm -rf ./dist
+	mkdir ./dist
+
+build_frontend:
+	cd ./frontend-plugin;yarn run prettier --write "./src/**/*.{ts,tsx}" && yarn run grafana-toolkit plugin:dev;cd ..
+
+build_linux:
+	cd ./backend-plugin;GOOS=linux GOARCH=amd64 go build -o stablenet_backend_plugin_linux_amd64 backend-plugin/main;cd ..
+
+build_windows:
+	cd ./backend-plugin;GOOS=windows GOARCH=amd64 go build -o stablenet_backend_plugin_windows_amd64.exe backend-plugin/main;cd ..
+
+build_darwin:
+	cd ./backend-plugin;GOOS=darwin GOARCH=amd64 go build -o stablenet_backend_plugin_darwin_amd64 backend-plugin/main;cd ..
 
 docu:
 	cd ${SN_DOCU_HOME}/stablenet-documents && mvn clean package && cd stablenet/target
 	java -jar ${SN_DOCU_HOME}/stablenet-documents/stablenet/target/documentation.jar -target 'ADM - Grafana Data Source' -basedir ${SN_DOCU_HOME}/stablenet-documents -draftmode false -additionaloutdir ./
+	mv ./'ADM - Grafana Data Source.pdf' ./dist
 
-grafana_6.x.x:
-	cd ./grafana-6.x.x; make build; cd ..
-	cp ./'ADM - Grafana Data Source.pdf' ./grafana-6.x.x/dist
-	cd ./grafana-6.x.x && mv dist stablenet-grafana-plugin && zip -r ../stablenet-grafana-6.x.x-plugin.zip ./stablenet-grafana-plugin && mv stablenet-grafana-plugin dist
-   
-grafana_7.x.x:
-	cd ./grafana-7.x.x; make build; cd ..
-	cp ./'ADM - Grafana Data Source.pdf' ./grafana-7.x.x/dist
-	cd ./grafana-7.x.x && mv dist stablenet-grafana-plugin && zip -r ../stablenet-grafana-7.x.x-plugin.zip ./stablenet-grafana-plugin && mv stablenet-grafana-plugin dist
-   
-clean_docu:
-	rm ./'ADM - Grafana Data Source.pdf'
+combine:
+	cp -R ./frontend-plugin/dist/* ./dist
+	cp ./backend-plugin/stablenet_backend_plugin* ./dist
+	rm ./dist/*.map
+	mv dist stablenet-grafana-plugin && zip -r stablenet-grafana-7.x.x-plugin.zip ./stablenet-grafana-plugin && mv stablenet-grafana-plugin dist
+
+deploy:
+	rm -rf ${GRAFANA_HOME}/data/plugins/stablenet-grafana-plugin
+	cp -R ./dist ${GRAFANA_HOME}/data/plugins/stablenet-grafana-plugin
