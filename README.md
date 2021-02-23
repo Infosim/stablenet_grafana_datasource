@@ -1,53 +1,47 @@
-StableNet® Data Source for Grafana – Repository Organization
-===
+# StableNet® Data Source for Grafana
 
-Since Grafana® changes its plugin system from time to time, we have a dedicated
-directory for different Grafana® versions.
+StableNet® is the leading solution for Automated Network and Service Management. It is developed by Infosim®, an international and innovative Software & IT solution-provider.
+The solution is vendor-independent, built entirely upon a single data structure and comprised of Four Key Pillars, namely: Discovery & Inventory, Network Configuration & Change, Fault Management & Root Cause Analysis, Performance & Service
+Find out more about StableNet® on their [website.](https://www.infosim.net/stablenet/).
 
-While we may offer our plugins for older Grafana® versions, we only actively add features to the
-most recent version.
+The plugins displaying and analyzing StableNet® measurement data withing Grafana®.
 
-A Grafana® plugin consists of a frontend part and a backend part. The frontend part contains everything taking
-place in the Grafana® users' browsers. The backend part is written in Go and runs as Grafana® subprocess alongside
-the Grafana® server. 
+##Features of the Plugin
 
-Go Version
----
+* Support for all measurement types and their metrics
+* A choice to display min, max and average metrics
+* A comprehensive UI for selecting the measurements and metrics
+* An interactive search field for measurements and devices
+* A Statistic Link mode: Directly paste StableNet® Analyzer links into Grafana (currently, this works only for 
+  template measurements)
 
-Please make sure to have Go 1.14 installed.
+![Measurement Mode of the Plugin](preview.png "Measurement Mode of the Plugin")
 
-Publishing
----
+## Plugin Documentation and Installation
 
-In order to publish a plugin, the StableNet® doc repository has to be checked out and its path exported
-to an environment variable.
-```
-export SN_DOCU_HOME=/path/to/sn/doc
-make ship_all
-```
-This commands builds the Grafana documentation pdf as well as all zip files for all supported Grafana® versions.
-The documentation pdf is contained in all generated zips.
+In order to use this plugin, you can simply issue the following command on your Grafana® Server:
 
-Then put the zip files into the Infosim® cloud in the directory "StableNet Data Source for Grafana". Make sure that the
-link mentioned in the documentation always points to the newest zip (change the file, not the link :))
-
-For more information, please study the make files.
-
-Developing
----
-
-In order to develop the plugin, you may find the Makfile contained in the subfolders convenient. They contain goals
-to build the frontend, the backend, as well as deploying the plugin to a test server, e.g.:
-
-```
-cd grafana-7.x.x
-export GRAFANA_HOME=/opt/grafana-7.0.1
-make build_frontend build_linux combine deploy
+```shell
+grafana-cli --pluginUrl https://cloud.infosim.net/s/mPb5TF6pfHWScYW/download plugins install stablenet-grafana-plugin
 ```
 
-After that, restart the local Grafana® server to have have the deployed plugin.
+After the installation, the datasource will be available in the Grafana® data sources list. A detailed documentation
+of the plugin, its usages and use cases can be found in the directory `data/plugins/stablenet-grafana-plugin` of
+your Grafana ® installation. Alternatively, the download the zip file manually, extract it, and find the documentation
+file `ADM - Grafana Data Source.pdf` in it.
 
-If you are working on Windows or Darwin, exchange `build_linux` appropriately.
+## Building the plugin
 
-For more information, please study the make files.
+This section provides information on how to build the plugin yourself.
+
+### Prerequisites
+
+- Go 1.14 or newer has to be installed
+- Yarn has to be installed
+- Run `cd frontend-plugin && yarn install` once
+
+### Building
+
+Building the plugin is done via `make`. Alternatively, you can execute the goals defined in the `Makefile` manually.
+Please refer to the `Makefile` to learn about the building process.
 
