@@ -32,7 +32,6 @@ profile.cov
 grafana
 .notouch
 
-# Test artifacts
 **/dist/
 **/coverage.out
 **/stablenet-grafana-plugin.zip

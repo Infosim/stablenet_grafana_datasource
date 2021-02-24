@@ -12,7 +12,7 @@
       "name": "Infosim®",
       "url": "https://www.infosim.net"
     },
-    "keywords": [],
+    "keywords": ["stablenet", "network", "monitoring", "performance"],
     "logos": {
       "small": "img/stablenet_logo_small.svg",
       "large": "img/stablenet_logo.svg"
@@ -20,11 +20,12 @@
     "links": [
       {"name": "StableNet® by Infosim®", "url": "https://www.infosim.net/stablenet"}
     ],
-    "screenshots": [],
+    "screenshots": [{"name":  "StableNet® Data Source for Grafana", "path": "img/preview.png"}],
     "version": "2.0.3",
     "updated": "2020-12-21"
   },
   "dependencies": {
+    "grafanaDependency": "7.x.x",
     "grafanaVersion": "7.x.x",
     "plugins": []
   }

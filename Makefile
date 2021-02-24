@@ -40,7 +40,7 @@ combine:
 
 # Puts the "dist" directory from "combine" into a zip file.
 zip:
-	mv dist stablenet-grafana-plugin && zip -r stablenet-grafana-7.x.x-plugin.zip ./stablenet-grafana-plugin && mv stablenet-grafana-plugin dist
+	mv dist stablenet-datasource && zip -r stablenet-grafana-7.x.x-plugin.zip ./stablenet-datasource && mv stablenet-datasource dist
 
 # Deploys the directory created in "combine" to a local Grafana installation for testing. Set "export GRAFANA_HOME=/path/to/grafana" before executing.
 deploy:
