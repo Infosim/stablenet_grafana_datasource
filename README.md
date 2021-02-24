@@ -6,7 +6,8 @@ Find out more about StableNet® on the [website](https://www.infosim.net/stablen
 
 The plugins displaying and analyzing StableNet® measurement data withing Grafana®.
 
-##Features of the Plugin
+Features of the Plugin
+---
 
 * Support for all measurement types and their metrics
 * A choice to display min, max and average metrics
