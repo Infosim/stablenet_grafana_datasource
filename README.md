@@ -1,7 +1,7 @@
 # StableNet® Data Source for Grafana®
 
 StableNet® is the leading solution for Automated Network and Service Management. It is developed by Infosim®, an international and innovative Software & IT solution-provider.
-The solution is vendor-independent, built entirely upon a single data structure and comprised of Four Key Pillars, namely: Discovery & Inventory, Network Configuration & Change, Fault Management & Root Cause Analysis, Performance & Service
+The solution is vendor-independent, built entirely upon a single data structure and comprised of Four Key Pillars, namely: Discovery & Inventory, Network Configuration & Change, Fault Management & Root Cause Analysis, Performance & Service.
 Find out more about StableNet® on the [website](https://www.infosim.net/stablenet/).
 
 The plugins displaying and analyzing StableNet® measurement data withing Grafana®.
