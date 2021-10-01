@@ -5,20 +5,9 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQueryRequest, DataQueryResponse, DataSourceInstanceSettings } from '@grafana/data';
+import { DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
-import {
-  EmptyResult,
-  LabelValue,
-  MetricResult,
-  QueryResult,
-  SingleQuery,
-  StableNetConfigOptions,
-  Target,
-  TestResult,
-} from './Types';
-import { Observable } from 'rxjs';
-import { WrappedTarget } from './DataQueryAssembler';
+import { LabelValue, MetricResult, QueryResult, StableNetConfigOptions, Target, TestResult } from './Types';
 
 export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>) {
@@ -71,39 +60,5 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
         return m;
       })
     );
-  }
-
-  query(request: DataQueryRequest<Target>): Observable<DataQueryResponse> {
-    const { targets } = request;
-    const queries: SingleQuery[] = [];
-    if (!('statisticLink' in request.targets[0]) && !('chosenMetrics' in request.targets[0])) {
-      return EmptyResult;
-    }
-
-    for (let i = 0; i < targets.length; i++) {
-      const target: WrappedTarget = new WrappedTarget(targets[i], request.intervalMs!);
-
-      if (target.isValidStatisticLinkMode()) {
-        queries.push(target.toStatisticLinkQuery());
-        continue;
-      }
-
-      if (target.hasEmptyMetrics()) {
-        continue;
-      }
-
-      queries.push(target.toDeviceQuery());
-    }
-
-    if (queries.length === 0) {
-      return EmptyResult;
-    }
-
-    const req: DataQueryRequest = {
-      ...request,
-      targets: queries,
-    };
-
-    return super.query(req);
   }
 }

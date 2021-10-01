@@ -10,37 +10,21 @@ import { Checkbox, Input, Select, LegacyForms } from '@grafana/ui';
 
 const { FormField } = LegacyForms;
 
-const checkboxOuter = {
-  width: '32px',
-  borderStyle: 'solid',
-  borderWidth: '1px',
-  borderColor: '#2c3235',
-  borderRadius: '3px',
-} as React.CSSProperties;
-
-const checkboxInner = {
-  paddingLeft: '7px',
-  marginTop: '-5.5px',
-} as React.CSSProperties;
-
 export const CustomAverage = props => (
-  <div className="gf-form-inline">
-    <div style={checkboxOuter}>
-      <div style={checkboxInner}>
-        <Checkbox value={props.use} onChange={() => props.onChange[0]()} tabIndex={0} />
-      </div>
-    </div>
+  <div className="gf-form-inline" style={{ display: 'flex', alignItems: 'center' }}>
+    <Checkbox css="" value={props.use} onChange={() => props.onChange[0]()} tabIndex={0} />
 
     <FormField
-      label={'Average Period:'}
+      label={'Custom Average Period'}
       labelWidth={11}
       tooltip={
-        'Allows defining a custom average period. If disabled, Grafana will automatically compute a suiting average period.'
+        'Allows to define a custom average period. If disabled, Grafana will automatically compute a suiting average period.'
       }
       inputEl={
         <div className="gf-form-inline">
           <div className={'width-10'} tabIndex={0}>
             <Input
+              css=""
               type="number"
               value={props.period}
               spellCheck={false}

@@ -27,9 +27,10 @@ build_darwin:
 # Builds the documentation of the plugin (PDF-File). You need to have access to the StableNet® documentation repo
 # in order to use this goal. Set "export SN_DOCU_HOME=/path/to/your/doc/repo" before issuing this goal.
 docu:
-	cd ${SN_DOCU_HOME}/stablenet-documents && mvn clean package && cd stablenet/target
+	cd ${SN_DOCU_HOME}/stablenet-documents && mvn clean package
 	java -jar ${SN_DOCU_HOME}/stablenet-documents/stablenet/target/documentation.jar -target 'ADM - Grafana Data Source' -basedir ${SN_DOCU_HOME}/stablenet-documents -draftmode false -additionaloutdir ./
-	mv ./'ADM - Grafana Data Source.pdf' ./dist
+	mv ./pdf/'ADM - Grafana Data Source.pdf' ./dist
+	rm -r ./pdf
 
 # Puts the compiled frontend, backend (all platforms), and the docu in one directory called "dist". This directory can directly be used
 # to deploy the plugin

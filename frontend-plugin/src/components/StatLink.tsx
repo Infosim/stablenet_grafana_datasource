@@ -21,7 +21,7 @@ export const StatLink = props => (
         Link:
       </InlineFormLabel>
       <div style={{ width: '100%' } as React.CSSProperties}>
-        <Input type={'text'} value={props.link} onChange={props.onChange} spellCheck={false} tabIndex={0} />
+        <Input css="" type={'text'} value={props.link} onChange={props.onChange} spellCheck={false} tabIndex={0} />
       </div>
     </div>
   </div>

@@ -21,12 +21,12 @@
       {"name": "StableNet® by Infosim®", "url": "https://www.infosim.net/stablenet"}
     ],
     "screenshots": [{"name":  "StableNet® Data Source for Grafana", "path": "img/preview.png"}],
-    "version": "2.0.3",
-    "updated": "2020-12-21"
+    "version": "2.4.0",
+    "updated": "2021-10-06"
   },
   "dependencies": {
-    "grafanaDependency": "7.x.x",
-    "grafanaVersion": "7.x.x",
+    "grafanaDependency": ">=7.0.0",
+    "grafanaVersion": ">=7.0.0",
     "plugins": []
   }
 }

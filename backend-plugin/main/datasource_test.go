@@ -29,15 +29,6 @@ type handlerTests struct {
 	wantErrMsg string
 }
 
-type mockVersionProvider struct {
-	version   *stablenet.ServerVersion
-	errString *string
-}
-
-func (m *mockVersionProvider) QueryStableNetInfo() (*stablenet.ServerVersion, *string) {
-	return m.version, m.errString
-}
-
 func TestDataSource_QueryData(t *testing.T) {
 	snServer := mock.CreateMockServer("infosim", "stablenet")
 	handler := mock.CreateHandler(snServer)
@@ -55,11 +46,12 @@ func TestDataSource_QueryData(t *testing.T) {
 	byteData, _ := json.Marshal(jsonData)
 	instanceSettings := backend.DataSourceInstanceSettings{JSONData: byteData, DecryptedSecureJSONData: secureJsonData, ID: 5}
 	dataQueryJsonData := map[string]interface{}{
-		"statisticLink":   "?id=1001",
+		"StatisticLink":   "?id=1001",
 		"includeMinStats": true,
+		"mode":            StatisticLink,
 	}
 	dataQueryByteData, _ := json.Marshal(dataQueryJsonData)
-	query := backend.DataQuery{JSON: dataQueryByteData}
+	query := backend.DataQuery{JSON: dataQueryByteData, RefID: "A"}
 	request := backend.QueryDataRequest{
 		PluginContext: backend.PluginContext{DataSourceInstanceSettings: &instanceSettings},
 		Queries:       []backend.DataQuery{query},
@@ -69,7 +61,7 @@ func TestDataSource_QueryData(t *testing.T) {
 	got, err := datasource.QueryData(ctx, &request)
 	require.NoError(t, err, "no error expected")
 	require.Equal(t, 1, len(got.Responses), "number of responses wrong")
-	frames := got.Responses["queryResponse"].Frames
+	frames := got.Responses["A"].Frames
 	require.Equal(t, 1, len(frames), "number of frames wrong")
 	name := frames[0].Name
 	assert.Equal(t, snServer.Metrics[0].Name, name, "name of frame is wrong")

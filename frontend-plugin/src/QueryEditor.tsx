@@ -9,17 +9,24 @@ import React, { ChangeEvent, PureComponent } from 'react';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './DataSource';
 import { LabelValue, Mode, StableNetConfigOptions, Target, Unit } from './Types';
-import { Metric } from './components/Metric';
 import { MetricPrefix } from './components/MetricPrefix';
 import { DeviceMenu } from './components/DeviceMenu';
 import { StatLink } from './components/StatLink';
 import { ModeChooser } from './components/ModeChooser';
 import { CustomAverage } from './components/CustomAverage';
 import { MinMaxAvg } from './components/MinMaxAvg';
-import { InlineFormLabel } from '@grafana/ui';
+import { Checkbox, InlineFormLabel } from '@grafana/ui';
 import { MeasurementMenu } from './components/MeasurementMenu';
 
-type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions>;
+// @ts-ignore Some problems with the generic typing here. Could not solve it yet.
+type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions, Target>;
+
+const singleMetric: React.CSSProperties = {
+  textOverflow: 'ellipsis',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+  borderLeft: '4px',
+};
 
 export class QueryEditor extends PureComponent<Props> {
   getModes(): LabelValue[] {
@@ -81,7 +88,7 @@ export class QueryEditor extends PureComponent<Props> {
           selectedMeasurement: { label: '', value: -1 },
           metricPrefix: '',
           metrics: [],
-          chosenMetrics: {},
+          chosenMetrics: [],
           mode: Mode.MEASUREMENT,
           includeAvgStats: query.includeAvgStats === undefined ? true : query.includeAvgStats,
           includeMaxStats: query.includeMaxStats === undefined ? false : query.includeMaxStats,
@@ -100,7 +107,7 @@ export class QueryEditor extends PureComponent<Props> {
         onChange({
           ...query,
           metrics: r,
-          chosenMetrics: {},
+          chosenMetrics: [],
           metricPrefix: v.label!,
           selectedMeasurement: { label: v.label!, value: v.value! },
         });
@@ -121,7 +128,7 @@ export class QueryEditor extends PureComponent<Props> {
           measurementFilter: x,
           metricPrefix: '',
           metrics: [],
-          chosenMetrics: {},
+          chosenMetrics: [],
           mode: Mode.MEASUREMENT,
           includeAvgStats: query.includeAvgStats === undefined ? true : query.includeAvgStats,
           includeMaxStats: query.includeMaxStats === undefined ? false : query.includeMaxStats,
@@ -144,10 +151,15 @@ export class QueryEditor extends PureComponent<Props> {
   onMetricChange = (v: { text: string; key: string; measurementObid: number }) => {
     const { onChange, query, onRunQuery } = this.props;
     let chosenMetrics = query.chosenMetrics;
-    chosenMetrics[v.key] = !chosenMetrics[v.key];
+    const index = chosenMetrics.indexOf(v.key);
+    if (index === -1) {
+      chosenMetrics.push(v.key);
+    } else {
+      chosenMetrics.splice(index, 1);
+    }
     onChange({
       ...query,
-      chosenMetrics: chosenMetrics,
+      chosenMetrics,
     });
     onRunQuery();
   };
@@ -246,22 +258,24 @@ export class QueryEditor extends PureComponent<Props> {
                     </div>
                   </div>
                 ) : (
-                  <div className="gf-form">
+                  <div className="gf-form" style={{ alignItems: 'center' }}>
                     <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
 
                     <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
                       Metrics:
                     </InlineFormLabel>
 
-                    <div className="gf-form-inline">
-                      {query.metrics.map(metric => (
-                        <Metric
-                          value={!!query.chosenMetrics[metric.key]}
+                    {query.metrics.map(metric => (
+                      <div key={metric.key} style={{ paddingLeft: '2px', paddingRight: '2px' }}>
+                        <Checkbox
+                          css=""
+                          style={singleMetric}
+                          value={query.chosenMetrics.includes(metric.key)}
                           onChange={() => this.onMetricChange(metric)}
-                          text={metric.text}
+                          label={metric.text}
                         />
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -269,25 +283,22 @@ export class QueryEditor extends PureComponent<Props> {
           </div>
         )}
 
-        <div>
-          {!!(query.selectedMeasurement && query.selectedMeasurement.label) || !!query.mode ? (
-            <div>
-              <MinMaxAvg
-                mode={query.mode}
-                values={[query.includeMinStats, query.includeAvgStats, query.includeMaxStats]}
-                onChange={this.onIncludeChange}
-              />
-
-              <CustomAverage
-                use={query.useCustomAverage}
-                period={query.averagePeriod || ''}
-                unit={query.averageUnit || Unit.MINUTES}
-                getUnits={this.getUnits}
-                onChange={[this.onUseAvgChange, this.onCustAvgChange, this.onAvgUnitChange]}
-              />
-            </div>
-          ) : null}
-        </div>
+        {!!(query.selectedMeasurement && query.selectedMeasurement.label) || query.mode === Mode.STATISTIC_LINK ? (
+          <div style={{ display: 'flex' }}>
+            <CustomAverage
+              use={query.useCustomAverage}
+              period={query.averagePeriod || ''}
+              unit={query.averageUnit || Unit.MINUTES}
+              getUnits={this.getUnits}
+              onChange={[this.onUseAvgChange, this.onCustAvgChange, this.onAvgUnitChange]}
+            />
+            <MinMaxAvg
+              mode={query.mode}
+              values={[query.includeMinStats, query.includeAvgStats, query.includeMaxStats]}
+              onChange={this.onIncludeChange}
+            />
+          </div>
+        ) : null}
       </div>
     );
   }

@@ -13,14 +13,78 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"sort"
+	"strconv"
 	"time"
 )
 
+type Mode int
+
+const (
+	Measurement   Mode = 0
+	StatisticLink Mode = 10
+)
+
+/** Target describes the query coming directly from the frontend. It contains a lot of information which isn't needed
+at all for querying data, but must be included in the Target in order to persist the whole config panel.
+The unneeded elements aren't listed in the Go struct. The format of the Target is also not ideal for the data request,
+but it's suited for the config panel itself. We convert the Target into a more suitable struct in the Target#toQuery method.
+*/
+type Target struct {
+	Mode                Mode
+	SelectedMeasurement struct {
+		Value int
+	} `json:"selectedMeasurement"`
+	Interval         int64    `json:"customInterval"`
+	ChosenMetrics    []string `json:"chosenMetrics"`
+	MetricPrefix     string   `json:"metricPrefix"`
+	IncludeMinStats  bool     `json:"includeMinStats"`
+	IncludeAvgStats  bool     `json:"includeAvgStats"`
+	IncludeMaxStats  bool     `json:"includeMaxStats"`
+	StatisticLink    string   `json:"StatisticLink"`
+	AveragePeriod    string   `json:"averagePeriod"`
+	AverageUnit      int      `json:"averageUnit"`
+	UseCustomAverage bool     `json:"useCustomAverage"`
+	Metrics          []struct {
+		Text string
+		Key  string
+	}
+}
+
+func (t *Target) toQuery(timeRange backend.TimeRange, refId string) MetricQuery {
+	result := MetricQuery{
+		Start: timeRange.From,
+		End:   timeRange.To,
+	}
+	result.RefId = refId
+	result.IncludeMinStats = t.IncludeMinStats
+	result.IncludeAvgStats = t.IncludeAvgStats
+	result.IncludeMaxStats = t.IncludeMaxStats
+	period, err := strconv.Atoi(t.AveragePeriod)
+	if t.UseCustomAverage && err == nil {
+		result.Interval = int64(period * t.AverageUnit)
+	} else {
+		result.Interval = t.Interval
+	}
+	if t.Mode == StatisticLink && t.StatisticLink != "" {
+		result.StatisticLink = &t.StatisticLink
+	} else {
+		result.MeasurementObid = t.SelectedMeasurement.Value
+		metrics := make([]StringPair, 0, 0)
+		for _, metric := range t.ChosenMetrics {
+			for _, s := range t.Metrics {
+				if s.Key == metric {
+					metrics = append(metrics, StringPair{Key: metric, Name: fmt.Sprintf("%s %s", t.MetricPrefix, s.Text)})
+				}
+			}
+		}
+		result.Metrics = metrics
+	}
+	return result
+}
+
 type MetricQuery struct {
-	Start time.Time
-	End   time.Time
-	// Do not use `json:"intervalMs" here because this property gets overridden by Grafana.
-	// We want to use our own average period.
+	Start           time.Time
+	End             time.Time
 	Interval        int64 `json:"customInterval"`
 	IncludeAvgStats bool
 	IncludeMaxStats bool
@@ -28,6 +92,7 @@ type MetricQuery struct {
 	StatisticLink   *string
 	MeasurementObid int
 	Metrics         []StringPair
+	RefId           string
 }
 
 func (m *MetricQuery) shallowClone() MetricQuery {
@@ -41,13 +106,7 @@ func (m *MetricQuery) shallowClone() MetricQuery {
 		StatisticLink:   m.StatisticLink,
 		MeasurementObid: m.MeasurementObid,
 		Metrics:         m.Metrics,
-	}
-}
-
-func NewQuery(query backend.DataQuery) MetricQuery {
-	return MetricQuery{
-		Start: query.TimeRange.From,
-		End:   query.TimeRange.To,
+		RefId:           m.RefId,
 	}
 }
 

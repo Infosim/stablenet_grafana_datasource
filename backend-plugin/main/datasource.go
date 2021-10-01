@@ -16,7 +16,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
-	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -90,10 +89,14 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 
 	queries := make([]MetricQuery, 0, len(req.Queries))
 	for index, singleRequest := range req.Queries {
-		query := NewQuery(singleRequest)
-		err := json.Unmarshal(singleRequest.JSON, &query)
+		target := &Target{}
+		err := json.Unmarshal(singleRequest.JSON, target)
 		if err != nil {
 			return nil, fmt.Errorf("could not deserialize query %d: %v", index, err)
+		}
+		query := target.toQuery(singleRequest.TimeRange, singleRequest.RefID)
+		if (query.Metrics == nil || len(query.Metrics) == 0) && query.StatisticLink == nil {
+			continue
 		}
 		queries = append(queries, query)
 	}
@@ -102,18 +105,15 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 	if err != nil {
 		return nil, err
 	}
-	allFrames := make([]*data.Frame, 0, 0)
+	response := backend.NewQueryDataResponse()
+	response.Responses = make(map[string]backend.DataResponse)
 	for _, query := range queries {
 		frames, err := query.FetchData(client.FetchDataForMetrics)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch data for query %v: %v", query, err)
 		}
-		for _, frame := range frames {
-			allFrames = append(allFrames, frame)
-		}
+		response.Responses[query.RefId] = backend.DataResponse{Frames: frames}
 	}
-	response := backend.NewQueryDataResponse()
-	response.Responses = backend.Responses{"queryResponse": backend.DataResponse{Frames: allFrames}}
 	return response, nil
 }
 

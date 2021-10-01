@@ -12,7 +12,7 @@ import { StableNetConfigOptions, StableNetSecureJsonData } from './Types';
 
 const { SecretFormField, FormField } = LegacyForms;
 
-interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions> {}
+interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions, StableNetSecureJsonData> {}
 
 export class ConfigEditor extends PureComponent<Props> {
   onIpChange = (event: ChangeEvent<HTMLInputElement>) => {

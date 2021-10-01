@@ -8,12 +8,18 @@
 import { DataQuery, DataQueryResponse, DataSourceJsonData, SelectableValue } from '@grafana/data';
 import { of, Observable } from 'rxjs';
 
+/**
+ * This interface's structure is optimized for the config panel (it represents its state). However, we send this whole
+ * object to the server because Grafana doesn't allow having different types for the data query and the config panel.
+ * Ideally, the data should be organized and stripped before sending the request, but that isn't possible. As a workaround,
+ * we do the stripping and reorganizing in the server instead.
+ */
 export interface Target extends DataQuery {
   mode: number;
   selectedDevice: LabelValue;
   selectedMeasurement: LabelValue;
   measurementFilter: string;
-  chosenMetrics: object;
+  chosenMetrics: string[];
   metricPrefix: string;
   includeMinStats: boolean;
   includeAvgStats: boolean;
@@ -51,23 +57,6 @@ export interface MetricResult {
 }
 
 export const EmptyResult: Observable<DataQueryResponse> = of({ data: [] });
-
-export interface SingleQuery extends DataQuery {
-  statisticLink?: string;
-  measurementObid?: number;
-  metrics?: Array<{ key: string; name: string }>;
-  // Do not use the name intervalMs here because this property gets overridden by Grafana.
-  // We want to use our own average period.
-  customInterval: number;
-  includeMinStats: boolean;
-  includeAvgStats: boolean;
-  includeMaxStats: boolean;
-}
-
-export interface StringPair {
-  key: string;
-  name: string;
-}
 
 export enum Mode {
   MEASUREMENT = 0,
