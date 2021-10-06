@@ -258,24 +258,25 @@ export class QueryEditor extends PureComponent<Props> {
                     </div>
                   </div>
                 ) : (
-                  <div className="gf-form" style={{ alignItems: 'center' }}>
+                  <div className="gf-form" style={{ alignItems: 'baseline' }}>
                     <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
 
                     <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
                       Metrics:
                     </InlineFormLabel>
-
-                    {query.metrics.map(metric => (
-                      <div key={metric.key} style={{ paddingLeft: '2px', paddingRight: '2px' }}>
-                        <Checkbox
-                          css=""
-                          style={singleMetric}
-                          value={query.chosenMetrics.includes(metric.key)}
-                          onChange={() => this.onMetricChange(metric)}
-                          label={metric.text}
-                        />
-                      </div>
-                    ))}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {query.metrics.map(metric => (
+                        <div key={metric.key} style={{ padding: '2px' }}>
+                          <Checkbox
+                            css=""
+                            style={singleMetric}
+                            value={query.chosenMetrics.includes(metric.key)}
+                            onChange={() => this.onMetricChange(metric)}
+                            label={metric.text}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
