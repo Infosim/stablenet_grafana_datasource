@@ -10,11 +10,12 @@ package main
 import (
 	"backend-plugin/stablenet"
 	"fmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
 type Mode int
@@ -24,11 +25,10 @@ const (
 	StatisticLink Mode = 10
 )
 
-/** Target describes the query coming directly from the frontend. It contains a lot of information which isn't needed
-at all for querying data, but must be included in the Target in order to persist the whole config panel.
-The unneeded elements aren't listed in the Go struct. The format of the Target is also not ideal for the data request,
-but it's suited for the config panel itself. We convert the Target into a more suitable struct in the Target#toQuery method.
-*/
+// Target describes the query coming directly from the frontend. It contains a lot of information which isn't needed
+// at all for querying data, but must be included in the Target in order to persist the whole config panel.
+// The unneeded elements aren't listed in the Go struct. The format of the Target is also not ideal for the data request,
+// but it's suited for the config panel itself. We convert the Target into a more suitable struct in the Target#toQuery method.
 type Target struct {
 	Mode                Mode
 	SelectedMeasurement struct {
@@ -52,13 +52,14 @@ type Target struct {
 
 func (t *Target) toQuery(timeRange backend.TimeRange, refId string) MetricQuery {
 	result := MetricQuery{
-		Start: timeRange.From,
-		End:   timeRange.To,
+		Start:           timeRange.From,
+		End:             timeRange.To,
+		RefId:           refId,
+		IncludeMinStats: t.IncludeMinStats,
+		IncludeAvgStats: t.IncludeAvgStats,
+		IncludeMaxStats: t.IncludeMaxStats,
 	}
-	result.RefId = refId
-	result.IncludeMinStats = t.IncludeMinStats
-	result.IncludeAvgStats = t.IncludeAvgStats
-	result.IncludeMaxStats = t.IncludeMaxStats
+
 	period, err := strconv.Atoi(t.AveragePeriod)
 	if t.UseCustomAverage && err == nil {
 		result.Interval = int64(period * t.AverageUnit)
@@ -144,7 +145,7 @@ func (m *MetricQuery) FetchData(provider func(stablenet.DataQueryOptions) (map[s
 		return nil, fmt.Errorf("could not retrieve metrics from StableNet(R): %v", err)
 	}
 	keys := make([]string, 0, len(snData))
-	for key, _ := range snData {
+	for key := range snData {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)

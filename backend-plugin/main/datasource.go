@@ -13,12 +13,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"net/http"
 	"runtime/debug"
 	"strconv"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 )
 
 type dataSource struct {
@@ -35,8 +36,10 @@ func newDataSource() datasource.ServeOpts {
 					backend.Logger.Error(fmt.Sprintf("An error occured in resource query %s: %v\n%s", req.URL.RawPath, err, debug.Stack()))
 				}
 			}()
+
 			pluginContext := httpadapter.PluginConfigFromContext(req.Context())
 			options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+
 			valid, present := ds.validationStore[pluginContext.DataSourceInstanceSettings.ID]
 			if !present {
 				valid, _ = ds.checkAndUpdateHealth(options, pluginContext.DataSourceInstanceSettings.ID)
@@ -45,7 +48,8 @@ func newDataSource() datasource.ServeOpts {
 				http.Error(rw, "The datasource is not valid, please check the data source configuration and make sure that the test is successful.", http.StatusInternalServerError)
 				return
 			}
-			client := stablenet.NewClient(options)
+
+			client := stablenet.NewStableNetClient(options)
 			ctx := context.WithValue(req.Context(), "SnClient", client)
 			next.ServeHTTP(rw, req.WithContext(ctx))
 		}
@@ -76,13 +80,14 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 	if ctx.Value("sn_address") != nil {
 		options.Address = ctx.Value("sn_address").(string)
 	}
+
 	valid, present := ds.validationStore[req.PluginContext.DataSourceInstanceSettings.ID]
 	if !present {
 		valid, _ = ds.checkAndUpdateHealth(options, req.PluginContext.DataSourceInstanceSettings.ID)
 	}
 	if !valid {
 		//noinspection GoErrorStringFormat
-		responses := backend.Responses{"queryResponse": backend.DataResponse{Error: errors.New("The datasource is not valid, please check the data source configuration and make sure that the test is successful.")}}
+		responses := backend.Responses{"queryResponse": backend.DataResponse{Error: errors.New("the datasource is not valid, please check the data source configuration and make sure that the test is successful")}}
 		return &backend.QueryDataResponse{Responses: responses}, nil
 
 	}
@@ -95,12 +100,12 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 			return nil, fmt.Errorf("could not deserialize query %d: %v", index, err)
 		}
 		query := target.toQuery(singleRequest.TimeRange, singleRequest.RefID)
-		if (query.Metrics == nil || len(query.Metrics) == 0) && query.StatisticLink == nil {
+		if (len(query.Metrics) == 0) && query.StatisticLink == nil {
 			continue
 		}
 		queries = append(queries, query)
 	}
-	client := stablenet.NewClient(options)
+	client := stablenet.NewStableNetClient(options)
 	queries, err := ExpandStatisticLinks(queries, client.FetchMetricsForMeasurement)
 	if err != nil {
 		return nil, err
@@ -118,24 +123,30 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 }
 
 func handleDeviceQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(*stablenet.Client)
 	filter := req.URL.Query().Get("filter")
+
+	snClient := req.Context().Value("SnClient").(*stablenet.StableNetClient)
+
 	devices, err := snClient.QueryDevices(filter)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query devices: %v", err), http.StatusInternalServerError)
 		return
 	}
+
 	encodeJson(rw, devices)
 }
 
 func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(*stablenet.Client)
-	filter := req.URL.Query().Get("filter")
 	deviceObid, err := strconv.Atoi(req.URL.Query().Get("deviceObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not parse deviceObid query param: %v", err), http.StatusBadRequest)
 		return
 	}
+
+	filter := req.URL.Query().Get("filter")
+
+	snClient := req.Context().Value("SnClient").(*stablenet.StableNetClient)
+
 	measurements, err := snClient.FetchMeasurementsForDevice(deviceObid, filter)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query measurements: %v", err), http.StatusInternalServerError)
@@ -145,22 +156,24 @@ func handleMeasurementQuery(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleMetricQuery(rw http.ResponseWriter, req *http.Request) {
-	snClient := req.Context().Value("SnClient").(*stablenet.Client)
 	measurementObid, err := strconv.Atoi(req.URL.Query().Get("measurementObid"))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not extract measurementObid from request body: %v", err), http.StatusBadRequest)
 		return
 	}
+
+	snClient := req.Context().Value("SnClient").(*stablenet.StableNetClient)
+
 	metrics, err := snClient.FetchMetricsForMeasurement(measurementObid)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("could not query metrics: %v", err), http.StatusInternalServerError)
 		return
 	}
+
 	encodeJson(rw, metrics)
 }
 
-// Encoding a json only results in an error if the data to be serialized does
-// contain unserializable types, e.g. functions, channels, etc.
+// Encoding a json only results in an error if the data to be serialized does contain unserializable types, e.g. functions, channels, etc.
 // Since we have absolute control over our types, we panic in case the json cannot be created.
 func encodeJson(rw http.ResponseWriter, data interface{}) {
 	err := json.NewEncoder(rw).Encode(data)

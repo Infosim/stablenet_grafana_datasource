@@ -7,27 +7,33 @@
  */
 import React from 'react';
 import { AsyncSelect, LegacyForms } from '@grafana/ui';
+import { LabelValue } from 'Types';
+import { SelectableValue } from '@grafana/data';
 
 const { FormField } = LegacyForms;
 
-export const DeviceMenu = props => {
+interface IProps {
+  selectedDevice: LabelValue;
+  hasMoreDevices: boolean;
+  get: (value: string) => Promise<LabelValue[]>;
+  onChange: (value: SelectableValue<number>) => void;
+}
+
+const moreDevicesTooltip = 'There are more devices available, but only the first 100 are displayed. Use a stricter search to reduce the number of shown devices.';
+
+export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: IProps): JSX.Element {
   return (
     <div className="gf-form">
       <FormField
         label={'Device:'}
         labelWidth={11}
-        tooltip={
-          props.more
-            ? `There are more devices available, but only the first 100 are displayed. 
-              Use a stricter search to reduce the number of shown devices.`
-            : ''
-        }
+        tooltip={hasMoreDevices ? moreDevicesTooltip : ''}
         inputEl={
           <div tabIndex={0}>
             <AsyncSelect<number>
-              loadOptions={props.get}
-              value={props.selected}
-              onChange={props.onChange}
+              value={selectedDevice}
+              loadOptions={get}
+              onChange={onChange}
               defaultOptions={true}
               noOptionsMessage={`No devices match this search.`}
               loadingMessage={`Fetching devices...`}

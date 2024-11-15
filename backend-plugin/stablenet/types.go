@@ -11,15 +11,24 @@ import (
 	"time"
 )
 
+type CollectionDTO[T any] struct {
+	Data    []T  `json:"data"`
+	HasMore bool `json:"hasMore"`
+}
+
 type Device struct {
 	Name string `json:"name"`
 	Obid int    `json:"obid"`
 }
 
+type DeviceQueryResult CollectionDTO[Device]
+
 type Measurement struct {
 	Name string `json:"name"`
 	Obid int    `json:"obid"`
 }
+
+type MeasurementQueryResult CollectionDTO[Measurement]
 
 type Metric struct {
 	Name string `json:"name"`
@@ -36,8 +45,8 @@ type MetricData struct {
 
 type MetricDataSeries []MetricData
 
-//Returns the data series as two-dimensional array of interfaces. The columns are as follows:
-//time, min, max avg. The columns min max avg are only present, if the respective parameter is true.
+// Returns the data series as two-dimensional array of interfaces. The columns are as follows:
+// time, min, max avg. The columns min max avg are only present, if the respective parameter is true.
 func (s MetricDataSeries) AsTable(min, max, avg bool) [][]interface{} {
 	table := make([][]interface{}, 0, len(s))
 	for _, data := range s {

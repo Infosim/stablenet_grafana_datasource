@@ -5,54 +5,65 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { Select, LegacyForms } from '@grafana/ui';
+import { LabelValue } from 'Types';
+import { SelectableValue } from '@grafana/data';
 
 const { FormField } = LegacyForms;
 
-export const MeasurementMenu = props => {
+interface IProps {
+  hasMoreMeasurements: boolean;
+  selected: LabelValue;
+  get: LabelValue[];
+  filter: string;
+  disabled: boolean;
+  menuChange: (value: SelectableValue<number>) => void;
+  filterChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}
+
+const moreMeasurementsTooltip = 'There are more measurements available, but only the first 100 are displayed. Use a stricter search to reduce the number of shown measurements.';
+
+const filterTooltip = 'The dropdown menu on the left only shows at most 100 measurements. Use this text field to query measurements that are not shown on the left, or to search for specific measurements.';
+
+export function MeasurementMenu({ hasMoreMeasurements, selected, get, filter, disabled, menuChange, filterChange }: IProps): JSX.Element {
+
+  const inputElement = (
+    <div tabIndex={0}>
+      <Select<number>
+        options={get}
+        value={selected}
+        onChange={menuChange}
+        className={'width-19'}
+        menuPlacement={'bottom'}
+        noOptionsMessage={`No measurements match this search.`}
+        placeholder={'none'}
+        isSearchable={false} />
+    </div>
+  );
+
+
   return (
     <div className="gf-form">
       <div style={{ marginRight: 4 }}>
         <FormField
           label={'Measurement:'}
           labelWidth={11}
-          tooltip={
-            props.more
-              ? `There are more measurements available, but only the first 100 are displayed.
-              Use a stricter search to reduce the number of shown measurements.`
-              : ''
-          }
-          inputEl={
-            <div tabIndex={0}>
-              <Select<number>
-                options={props.get}
-                value={props.selected}
-                onChange={props.menuChange}
-                className={'width-19'}
-                menuPlacement={'bottom'}
-                noOptionsMessage={`No measurements match this search.`}
-                placeholder={'none'}
-                isSearchable={false}
-              />
-            </div>
-          }
+          tooltip={hasMoreMeasurements ? moreMeasurementsTooltip : ''}
+          inputEl={inputElement}
         />
       </div>
       <FormField
         label={'Measurement Filter:'}
         labelWidth={11}
         inputWidth={19}
-        tooltip={
-          'The dropdown menu on the left only shows at most 100 measurements. Use this text field to query measurements that are not shown on the left, or to search for specific measurements.'
-        }
-        value={props.filter}
-        onChange={props.filterChange}
+        tooltip={filterTooltip}
+        value={filter}
+        onChange={filterChange}
         spellCheck={false}
         placeholder={'no filter'}
         tabIndex={0}
-        disabled={props.disabled}
-      />
+        disabled={disabled} />
     </div>
   );
 };

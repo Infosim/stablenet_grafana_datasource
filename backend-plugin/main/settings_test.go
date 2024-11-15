@@ -9,10 +9,11 @@ package main
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestStableNetSettings_Nil(t *testing.T) {
@@ -37,11 +38,14 @@ func TestStableNetSettings(t *testing.T) {
 		{name: "stablenet invalid port", json: "{\"snip\":\"55.66.77.88\", \"snport\": \"not port\", \"snusername\":\"infosim\"}", secureData: map[string]string{"snpassword": "stablenet"}, panicString: "the field \"snport\" could not be parsed into a number: strconv.Atoi: parsing \"not port\": invalid syntax"},
 		{name: "success", json: "{\"snip\":\"55.66.77.88\", \"snport\": \"12345\", \"snusername\":\"infosim\"}", secureData: map[string]string{"snpassword": "stablenet"}},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rawMessage := json.RawMessage{}
 			require.NoError(t, json.Unmarshal([]byte(tt.json), &rawMessage))
+
 			settings := &backend.DataSourceInstanceSettings{JSONData: rawMessage, DecryptedSecureJSONData: tt.secureData}
+
 			if len(tt.panicString) != 0 {
 				panicFunc := func() {
 					stableNetOptions(settings)

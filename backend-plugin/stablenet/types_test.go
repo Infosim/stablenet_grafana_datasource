@@ -8,19 +8,18 @@
 package stablenet
 
 import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func ExampleModules_IsRestReportingLicensed() {
+func TestExampleModules_IsRestReportingLicensed(t *testing.T) {
 	modules := Modules{Modules: []Module{{Name: "nqa"}, {Name: "policy"}}}
-	fmt.Printf("%t\n", modules.IsRestReportingLicensed())
+	assert.False(t, modules.IsRestReportingLicensed())
+
 	modules = Modules{Modules: []Module{{Name: "nqa"}, {Name: "policy"}, {Name: "rest-reporting"}}}
-	fmt.Printf("%t", modules.IsRestReportingLicensed())
-	// Output: false
-	// true
+	assert.True(t, modules.IsRestReportingLicensed())
 }
 
 func TestMetricDataSeries_AsTable(t *testing.T) {

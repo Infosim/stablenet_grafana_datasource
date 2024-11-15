@@ -7,29 +7,36 @@
  */
 import React from 'react';
 import { Select, LegacyForms } from '@grafana/ui';
+import { SelectableValue } from '@grafana/data';
+import { Mode } from 'Types';
 
 const { FormField } = LegacyForms;
 
-export const ModeChooser = props => (
-  <div className="gf-form-inline">
-    <div className="gf-form">
-      <FormField
-        label={'Query Mode:'}
-        labelWidth={11}
-        tooltip={'Allows switching between Measurement mode and Statistic Link mode.'}
-        inputEl={
-          <div tabIndex={0}>
-            <Select<number>
-              options={props.options()}
-              value={props.mode}
-              onChange={props.onChange}
-              className={'width-10'}
-              menuPlacement={'bottom'}
-              isSearchable={true}
-            />
-          </div>
-        }
-      />
+interface IProps {
+  selectedMode: number;
+  onChange: (value: SelectableValue<number>) => void;
+}
+
+const modes: SelectableValue<number>[] = [
+  { label: 'Measurement', value: Mode.MEASUREMENT },
+  { label: 'Statistic Link', value: Mode.STATISTIC_LINK },
+];
+
+const tooltip = 'Allows switching between Measurement mode and Statistic Link mode.';
+
+export function ModeChooser({ selectedMode, onChange }: IProps): JSX.Element {
+
+  const inputElement = (
+    <div tabIndex={0}>
+      <Select<number> value={selectedMode} options={modes} onChange={onChange} className={'width-10'} menuPlacement={'bottom'} isSearchable={true} />
     </div>
-  </div>
-);
+  );
+
+  return (
+    <div className="gf-form-inline">
+      <div className="gf-form">
+        <FormField label={'Query Mode:'} labelWidth={11} tooltip={tooltip} inputEl={inputElement} />
+      </div>
+    </div>
+  );
+}

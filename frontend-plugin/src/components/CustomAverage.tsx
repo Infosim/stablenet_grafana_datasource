@@ -5,46 +5,51 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import { Checkbox, Input, Select, LegacyForms } from '@grafana/ui';
+import { SelectableValue } from '@grafana/data';
+import { LabelValue, Unit } from 'Types';
 
 const { FormField } = LegacyForms;
 
-export const CustomAverage = props => (
-  <div className="gf-form-inline" style={{ display: 'flex', alignItems: 'center' }}>
-    <Checkbox css="" value={props.use} onChange={() => props.onChange[0]()} tabIndex={0} />
+interface IProps {
+  use: boolean;
+  period: string;
+  unit: number;
+  onUseAverageChange: () => void;
+  onUseCustomAverageChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onAverageUnitChange: (value: SelectableValue<number>) => void;
+}
 
-    <FormField
-      label={'Custom Average Period'}
-      labelWidth={11}
-      tooltip={
-        'Allows to define a custom average period. If disabled, Grafana will automatically compute a suiting average period.'
-      }
-      inputEl={
-        <div className="gf-form-inline">
-          <div className={'width-10'} tabIndex={0}>
-            <Input
-              css=""
-              type="number"
-              value={props.period}
-              spellCheck={false}
-              tabIndex={0}
-              onChange={props.onChange[1]}
-              disabled={!props.use}
-            />
+const tooltip = 'Allows to define a custom average period. If disabled, Grafana will automatically compute a suiting average period.'
+
+const units: LabelValue[] = [
+  { label: 'sec', value: Unit.SECONDS },
+  { label: 'min', value: Unit.MINUTES },
+  { label: 'hrs', value: Unit.HOURS },
+  { label: 'days', value: Unit.DAYS },
+];
+
+export function CustomAverage({ use, period, unit, onUseAverageChange, onUseCustomAverageChange, onAverageUnitChange }: IProps): JSX.Element {
+  return (
+    <div className="gf-form-inline" style={{ display: 'flex', alignItems: 'center' }}>
+      <Checkbox css="" value={use} onChange={onUseAverageChange} tabIndex={0} />
+
+      <FormField
+        label={'Custom Average Period'}
+        labelWidth={11}
+        tooltip={tooltip}
+        inputEl={
+          <div className="gf-form-inline">
+            <div className={'width-10'} tabIndex={0}>
+              <Input type="number" css="" value={period} spellCheck={false} tabIndex={0} onChange={onUseCustomAverageChange} disabled={!use} />
+            </div>
+            <div tabIndex={0}>
+              <Select<number> options={units} value={unit} onChange={onAverageUnitChange} className={'width-7'} isSearchable={true} menuPlacement={'bottom'} />
+            </div>
           </div>
-          <div tabIndex={0}>
-            <Select<number>
-              options={props.getUnits()}
-              value={props.unit}
-              onChange={props.onChange[2]}
-              className={'width-7'}
-              isSearchable={true}
-              menuPlacement={'bottom'}
-            />
-          </div>
-        </div>
-      }
-    />
-  </div>
-);
+        }
+      />
+    </div>
+  );
+}

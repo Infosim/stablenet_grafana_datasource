@@ -12,11 +12,12 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/go-resty/resty/v2"
 	"net/http"
 	url2 "net/url"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type ConnectOptions struct {
@@ -25,72 +26,96 @@ type ConnectOptions struct {
 	Password string `json:"snpassword"`
 }
 
-func NewClient(options *ConnectOptions) *Client {
-	client := Client{ConnectOptions: *options, client: resty.New()}
-	client.client.SetBasicAuth(options.Username, options.Password)
-	client.client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	return &client
+func NewStableNetClient(options *ConnectOptions) *StableNetClient {
+	client := resty.New().
+		SetBasicAuth(options.Username, options.Password).
+		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+	return &StableNetClient{ConnectOptions: *options, client: client}
 }
 
-type Client struct {
+type StableNetClient struct {
 	ConnectOptions
 	client *resty.Client
 }
 
-// Queries StableNet® for its version. Attention: Unlike Go-conventions state,
-// this function returns a string point instead of an error in case the version cannot be fetched.
-// The reason is that the returned string is meant to be presented to the end user, while an error type string
-// should generally not be presented to the end user.
-func (c *Client) QueryStableNetInfo() (*ServerInfo, *string) {
-	var errorStr string
+func (stableNetClient *StableNetClient) get(path string) (*resty.Response, error) {
+	url := stableNetClient.Address + path
+	return stableNetClient.client.R().Get(url)
+}
+
+// Queries StableNet® for its version. Attention: Unlike Go-conventions state, this function returns a string point instead of an error in case the version cannot be fetched.
+// The reason is that the returned string is meant to be presented to the end user, while an error type string should generally not be presented to the end user.
+func (stableNetClient *StableNetClient) QueryStableNetInfo() (*ServerInfo, *string) {
 	// use old XML API here because all server versions should have this endpoint, opposed to the JSON API version info endpoint.
-	url := fmt.Sprintf("%s/rest/info", c.Address)
-	resp, err := c.client.R().Get(url)
+	response, err := stableNetClient.get("/rest/info")
+
 	if err != nil {
-		errorStr = fmt.Sprintf("Connecting to StableNet® failed: %v", err.Error())
+		errorStr := fmt.Sprintf("Connecting to StableNet® failed: %v", err.Error())
 		return nil, &errorStr
 	}
-	if resp.StatusCode() == http.StatusUnauthorized {
-		errorStr = fmt.Sprintf("The StableNet® server could be reached, but the credentials were invalid.")
+
+	if response.StatusCode() == http.StatusUnauthorized {
+		errorStr := "The StableNet® server could be reached, but the credentials were invalid."
 		return nil, &errorStr
 	}
-	if resp.StatusCode() != http.StatusOK {
-		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: %d", resp.StatusCode())
+
+	if response.StatusCode() != http.StatusOK {
+		errorStr := fmt.Sprintf("Log in to StableNet® successful, but the StableNet® version could not be queried. Status Code: %d", response.StatusCode())
 		return nil, &errorStr
 	}
+
 	var result ServerInfo
-	err = xml.Unmarshal(resp.Body(), &result)
+	err = xml.Unmarshal(response.Body(), &result)
 	if err != nil {
-		errorStr = fmt.Sprintf("Log in to StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", resp.String(), err)
+		errorStr := fmt.Sprintf("Log in to StableNet® successful, but the StableNet® answer \"%s\" could not be parsed: %v", response.String(), err)
 		return nil, &errorStr
 	}
+
 	return &result, nil
 }
 
-func (c *Client) buildStatusError(msg string, resp *resty.Response) error {
+func buildStatusError(msg string, resp *resty.Response) error {
 	return fmt.Errorf("%s: status code: %d, response: %s", msg, resp.StatusCode(), string(resp.Body()))
 }
 
-type DeviceQueryResult struct {
-	Devices []Device `json:"data"`
-	HasMore bool     `json:"hasMore"`
+func buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
+	url := fmt.Sprintf("/api/1/%s?$top=100", endpoint)
+
+	if len(orderBy) != 0 {
+		url = url + fmt.Sprintf("&$orderBy=%s", orderBy)
+	}
+
+	nonEmptyFilters := make([]string, 0, len(filters))
+	for _, f := range filters {
+		if len(f) > 0 {
+			nonEmptyFilters = append(nonEmptyFilters, f)
+		}
+	}
+
+	if len(nonEmptyFilters) == 0 {
+		return url
+	}
+
+	return url + "&$filter=" + url2.QueryEscape(strings.Join(nonEmptyFilters, " and "))
 }
 
-func (c *Client) QueryDevices(filter string) (*DeviceQueryResult, error) {
-	var url string
-	if len(filter) != 0 {
-		filterParam := fmt.Sprintf("name ct '%s'", filter)
-		url = c.buildJsonApiUrl("devices", "name", filterParam)
-	} else {
-		url = c.buildJsonApiUrl("devices", "name")
+// Queries devices from the StableNet server that contain the string "nameFilter" in their nae
+func (stableNetClient *StableNetClient) QueryDevices(nameFilter string) (*DeviceQueryResult, error) {
+	path := buildJsonApiUrl("devices", "name")
+
+	if len(nameFilter) != 0 {
+		path = path + "&$filter=" + url2.QueryEscape(fmt.Sprintf("name ct '%s'", nameFilter))
 	}
-	resp, err := c.client.R().Get(url)
+
+	resp, err := stableNetClient.get(path)
 	if err != nil {
-		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", filter, err)
+		return nil, fmt.Errorf("retrieving devices matching query \"%s\" failed: %v", nameFilter, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", filter), resp)
+		return nil, buildStatusError(fmt.Sprintf("retrieving devices matching query \"%s\" failed", nameFilter), resp)
 	}
+
 	var result DeviceQueryResult
 	err = json.Unmarshal(resp.Body(), &result)
 	if err != nil {
@@ -99,44 +124,24 @@ func (c *Client) QueryDevices(filter string) (*DeviceQueryResult, error) {
 	return &result, nil
 }
 
-func (c *Client) buildJsonApiUrl(endpoint string, orderBy string, filters ...string) string {
-	url := fmt.Sprintf("%s/api/1/%s?$top=100", c.Address, endpoint)
-	if len(orderBy) != 0 {
-		url = fmt.Sprintf("%s&$orderBy=%s", url, orderBy)
-	}
-	nonEmpty := make([]string, 0, len(filters))
-	for _, f := range filters {
-		if len(f) > 0 {
-			nonEmpty = append(nonEmpty, f)
-		}
-	}
-	if len(nonEmpty) == 0 {
-		return url
-	}
-	filter := "&$filter=" + url2.QueryEscape(strings.Join(nonEmpty, " and "))
-	return url + filter
-}
-
-type MeasurementQueryResult struct {
-	Measurements []Measurement `json:"data"`
-	HasMore      bool          `json:"hasMore"`
-}
-
-func (c *Client) FetchMeasurementsForDevice(deviceObid int, filter string) (*MeasurementQueryResult, error) {
+func (stableNetClient *StableNetClient) FetchMeasurementsForDevice(deviceObid int, fieldFilter string) (*MeasurementQueryResult, error) {
 	var nameFilter string
-	if len(filter) != 0 {
-		nameFilter = fmt.Sprintf("name ct '%s'", filter)
+	if len(fieldFilter) != 0 {
+		nameFilter = fmt.Sprintf("name ct '%s'", fieldFilter)
 	}
+
 	deviceFilter := fmt.Sprintf("destDeviceId eq '%d'", deviceObid)
 
-	url := c.buildJsonApiUrl("measurements", "name", deviceFilter, nameFilter)
-	resp, err := c.client.R().Get(url)
+	path := buildJsonApiUrl("measurements", "name", deviceFilter, nameFilter)
+
+	resp, err := stableNetClient.get(path)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving measurements for device filter \"%s\" failed: %v", deviceFilter, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving measurements for device filter \"%s\" failed", deviceFilter), resp)
+		return nil, buildStatusError(fmt.Sprintf("retrieving measurements for device filter \"%s\" failed", deviceFilter), resp)
 	}
+
 	var result MeasurementQueryResult
 	err = json.Unmarshal(resp.Body(), &result)
 	if err != nil {
@@ -145,38 +150,42 @@ func (c *Client) FetchMeasurementsForDevice(deviceObid int, filter string) (*Mea
 	return &result, nil
 }
 
-func (c *Client) FetchMeasurementName(id int) (*string, error) {
-	url := c.buildJsonApiUrl("measurements", "name", fmt.Sprintf("obid eq '%d'", id))
-	resp, err := c.client.R().Get(url)
+func (stableNetCliet *StableNetClient) FetchMeasurementName(id int) (*string, error) {
+	url := buildJsonApiUrl("measurements", "name", fmt.Sprintf("obid eq '%d'", id))
+
+	resp, err := stableNetCliet.get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving name for measurement %d failed: %v", id, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving name for measurement %d failed", id), resp)
+		return nil, buildStatusError(fmt.Sprintf("retrieving name for measurement %d failed", id), resp)
 	}
+
 	var responseData MeasurementQueryResult
 	err = json.Unmarshal(resp.Body(), &responseData)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
-	if len(responseData.Measurements) == 0 {
+
+	if len(responseData.Data) == 0 {
 		return nil, fmt.Errorf("measurement with id %d does not exist", id)
 	}
-	return &responseData.Measurements[0].Name, nil
+
+	return &responseData.Data[0].Name, nil
 }
 
-func (c *Client) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
-	endpoint := fmt.Sprintf("measurements/%d/metrics", measurementObid)
-	// orderby is empty because it' currently not supported by the endpoint
-	url := c.buildJsonApiUrl(endpoint, "")
-	resp, err := c.client.R().Get(url)
+func (stableNetClient *StableNetClient) FetchMetricsForMeasurement(measurementObid int) ([]Metric, error) {
+	url := fmt.Sprintf("/api/1/measurement-data/%d/metrics?$top=100", measurementObid)
+
+	resp, err := stableNetClient.get(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metrics for measurement %d failed: %v", measurementObid, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving metrics for measurement %d failed", measurementObid), resp)
+		return nil, buildStatusError(fmt.Sprintf("retrieving metrics for measurement %d failed", measurementObid), resp)
 	}
-	responseData := make([]Metric, 0, 0)
+
+	responseData := make([]Metric, 0)
 	err = json.Unmarshal(resp.Body(), &responseData)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
@@ -184,48 +193,62 @@ func (c *Client) FetchMetricsForMeasurement(measurementObid int) ([]Metric, erro
 	return responseData, nil
 }
 
-func (c *Client) FetchDataForMetrics(options DataQueryOptions) (map[string]MetricDataSeries, error) {
-	startMillis := options.Start.UnixNano() / int64(time.Millisecond)
-	endMillis := options.End.UnixNano() / int64(time.Millisecond)
-	query := DataQuery{Start: startMillis, End: endMillis, Metrics: options.Metrics, Raw: false, Average: options.Average}
-	endpoint := fmt.Sprintf("measurements/%d/data", options.MeasurementObid)
-	url := c.buildJsonApiUrl(endpoint, "")
-	resp, err := c.client.R().SetHeader("Content-Type", "application/json").SetBody(query).Post(url)
+func (stableNetClient *StableNetClient) FetchDataForMetrics(options DataQueryOptions) (map[string]MetricDataSeries, error) {
+	query := DataQuery{
+		Start:   options.Start.UnixNano() / int64(time.Millisecond),
+		End:     options.End.UnixNano() / int64(time.Millisecond),
+		Metrics: options.Metrics,
+		Raw:     false,
+		Average: options.Average,
+	}
+
+	url := stableNetClient.Address + fmt.Sprintf("/api/1/measurement-data/%d?$top=100", options.MeasurementObid)
+
+	resp, err := stableNetClient.client.R().SetHeader("Content-Type", "application/json").SetBody(query).Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving metric data for measurement %d failed: %v", options.MeasurementObid, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, c.buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", options.MeasurementObid), resp)
+		return nil, buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", options.MeasurementObid), resp)
 	}
+
 	return parseStatisticByteSlice(resp.Body(), options.Metrics)
 }
 
+type MetricsValue struct {
+	MetricName   string              `json:"metricName"`
+	MetricKey    string              `json:"metricKey"`
+	MetricDataId int                 `json:"metricDataId"`
+	Data         []TimestampResponse `json:"data"`
+}
+
+type MetricsResponse struct {
+	MeasruementId int            `json:"measurementId"`
+	Values        []MetricsValue `json:"values"`
+}
+
+func parseMetricsValue(metricsValue MetricsValue) (string, MetricDataSeries, error) {
+	return "error", nil, nil
+}
+
 func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]MetricDataSeries, error) {
-	var data []TimestampResponse
+	var data MetricsResponse
+
 	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
 	}
+
 	resultMap := make(map[string]MetricDataSeries)
-	for _, record := range data {
-		converted := parseSingleTimestamp(record, metricKeys)
+	for _, record := range data.Values {
+		converted := parseSingleTimestamp(record.Data[], metricKeys)
 		for key, measurementData := range converted {
 			if _, ok := resultMap[key]; !ok {
-				resultMap[key] = make([]MetricData, 0, 0)
+				resultMap[key] = make([]MetricData, 0)
 			}
 			resultMap[key] = append(resultMap[key], measurementData)
 		}
 	}
-	return resultMap, nil
-}
 
-func (c *Client) formatMetricIds(valueIds []int) string {
-	if len(valueIds) == 1 {
-		return fmt.Sprintf("value=%d", valueIds[0])
-	}
-	query := make([]string, 0, len(valueIds))
-	for index, valueId := range valueIds {
-		query = append(query, fmt.Sprintf("value%d=%d", index, valueId))
-	}
-	return strings.Join(query, "&")
+	return resultMap, nil
 }

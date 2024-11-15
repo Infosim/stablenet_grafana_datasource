@@ -12,13 +12,14 @@ import (
 	"backend-plugin/stablenet"
 	"context"
 	"encoding/json"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type handlerTests struct {
@@ -30,32 +31,41 @@ type handlerTests struct {
 }
 
 func TestDataSource_QueryData(t *testing.T) {
-	snServer := mock.CreateMockServer("infosim", "stablenet")
+	stableNetUsername := "infosim"
+	stableNetPassword := "stablenet"
+
+	snServer := mock.CreateMockServer(stableNetUsername, stableNetPassword)
 	handler := mock.CreateHandler(snServer)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	jsonData := map[string]string{
-		"snusername": snServer.Username,
+	byteData, _ := json.Marshal(map[string]string{
+		"snusername": stableNetUsername,
 		"snip":       "to be changed by context",
 		"snport":     "5443",
+	})
+
+	instanceSettings := backend.DataSourceInstanceSettings{
+		ID:       5,
+		JSONData: byteData,
+		DecryptedSecureJSONData: map[string]string{
+			"snpassword": stableNetPassword,
+		},
 	}
-	secureJsonData := map[string]string{
-		"snpassword": snServer.Password,
-	}
-	byteData, _ := json.Marshal(jsonData)
-	instanceSettings := backend.DataSourceInstanceSettings{JSONData: byteData, DecryptedSecureJSONData: secureJsonData, ID: 5}
-	dataQueryJsonData := map[string]interface{}{
+
+	dataQueryByteData, _ := json.Marshal(map[string]interface{}{
 		"StatisticLink":   "?id=1001",
 		"includeMinStats": true,
 		"mode":            StatisticLink,
-	}
-	dataQueryByteData, _ := json.Marshal(dataQueryJsonData)
-	query := backend.DataQuery{JSON: dataQueryByteData, RefID: "A"}
+	})
+
 	request := backend.QueryDataRequest{
 		PluginContext: backend.PluginContext{DataSourceInstanceSettings: &instanceSettings},
-		Queries:       []backend.DataQuery{query},
+		Queries: []backend.DataQuery{
+			{RefID: "A", JSON: dataQueryByteData},
+		},
 	}
+
 	ctx := context.WithValue(context.Background(), "sn_address", server.URL)
 	datasource := dataSource{validationStore: map[int64]bool{5: true}}
 	got, err := datasource.QueryData(ctx, &request)
@@ -73,7 +83,7 @@ func TestHandleDeviceQuery(t *testing.T) {
 	handler := mock.CreateHandler(snServer)
 	server := httptest.NewServer(handler)
 	defer server.Close()
-	client := stablenet.NewClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
+	client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
 	t.Run("empty device filter", func(t *testing.T) {
 		request := httptest.NewRequest("GET", "http://example.org/", strings.NewReader(""))
 		ctx := context.WithValue(request.Context(), "SnClient", client)
@@ -83,7 +93,7 @@ func TestHandleDeviceQuery(t *testing.T) {
 		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
 		var got stablenet.DeviceQueryResult
 		_ = json.Unmarshal(recorder.Body.Bytes(), &got)
-		assert.Equal(t, snServer.Devices, got.Devices, "devices wrong")
+		assert.Equal(t, snServer.Devices, got.Data, "devices wrong")
 		wantQueryParam := map[string][]string{
 			"$orderBy": {"name"},
 			"$top":     {"100"},
@@ -99,7 +109,7 @@ func TestHandleDeviceQuery(t *testing.T) {
 		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
 		var got stablenet.DeviceQueryResult
 		_ = json.Unmarshal(recorder.Body.Bytes(), &got)
-		assert.Equal(t, snServer.Devices, got.Devices, "devices wrong")
+		assert.Equal(t, snServer.Devices, got.Data, "devices wrong")
 		wantQueryParam := map[string][]string{
 			"$orderBy": {"name"},
 			"$filter":  {"name ct 'bach'"},
@@ -108,7 +118,7 @@ func TestHandleDeviceQuery(t *testing.T) {
 		assert.Equal(t, url.Values(wantQueryParam), snServer.LastQueries, "no queries wrong params")
 	})
 	t.Run("server error", func(t *testing.T) {
-		client := stablenet.NewClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
+		client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
 		request := httptest.NewRequest("GET", "http://example.org/", strings.NewReader(""))
 		ctx := context.WithValue(request.Context(), "SnClient", client)
 		request = request.WithContext(ctx)
@@ -124,7 +134,7 @@ func TestHandleMeasurementQuery(t *testing.T) {
 	handler := mock.CreateHandler(snServer)
 	server := httptest.NewServer(handler)
 	defer server.Close()
-	client := stablenet.NewClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
+	client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
 	requestErrorTests := []handlerTests{
 		{name: "no device obid", urlParams: "?obid=4500&filter=host", wantStatus: 400, wantErrMsg: "could not parse deviceObid query param: strconv.Atoi: parsing \"\": invalid syntax"},
 		{name: "unparsable device obid", urlParams: "?deviceObid=a_string", wantStatus: 400, wantErrMsg: "could not parse deviceObid query param: strconv.Atoi: parsing \"a_string\": invalid syntax"},
@@ -156,7 +166,7 @@ func TestHandleMeasurementQuery(t *testing.T) {
 		var got stablenet.MeasurementQueryResult
 		err := json.Unmarshal(recorder.Body.Bytes(), &got)
 		require.NoError(t, err, "no error expected")
-		assert.Equal(t, snServer.Measurements, got.Measurements, "measurements differ")
+		assert.Equal(t, snServer.Measurements, got.Data, "measurements differ")
 	})
 	t.Run("success with filter", func(t *testing.T) {
 		request := httptest.NewRequest("GET", "http://example.org/?deviceObid=4500&filter=processor", strings.NewReader(""))
@@ -174,10 +184,10 @@ func TestHandleMeasurementQuery(t *testing.T) {
 		var got stablenet.MeasurementQueryResult
 		err := json.Unmarshal(recorder.Body.Bytes(), &got)
 		require.NoError(t, err, "no error expected")
-		assert.Equal(t, snServer.Measurements, got.Measurements, "measurements differ")
+		assert.Equal(t, snServer.Measurements, got.Data, "measurements differ")
 	})
 	t.Run("server error", func(t *testing.T) {
-		client := stablenet.NewClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
+		client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
 		request := httptest.NewRequest("GET", "http://example.org/?deviceObid=1111", strings.NewReader(""))
 		ctx := context.WithValue(request.Context(), "SnClient", client)
 		request = request.WithContext(ctx)
@@ -193,7 +203,7 @@ func TestHandleMetricQuery(t *testing.T) {
 	handler := mock.CreateHandler(snServer)
 	server := httptest.NewServer(handler)
 	defer server.Close()
-	client := stablenet.NewClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
+	client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
 	tests := []handlerTests{
 		{name: "no measurement obid", urlParams: "?obid=4500&filter=host", wantStatus: 400, wantErrMsg: "could not extract measurementObid from request body: strconv.Atoi: parsing \"\": invalid syntax"},
 		{name: "unparsable measurement obid", urlParams: "?measurementObid=string", wantStatus: 400, wantErrMsg: "could not extract measurementObid from request body: strconv.Atoi: parsing \"string\": invalid syntax"},
@@ -218,7 +228,7 @@ func TestHandleMetricQuery(t *testing.T) {
 		})
 	}
 	t.Run("server error", func(t *testing.T) {
-		client := stablenet.NewClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
+		client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: "", Password: "", Address: server.URL})
 		request := httptest.NewRequest("GET", "http://example.org/?measurementObid=1001", strings.NewReader(""))
 		ctx := context.WithValue(request.Context(), "SnClient", client)
 		request = request.WithContext(ctx)

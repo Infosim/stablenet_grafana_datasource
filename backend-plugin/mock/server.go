@@ -27,67 +27,48 @@ type SnServer struct {
 }
 
 func CreateMockServer(username, password string) *SnServer {
-	server := SnServer{
-		Username: username,
-		Password: password,
-	}
-	server.Devices = []stablenet.Device{
-		{Obid: 9000, Name: "Bach"},
-		{Obid: 9001, Name: "Fluss"},
-		{Obid: 9002, Name: "Meer"},
-	}
-	server.Measurements = []stablenet.Measurement{
-		{Obid: 1001, Name: "Host"},
-		{Obid: 1002, Name: "Processor"},
-		{Obid: 1003, Name: "Interface 1"},
-	}
-	server.Metrics = []stablenet.Metric{
-		{Name: "Uptime", Key: "SNMP_1"},
-		{Name: "CPU 1", Key: "EXTERN_2"},
-	}
 	five := 5.0
 	ten := 10.0
 	avg := 7.5
-	server.Data = []stablenet.TimestampResponse{
-		{TimeStamp: 100,
-			Row: []stablenet.MeasurementData{
-				{Min: &five, Max: &ten, Avg: &avg},
+
+	return &SnServer{
+		Username: username,
+		Password: password,
+		Devices: []stablenet.Device{
+			{Obid: 9000, Name: "Bach"},
+			{Obid: 9001, Name: "Fluss"},
+			{Obid: 9002, Name: "Meer"},
+		},
+		Measurements: []stablenet.Measurement{
+			{Obid: 1001, Name: "Host"},
+			{Obid: 1002, Name: "Processor"},
+			{Obid: 1003, Name: "Interface 1"},
+		},
+		Metrics: []stablenet.Metric{
+			{Name: "Uptime", Key: "SNMP_1"},
+			{Name: "CPU 1", Key: "EXTERN_2"},
+		},
+		Data: []stablenet.TimestampResponse{
+			{
+				TimeStamp: 100,
+				Row: []stablenet.MeasurementData{
+					{Min: &five, Max: &ten, Avg: &avg},
+				},
 			},
 		},
 	}
-	return &server
-}
-
-func CreateHandler(server *SnServer) http.Handler {
-	authMiddleware := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(rw http.ResponseWriter, req *http.Request) {
-			user, pass, ok := req.BasicAuth()
-			if ok && user == server.Username && pass == server.Password {
-				next.ServeHTTP(rw, req)
-				return
-			}
-			http.Error(rw, "Authentication Error", http.StatusUnauthorized)
-		}
-	}
-	r := http.NewServeMux()
-	r.HandleFunc("/api/1/devices", authMiddleware(server.getDevices))
-	r.HandleFunc("/api/1/measurements", authMiddleware(server.getMeasurements))
-	r.HandleFunc("/api/1/measurements/1001/metrics", authMiddleware(server.getMetrics))
-	r.HandleFunc("/api/1/measurements/1001/data", authMiddleware(server.getData))
-	r.HandleFunc("/rest/info", authMiddleware(server.getInfo))
-	return r
 }
 
 func (s *SnServer) getDevices(rw http.ResponseWriter, req *http.Request) {
 	s.LastQueries = req.URL.Query()
-	result := stablenet.DeviceQueryResult{Devices: s.Devices, HasMore: false}
+	result := stablenet.DeviceQueryResult{Data: s.Devices, HasMore: false}
 	payload, _ := json.Marshal(result)
 	_, _ = rw.Write(payload)
 }
 
 func (s *SnServer) getMeasurements(rw http.ResponseWriter, req *http.Request) {
 	s.LastQueries = req.URL.Query()
-	result := stablenet.MeasurementQueryResult{Measurements: s.Measurements, HasMore: false}
+	result := stablenet.MeasurementQueryResult{Data: s.Measurements, HasMore: false}
 	payload, _ := json.Marshal(result)
 	_, _ = rw.Write(payload)
 }
@@ -108,4 +89,26 @@ func (s *SnServer) getInfo(rw http.ResponseWriter, req *http.Request) {
 	s.LastQueries = req.URL.Query()
 	payload, _ := xml.Marshal(s.Info)
 	_, _ = rw.Write(payload)
+}
+
+func CreateHandler(server *SnServer) http.Handler {
+	authMiddleware := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(rw http.ResponseWriter, req *http.Request) {
+			user, pass, ok := req.BasicAuth()
+			if ok && user == server.Username && pass == server.Password {
+				next.ServeHTTP(rw, req)
+				return
+			}
+			http.Error(rw, "Authentication Error", http.StatusUnauthorized)
+		}
+	}
+
+	r := http.NewServeMux()
+	r.HandleFunc("/api/1/devices", authMiddleware(server.getDevices))
+	r.HandleFunc("/api/1/measurements", authMiddleware(server.getMeasurements))
+	r.HandleFunc("/api/1/measurement-data/1001/metrics", authMiddleware(server.getMetrics))
+	r.HandleFunc("/api/1/measurement-data/1001", authMiddleware(server.getData))
+	r.HandleFunc("/rest/info", authMiddleware(server.getInfo))
+
+	return r
 }

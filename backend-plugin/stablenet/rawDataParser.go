@@ -17,18 +17,28 @@ type MeasurementData struct {
 	Avg *float64 `json:"avg"`
 	Max *float64 `json:"max"`
 }
+
 type TimestampResponse struct {
 	Interval  int               `json:"interval"`
-	Row       []MeasurementData `json:"row"`
 	TimeStamp int64             `json:"timestamp"`
+	Row       []MeasurementData `json:"row"`
 }
 
 func parseSingleTimestamp(data TimestampResponse, metricKeys []string) map[string]MetricData {
 	measurementTime := time.Unix(0, data.TimeStamp*int64(time.Millisecond))
+
 	interval := time.Duration(data.Interval) * time.Millisecond
+
 	result := make(map[string]MetricData)
 	for index, row := range data.Row {
-		value := MetricData{Min: math.NaN(), Avg: math.NaN(), Max: math.NaN()}
+		value := MetricData{
+			Min:      math.NaN(),
+			Avg:      math.NaN(),
+			Max:      math.NaN(),
+			Interval: interval,
+			Time:     measurementTime,
+		}
+
 		if row.Max != nil {
 			value.Max = *row.Max
 		}
@@ -38,9 +48,9 @@ func parseSingleTimestamp(data TimestampResponse, metricKeys []string) map[strin
 		if row.Avg != nil {
 			value.Avg = *row.Avg
 		}
-		value.Interval = interval
-		value.Time = measurementTime
+
 		result[metricKeys[index]] = value
 	}
+
 	return result
 }

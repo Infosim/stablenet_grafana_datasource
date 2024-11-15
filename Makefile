@@ -1,7 +1,8 @@
 # Builds everything and makes the plugin ready for publishing.
 # NOTE: You need to have SN_DOCU_HOME path set to StableNet®'s documentation repository. If you don't have this
 # repo, you need to comment the docu goal out.
-publish: clean build_frontend build_darwin build_linux build_windows docu combine zip
+publish: clean build_frontend build_darwin build_linux build_windows combine zip
+publish_with_docs: clean build_frontend build_darwin build_linux build_windows docu combine zip
 
 # Removes artifacts from the last build
 clean:

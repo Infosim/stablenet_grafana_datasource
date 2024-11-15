@@ -11,9 +11,10 @@ import (
 	"backend-plugin/stablenet"
 	"context"
 	"fmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"regexp"
 	"runtime/debug"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
 
 func (ds *dataSource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
@@ -29,20 +30,24 @@ func (ds *dataSource) CheckHealth(ctx context.Context, req *backend.CheckHealthR
 	if ctx.Value("sn_address") != nil {
 		options.Address = ctx.Value("sn_address").(string)
 	}
+
 	valid, msg := ds.checkAndUpdateHealth(options, req.PluginContext.DataSourceInstanceSettings.ID)
 	status := backend.HealthStatusError
 	if valid {
 		status = backend.HealthStatusOk
 	}
+
 	return &backend.CheckHealthResult{Status: status, Message: msg}, nil
 }
 
 func (ds *dataSource) checkAndUpdateHealth(options *stablenet.ConnectOptions, datasourceId int64) (bool, string) {
-	client := stablenet.NewClient(options)
+	client := stablenet.NewStableNetClient(options)
+
 	info, errStr := client.QueryStableNetInfo()
 	if errStr != nil {
 		return false, *errStr
 	}
+
 	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
 	if !versionRegex.MatchString(info.ServerVersion.Version) {
 		ds.validationStore[datasourceId] = false
@@ -52,6 +57,7 @@ func (ds *dataSource) checkAndUpdateHealth(options *stablenet.ConnectOptions, da
 		ds.validationStore[datasourceId] = false
 		return false, fmt.Sprintf("The StableNet® server does not have the required license \"rest-reporting\".")
 	}
+
 	ds.validationStore[datasourceId] = true
 	return true, "Connection to StableNet® successful"
 }

@@ -29,24 +29,9 @@ const singleMetric: React.CSSProperties = {
 };
 
 export class QueryEditor extends PureComponent<Props> {
-  getModes(): LabelValue[] {
-    return [
-      { label: 'Measurement', value: Mode.MEASUREMENT },
-      { label: 'Statistic Link', value: Mode.STATISTIC_LINK },
-    ];
-  }
-
-  getUnits(): LabelValue[] {
-    return [
-      { label: 'sec', value: Unit.SECONDS },
-      { label: 'min', value: Unit.MINUTES },
-      { label: 'hrs', value: Unit.HOURS },
-      { label: 'days', value: Unit.DAYS },
-    ];
-  }
 
   onModeChange = (v: SelectableValue<number>) => {
-    const { onChange, query } = this.props;
+    const { query, onChange } = this.props;
     onChange({
       ...query,
       mode: v.value!,
@@ -58,20 +43,22 @@ export class QueryEditor extends PureComponent<Props> {
   };
 
   onStatisticLinkChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = this.props;
+    const { query, onRunQuery, onChange } = this.props;
     onChange({ ...query, statisticLink: event.target.value });
     onRunQuery(); // executes the query
   };
 
-  getDevices = (v: string) => {
-    const { query, onChange, datasource } = this.props;
-    return datasource.queryDevices(v).then(r => {
-      onChange({
-        ...query,
-        moreDevices: r.hasMore || !!query.moreDevices,
-      });
-      return r.data;
+  getDevices = async (v: string): Promise<LabelValue[]> => {
+    const { query, datasource, onChange } = this.props;
+
+    const response = await datasource.queryDevices(v);
+
+    onChange({
+      ...query,
+      moreDevices: response.hasMore || !!query.moreDevices,
     });
+
+    return response.data;
   };
 
   onDeviceChange = (v: SelectableValue<number>) => {
@@ -221,68 +208,67 @@ export class QueryEditor extends PureComponent<Props> {
 
     return (
       <div>
-        <ModeChooser mode={query.mode || Mode.MEASUREMENT} options={this.getModes} onChange={this.onModeChange} />
+        <ModeChooser selectedMode={query.mode || Mode.MEASUREMENT} onChange={this.onModeChange} />
 
-        {!!query.mode ? (
-          <StatLink link={query.statisticLink || ''} onChange={this.onStatisticLinkChange} />
-        ) : (
-          <div>
-            {/** Measurement mode */}
-            <div className="gf-form-inline">
-              {/**Device dropdown, more devices*/}
-              <DeviceMenu
-                get={this.getDevices}
-                selected={query.selectedDevice}
-                onChange={this.onDeviceChange}
-                more={query.moreDevices}
-              />
-            </div>
-            <div className="gf-form-inline">
-              {/**Measurement dropdown, more measurements*/}
-              <MeasurementMenu
-                get={query.measurements || []}
-                selected={query.selectedMeasurement}
-                menuChange={this.onMeasurementChange}
-                more={query.moreMeasurements}
-                filter={query.measurementFilter || ''}
-                filterChange={this.onMeasurementFilterChange}
-                disabled={query.selectedDevice === undefined}
-              />
-            </div>
-            {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (
-              <div>
-                {!query.metrics.length ? (
-                  <div className="gf-form">
-                    <div style={{ paddingLeft: '150px' } as React.CSSProperties}>
-                      <InlineFormLabel width={30}>No metrics available!</InlineFormLabel>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="gf-form" style={{ alignItems: 'baseline' }}>
-                    <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
-
-                    <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
-                      Metrics:
-                    </InlineFormLabel>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      {query.metrics.map(metric => (
-                        <div key={metric.key} style={{ padding: '2px' }}>
-                          <Checkbox
-                            css=""
-                            style={singleMetric}
-                            value={query.chosenMetrics.includes(metric.key)}
-                            onChange={() => this.onMetricChange(metric)}
-                            label={metric.text}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {!!query.mode
+          ? <StatLink link={query.statisticLink || ''} onChange={this.onStatisticLinkChange} />
+          : (
+            <div>
+              {/** Measurement mode */}
+              <div className="gf-form-inline">
+                <DeviceMenu
+                  selectedDevice={query.selectedDevice}
+                  hasMoreDevices={query.moreDevices}
+                  get={this.getDevices}
+                  onChange={this.onDeviceChange}
+                />
               </div>
-            ) : null}
-          </div>
-        )}
+              <div className="gf-form-inline">
+                {/**Measurement dropdown, more measurements*/}
+                <MeasurementMenu
+                  get={query.measurements || []}
+                  selected={query.selectedMeasurement}
+                  menuChange={this.onMeasurementChange}
+                  hasMoreMeasurements={query.moreMeasurements}
+                  filter={query.measurementFilter || ''}
+                  filterChange={this.onMeasurementFilterChange}
+                  disabled={query.selectedDevice === undefined}
+                />
+              </div>
+              {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (
+                <div>
+                  {!query.metrics.length ? (
+                    <div className="gf-form">
+                      <div style={{ paddingLeft: '150px' } as React.CSSProperties}>
+                        <InlineFormLabel width={30}>No metrics available!</InlineFormLabel>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="gf-form" style={{ alignItems: 'baseline' }}>
+                      <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
+
+                      <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
+                        Metrics:
+                      </InlineFormLabel>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {query.metrics.map(metric => (
+                          <div key={metric.key} style={{ padding: '2px' }}>
+                            <Checkbox
+                              css=""
+                              style={singleMetric}
+                              value={query.chosenMetrics.includes(metric.key)}
+                              onChange={() => this.onMetricChange(metric)}
+                              label={metric.text}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
 
         {!!(query.selectedMeasurement && query.selectedMeasurement.label) || query.mode === Mode.STATISTIC_LINK ? (
           <div style={{ display: 'flex' }}>
@@ -290,8 +276,9 @@ export class QueryEditor extends PureComponent<Props> {
               use={query.useCustomAverage}
               period={query.averagePeriod || ''}
               unit={query.averageUnit || Unit.MINUTES}
-              getUnits={this.getUnits}
-              onChange={[this.onUseAvgChange, this.onCustAvgChange, this.onAvgUnitChange]}
+              onUseAverageChange={this.onUseAvgChange}
+              onUseCustomAverageChange={this.onCustAvgChange}
+              onAverageUnitChange={this.onAvgUnitChange}
             />
             <MinMaxAvg
               mode={query.mode}

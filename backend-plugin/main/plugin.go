@@ -9,9 +9,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
-	"os"
 )
 
 func main() {
