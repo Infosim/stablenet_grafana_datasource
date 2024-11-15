@@ -12,7 +12,7 @@ import { LabelValue, Unit } from 'Types';
 
 const { FormField } = LegacyForms;
 
-interface IProps {
+interface Props {
   use: boolean;
   period: string;
   unit: number;
@@ -30,7 +30,7 @@ const units: LabelValue[] = [
   { label: 'days', value: Unit.DAYS },
 ];
 
-export function CustomAverage({ use, period, unit, onUseAverageChange, onUseCustomAverageChange, onAverageUnitChange }: IProps): JSX.Element {
+export function CustomAverage({ use, period, unit, onUseAverageChange, onUseCustomAverageChange, onAverageUnitChange }: Props): JSX.Element {
   return (
     <div className="gf-form-inline" style={{ display: 'flex', alignItems: 'center' }}>
       <Checkbox css="" value={use} onChange={onUseAverageChange} tabIndex={0} />

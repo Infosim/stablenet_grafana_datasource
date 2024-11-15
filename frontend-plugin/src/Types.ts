@@ -8,6 +8,12 @@
 import { DataQuery, DataQueryResponse, DataSourceJsonData, SelectableValue } from '@grafana/data';
 import { of, Observable } from 'rxjs';
 
+export interface Metric {
+  text: string;
+  key: string;
+  measurementObid: number;
+}
+
 /**
  * This interface's structure is optimized for the config panel (it represents its state). However, we send this whole
  * object to the server because Grafana doesn't allow having different types for the data query and the config panel.
@@ -29,7 +35,7 @@ export interface Target extends DataQuery {
   averageUnit: number;
   useCustomAverage: boolean;
   measurements: LabelValue[];
-  metrics: Array<{ text: string; key: string; measurementObid: number }>;
+  metrics: Metric[];
   moreDevices: boolean;
   moreMeasurements: boolean;
 }

@@ -12,65 +12,41 @@ import { StableNetConfigOptions, StableNetSecureJsonData } from './Types';
 
 const { SecretFormField, FormField } = LegacyForms;
 
-interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions, StableNetSecureJsonData> {}
+interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions, StableNetSecureJsonData> { }
 
 export class ConfigEditor extends PureComponent<Props> {
+
   onIpChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      snip: event.target.value,
-    };
-    onOptionsChange({ ...options, jsonData });
+    const { options, onOptionsChange } = this.props;
+    onOptionsChange({ ...options, jsonData: { snip: event.target.value, ...options.jsonData } });
   };
 
   onPortChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      snport: event.target.value,
-    };
-    onOptionsChange({ ...options, jsonData });
+    const { options, onOptionsChange } = this.props;
+    onOptionsChange({ ...options, jsonData: { snport: event.target.value, ...options.jsonData } });
   };
 
   onUsernameChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      snusername: event.target.value,
-    };
-    onOptionsChange({ ...options, jsonData });
+    const { options, onOptionsChange } = this.props;
+    onOptionsChange({ ...options, jsonData: { snusername: event.target.value, ...options.jsonData } });
   };
 
   onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    onOptionsChange({
-      ...options,
-      secureJsonData: {
-        snpassword: event.target.value,
-      },
-    });
+    const { options, onOptionsChange } = this.props;
+    onOptionsChange({ ...options, secureJsonData: { snpassword: event.target.value } });
   };
 
   onResetPassword = () => {
-    const { onOptionsChange, options } = this.props;
+    const { options, onOptionsChange } = this.props;
     onOptionsChange({
       ...options,
-      secureJsonFields: {
-        ...options.secureJsonFields,
-        snpassword: false,
-      },
-      secureJsonData: {
-        ...options.secureJsonData,
-        snpassword: '',
-      },
+      secureJsonFields: { snpassword: false, ...options.secureJsonFields },
+      secureJsonData: { snpassword: '', ...options.secureJsonData },
     });
   };
 
   render() {
-    const { options } = this.props;
-    const { jsonData, secureJsonFields } = options;
-    const secureJsonData = (options.secureJsonData || {}) as StableNetSecureJsonData;
+    const { options: { jsonData, secureJsonFields, secureJsonData } } = this.props;
 
     return (
       <div>
@@ -78,43 +54,22 @@ export class ConfigEditor extends PureComponent<Props> {
 
         <div className="gf-form-group">
           <div className="gf-form">
-            <FormField
-              label="StableNet® Server"
-              labelWidth={13}
-              inputWidth={17}
-              onChange={this.onIpChange}
-              value={jsonData.snip || ''}
-              placeholder="127.0.0.1"
-            />
+            <FormField label="StableNet® Server" labelWidth={13} inputWidth={17} onChange={this.onIpChange} value={jsonData.snip || ''} placeholder="127.0.0.1" />
           </div>
 
           <div className="gf-form">
-            <FormField
-              label="Port"
-              labelWidth={13}
-              inputWidth={17}
-              onChange={this.onPortChange}
-              value={jsonData.snport || ''}
-              placeholder="5443"
-            />
+            <FormField label="Port" labelWidth={13} inputWidth={17} onChange={this.onPortChange} value={jsonData.snport || ''} placeholder="5443" />
           </div>
 
           <div className="gf-form">
-            <FormField
-              label="Username"
-              labelWidth={13}
-              inputWidth={17}
-              onChange={this.onUsernameChange}
-              value={jsonData.snusername || ''}
-              placeholder="infosim"
-            />
+            <FormField label="Username" labelWidth={13} inputWidth={17} onChange={this.onUsernameChange} value={jsonData.snusername || ''} placeholder="infosim" />
           </div>
 
           <div className="gf-form-inline">
             <div className="gf-form">
               <SecretFormField
-                isConfigured={(secureJsonFields && secureJsonFields.snpassword) as boolean}
-                value={secureJsonData.snpassword || ''}
+                isConfigured={secureJsonFields && secureJsonFields.snpassword}
+                value={secureJsonData?.snpassword || ''}
                 label="Password"
                 placeholder=""
                 labelWidth={13}

@@ -7,58 +7,52 @@
  */
 import { DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
-import { LabelValue, MetricResult, QueryResult, StableNetConfigOptions, Target, TestResult } from './Types';
+import { LabelValue, MetricResult, QueryResult, StableNetConfigOptions, Target } from './Types';
+
+interface CollectionDTO<T> {
+  hasMore: boolean;
+  data: T[];
+}
+
+interface Device {
+  obid: number;
+  name: string;
+}
+
+interface Measurement {
+  obid: number;
+  name: string;
+}
+
+interface Metric {
+  obid: number;
+  key: string;
+  name: string;
+}
 
 export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<StableNetConfigOptions>) {
     super(instanceSettings);
   }
 
-  async testDatasource(): Promise<TestResult> {
-    return super.testDatasource();
-  }
-
   async queryDevices(queryString: string): Promise<QueryResult> {
-    return super.getResource('devices', { filter: queryString }).then(result => {
-      const res: LabelValue[] = result.data.map(device => {
-        return {
-          label: device.name,
-          value: device.obid,
-        };
-      });
-      res.push({
-        label: 'none',
-        value: -1,
-      });
-      return { data: res, hasMore: result.hasMore };
-    });
+    const { data, hasMore }: CollectionDTO<Device> = await super.getResource('devices', { filter: queryString });
+
+    const res: LabelValue[] = data.map(({ name, obid }) => ({ label: name, value: obid, }));
+
+    res.push({ label: 'none', value: -1 });
+    return { hasMore, data: res };
   }
 
   async findMeasurementsForDevice(obid: number, input: string): Promise<QueryResult> {
-    return super.getResource('measurements', { deviceObid: obid, filter: input }).then(result => {
-      const res: LabelValue[] = result.data.map(measurement => {
-        return {
-          label: measurement.name,
-          value: measurement.obid,
-        };
-      });
-      return {
-        data: res,
-        hasMore: result.hasMore,
-      };
-    });
+    const { data, hasMore }: CollectionDTO<Measurement> = await super.getResource('measurements', { deviceObid: obid, filter: input });
+
+    return { hasMore, data: data.map(({ obid, name }) => ({ value: obid, label: name, })) };
   }
 
   async findMetricsForMeasurement(obid: number): Promise<MetricResult[]> {
-    return super.getResource('metrics', { measurementObid: obid }).then(result =>
-      result.map(metric => {
-        const m: MetricResult = {
-          measurementObid: obid,
-          key: metric.key,
-          text: metric.name,
-        };
-        return m;
-      })
-    );
+    const result: Metric[] = await super.getResource('metrics', { measurementObid: obid });
+
+    return result.map(({ obid, key, name }) => ({ measurementObid: obid, key, text: name, }));
   }
 }

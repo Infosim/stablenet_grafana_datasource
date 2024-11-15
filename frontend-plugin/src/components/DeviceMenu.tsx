@@ -12,7 +12,7 @@ import { SelectableValue } from '@grafana/data';
 
 const { FormField } = LegacyForms;
 
-interface IProps {
+interface Props {
   selectedDevice: LabelValue;
   hasMoreDevices: boolean;
   get: (value: string) => Promise<LabelValue[]>;
@@ -21,7 +21,7 @@ interface IProps {
 
 const moreDevicesTooltip = 'There are more devices available, but only the first 100 are displayed. Use a stricter search to reduce the number of shown devices.';
 
-export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: IProps): JSX.Element {
+export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: Props): JSX.Element {
   return (
     <div className="gf-form">
       <FormField

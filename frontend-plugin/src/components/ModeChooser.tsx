@@ -12,19 +12,19 @@ import { Mode } from 'Types';
 
 const { FormField } = LegacyForms;
 
-interface IProps {
+interface Props {
   selectedMode: number;
   onChange: (value: SelectableValue<number>) => void;
 }
 
-const modes: SelectableValue<number>[] = [
+const modes: Array<SelectableValue<number>> = [
   { label: 'Measurement', value: Mode.MEASUREMENT },
   { label: 'Statistic Link', value: Mode.STATISTIC_LINK },
 ];
 
 const tooltip = 'Allows switching between Measurement mode and Statistic Link mode.';
 
-export function ModeChooser({ selectedMode, onChange }: IProps): JSX.Element {
+export function ModeChooser({ selectedMode, onChange }: Props): JSX.Element {
 
   const inputElement = (
     <div tabIndex={0}>
