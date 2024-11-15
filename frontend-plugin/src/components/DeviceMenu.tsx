@@ -42,8 +42,7 @@ export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: Pr
               placeholder={'none'}
               menuPlacement={'bottom'}
               isSearchable={true}
-              backspaceRemovesValue={true}
-            />
+              backspaceRemovesValue={true} />
           </div>
         }
       />

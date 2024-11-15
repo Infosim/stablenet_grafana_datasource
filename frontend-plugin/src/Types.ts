@@ -5,7 +5,8 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQuery, DataQueryResponse, DataSourceJsonData, SelectableValue } from '@grafana/data';
+import { DataQueryResponse, DataSourceJsonData, SelectableValue } from '@grafana/data';
+import { DataQuery } from '@grafana/schema';
 import { of, Observable } from 'rxjs';
 
 export interface Metric {

@@ -7,7 +7,6 @@
  */
 import React, { ChangeEvent, memo } from 'react';
 import { LegacyForms } from '@grafana/ui';
-import { Forms } from '@grafana/ui'
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { StableNetConfigOptions, StableNetSecureJsonData } from './Types';
 

@@ -41,7 +41,7 @@ export function CustomAverage({
 }: Props): JSX.Element {
   return (
     <div className="gf-form-inline" style={{ display: 'flex', alignItems: 'center' }}>
-      <Checkbox css="" value={use} onChange={onUseAverageChange} tabIndex={0} />
+      <Checkbox value={use} onChange={onUseAverageChange} tabIndex={0} />
 
       <FormField
         label={'Custom Average Period'}
@@ -50,25 +50,10 @@ export function CustomAverage({
         inputEl={
           <div className="gf-form-inline">
             <div className={'width-10'} tabIndex={0}>
-              <Input
-                type="number"
-                css=""
-                value={period}
-                spellCheck={false}
-                tabIndex={0}
-                onChange={onUseCustomAverageChange}
-                disabled={!use}
-              />
+              <Input type="number" value={period} spellCheck={false} tabIndex={0} onChange={onUseCustomAverageChange} disabled={!use} />
             </div>
             <div tabIndex={0}>
-              <Select<number>
-                options={units}
-                value={unit}
-                onChange={onAverageUnitChange}
-                className={'width-7'}
-                isSearchable={true}
-                menuPlacement={'bottom'}
-              />
+              <Select<number> options={units} value={unit} onChange={onAverageUnitChange} className={'width-7'} isSearchable={true} menuPlacement={'bottom'} />
             </div>
           </div>
         }

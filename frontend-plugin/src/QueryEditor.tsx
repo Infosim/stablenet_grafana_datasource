@@ -209,7 +209,7 @@ export const QueryEditor = memo(({ datasource, query, onChange, onRunQuery }: Qu
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {query.metrics.map((metric) => (
                       <div key={metric.key} style={{ padding: '2px' }}>
-                        <Checkbox css="" style={singleMetric} value={query.chosenMetrics.includes(metric.key)} onChange={() => onMetricChange(metric)} label={metric.text} />
+                        <Checkbox style={singleMetric} value={query.chosenMetrics.includes(metric.key)} onChange={() => onMetricChange(metric)} label={metric.text} />
                       </div>
                     ))}
                   </div>

@@ -47,8 +47,7 @@ export function MeasurementMenu({
         menuPlacement={'bottom'}
         noOptionsMessage={`No measurements match this search.`}
         placeholder={'none'}
-        isSearchable={false}
-      />
+        isSearchable={false} />
     </div>
   );
 
@@ -59,8 +58,7 @@ export function MeasurementMenu({
           label={'Measurement:'}
           labelWidth={11}
           tooltip={hasMoreMeasurements ? moreMeasurementsTooltip : ''}
-          inputEl={inputElement}
-        />
+          inputEl={inputElement} />
       </div>
       <FormField
         label={'Measurement Filter:'}
@@ -72,8 +70,7 @@ export function MeasurementMenu({
         spellCheck={false}
         placeholder={'no filter'}
         tabIndex={0}
-        disabled={disabled}
-      />
+        disabled={disabled} />
     </div>
   );
 }

@@ -21,15 +21,15 @@ export function MinMaxAvg({ includeMinStats, includeAvgStats, includeMaxStats, o
       <InlineFormLabel width={11}>Include Statistics:</InlineFormLabel>
 
       <div style={{ paddingLeft: '2px', paddingRight: '2px' }}>
-        <Checkbox css="" value={includeMinStats} onChange={() => onChange('min')} tabIndex={0} label={'Min'} />
+        <Checkbox value={includeMinStats} onChange={() => onChange('min')} tabIndex={0} label={'Min'} />
       </div>
 
       <div style={{ paddingLeft: '2px', paddingRight: '2px' }}>
-        <Checkbox css="" value={includeAvgStats} onChange={() => onChange('avg')} tabIndex={0} label={'Avg'} />
+        <Checkbox value={includeAvgStats} onChange={() => onChange('avg')} tabIndex={0} label={'Avg'} />
       </div>
 
       <div style={{ paddingLeft: '2px', paddingRight: '2px' }}>
-        <Checkbox css="" value={includeMaxStats} onChange={() => onChange('max')} tabIndex={0} label={'Max'} />
+        <Checkbox value={includeMaxStats} onChange={() => onChange('max')} tabIndex={0} label={'Max'} />
       </div>
     </div>
   );
