@@ -70,10 +70,10 @@ export enum Mode {
 }
 
 export enum Unit {
-  SECONDS = 1000,
-  MINUTES = 60000,
-  HOURS = 3600000,
-  DAYS = 86400000,
+  SECONDS = 1_000,
+  MINUTES = 60_000,
+  HOURS = 3_600_000,
+  DAYS = 86_400_000,
 }
 
 /**
