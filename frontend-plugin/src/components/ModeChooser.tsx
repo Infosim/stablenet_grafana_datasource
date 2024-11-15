@@ -25,10 +25,16 @@ const modes: Array<SelectableValue<number>> = [
 const tooltip = 'Allows switching between Measurement mode and Statistic Link mode.';
 
 export function ModeChooser({ selectedMode, onChange }: Props): JSX.Element {
-
   const inputElement = (
     <div tabIndex={0}>
-      <Select<number> value={selectedMode} options={modes} onChange={onChange} className={'width-10'} menuPlacement={'bottom'} isSearchable={true} />
+      <Select<number>
+        value={selectedMode}
+        options={modes}
+        onChange={onChange}
+        className={'width-10'}
+        menuPlacement={'bottom'}
+        isSearchable={true}
+      />
     </div>
   );
 

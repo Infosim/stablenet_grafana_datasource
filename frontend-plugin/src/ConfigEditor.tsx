@@ -12,23 +12,22 @@ import { StableNetConfigOptions, StableNetSecureJsonData } from './Types';
 
 const { SecretFormField, FormField } = LegacyForms;
 
-interface Props extends DataSourcePluginOptionsEditorProps<StableNetConfigOptions, StableNetSecureJsonData> { }
+type Props = DataSourcePluginOptionsEditorProps<StableNetConfigOptions, StableNetSecureJsonData>;
 
 export class ConfigEditor extends PureComponent<Props> {
-
   onIpChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { options, onOptionsChange } = this.props;
-    onOptionsChange({ ...options, jsonData: { snip: event.target.value, ...options.jsonData } });
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, snip: event.target.value } });
   };
 
   onPortChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { options, onOptionsChange } = this.props;
-    onOptionsChange({ ...options, jsonData: { snport: event.target.value, ...options.jsonData } });
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, snport: event.target.value } });
   };
 
   onUsernameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { options, onOptionsChange } = this.props;
-    onOptionsChange({ ...options, jsonData: { snusername: event.target.value, ...options.jsonData } });
+    onOptionsChange({ ...options, jsonData: { ...options.jsonData, snusername: event.target.value } });
   };
 
   onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -40,13 +39,15 @@ export class ConfigEditor extends PureComponent<Props> {
     const { options, onOptionsChange } = this.props;
     onOptionsChange({
       ...options,
-      secureJsonFields: { snpassword: false, ...options.secureJsonFields },
-      secureJsonData: { snpassword: '', ...options.secureJsonData },
+      secureJsonFields: { ...options.secureJsonFields, snpassword: false },
+      secureJsonData: { ...options.secureJsonData, snpassword: '' },
     });
   };
 
   render() {
-    const { options: { jsonData, secureJsonFields, secureJsonData } } = this.props;
+    const {
+      options: { jsonData, secureJsonFields, secureJsonData },
+    } = this.props;
 
     return (
       <div>
@@ -54,15 +55,36 @@ export class ConfigEditor extends PureComponent<Props> {
 
         <div className="gf-form-group">
           <div className="gf-form">
-            <FormField label="StableNet® Server" labelWidth={13} inputWidth={17} onChange={this.onIpChange} value={jsonData.snip || ''} placeholder="127.0.0.1" />
+            <FormField
+              label="StableNet® Server"
+              labelWidth={13}
+              inputWidth={17}
+              onChange={this.onIpChange}
+              value={jsonData.snip || ''}
+              placeholder="127.0.0.1"
+            />
           </div>
 
           <div className="gf-form">
-            <FormField label="Port" labelWidth={13} inputWidth={17} onChange={this.onPortChange} value={jsonData.snport || ''} placeholder="5443" />
+            <FormField
+              label="Port"
+              labelWidth={13}
+              inputWidth={17}
+              onChange={this.onPortChange}
+              value={jsonData.snport || ''}
+              placeholder="5443"
+            />
           </div>
 
           <div className="gf-form">
-            <FormField label="Username" labelWidth={13} inputWidth={17} onChange={this.onUsernameChange} value={jsonData.snusername || ''} placeholder="infosim" />
+            <FormField
+              label="Username"
+              labelWidth={13}
+              inputWidth={17}
+              onChange={this.onUsernameChange}
+              value={jsonData.snusername || ''}
+              placeholder="infosim"
+            />
           </div>
 
           <div className="gf-form-inline">

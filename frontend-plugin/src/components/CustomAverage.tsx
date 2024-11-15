@@ -21,7 +21,8 @@ interface Props {
   onAverageUnitChange: (value: SelectableValue<number>) => void;
 }
 
-const tooltip = 'Allows to define a custom average period. If disabled, Grafana will automatically compute a suiting average period.'
+const tooltip =
+  'Allows to define a custom average period. If disabled, Grafana will automatically compute a suiting average period.';
 
 const units: LabelValue[] = [
   { label: 'sec', value: Unit.SECONDS },
@@ -30,7 +31,14 @@ const units: LabelValue[] = [
   { label: 'days', value: Unit.DAYS },
 ];
 
-export function CustomAverage({ use, period, unit, onUseAverageChange, onUseCustomAverageChange, onAverageUnitChange }: Props): JSX.Element {
+export function CustomAverage({
+  use,
+  period,
+  unit,
+  onUseAverageChange,
+  onUseCustomAverageChange,
+  onAverageUnitChange,
+}: Props): JSX.Element {
   return (
     <div className="gf-form-inline" style={{ display: 'flex', alignItems: 'center' }}>
       <Checkbox css="" value={use} onChange={onUseAverageChange} tabIndex={0} />
@@ -42,10 +50,25 @@ export function CustomAverage({ use, period, unit, onUseAverageChange, onUseCust
         inputEl={
           <div className="gf-form-inline">
             <div className={'width-10'} tabIndex={0}>
-              <Input type="number" css="" value={period} spellCheck={false} tabIndex={0} onChange={onUseCustomAverageChange} disabled={!use} />
+              <Input
+                type="number"
+                css=""
+                value={period}
+                spellCheck={false}
+                tabIndex={0}
+                onChange={onUseCustomAverageChange}
+                disabled={!use}
+              />
             </div>
             <div tabIndex={0}>
-              <Select<number> options={units} value={unit} onChange={onAverageUnitChange} className={'width-7'} isSearchable={true} menuPlacement={'bottom'} />
+              <Select<number>
+                options={units}
+                value={unit}
+                onChange={onAverageUnitChange}
+                className={'width-7'}
+                isSearchable={true}
+                menuPlacement={'bottom'}
+              />
             </div>
           </div>
         }

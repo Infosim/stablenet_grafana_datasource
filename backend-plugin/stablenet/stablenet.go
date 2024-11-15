@@ -198,8 +198,8 @@ func (stableNetClient *StableNetClient) FetchDataForMetrics(options DataQueryOpt
 		Start:   options.Start.UnixNano() / int64(time.Millisecond),
 		End:     options.End.UnixNano() / int64(time.Millisecond),
 		Metrics: options.Metrics,
-		Raw:     false,
 		Average: options.Average,
+		Raw:     false,
 	}
 
 	url := stableNetClient.Address + fmt.Sprintf("/api/1/measurement-data/%d?$top=100", options.MeasurementObid)
@@ -212,28 +212,42 @@ func (stableNetClient *StableNetClient) FetchDataForMetrics(options DataQueryOpt
 		return nil, buildStatusError(fmt.Sprintf("retrieving metric data for measurement %d failed", options.MeasurementObid), resp)
 	}
 
-	return parseStatisticByteSlice(resp.Body(), options.Metrics)
+	return parseStatisticByteSlice(resp.Body())
 }
 
-type MetricsValue struct {
-	MetricName   string              `json:"metricName"`
-	MetricKey    string              `json:"metricKey"`
-	MetricDataId int                 `json:"metricDataId"`
-	Data         []TimestampResponse `json:"data"`
+type MeasurementDataEntryDTO struct {
+	Timestamp       int64    `json:"timestamp"`
+	Interval        int64    `json:"interval"`
+	MissingInterval int64    `json:"missingInterval"`
+	Min             *float64 `json:"min"`
+	Max             *float64 `json:"max"`
+	Avg             *float64 `json:"avg"`
 }
 
-type MetricsResponse struct {
-	MeasruementId int            `json:"measurementId"`
-	Values        []MetricsValue `json:"values"`
+type MeasurementMetricResultDataDTO struct {
+	MetricName   string                    `json:"metricName"`
+	MetricKey    string                    `json:"metricKey"`
+	MetricDataId int                       `json:"metricDataId"`
+	Data         []MeasurementDataEntryDTO `json:"data"`
 }
 
-func parseMetricsValue(metricsValue MetricsValue) (string, MetricDataSeries, error) {
-	return "error", nil, nil
+type MeasurementMultiMetricResultDataDTO struct {
+	MeasruementId int                              `json:"measurementId"`
+	Values        []MeasurementMetricResultDataDTO `json:"values"`
 }
 
-func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]MetricDataSeries, error) {
-	var data MetricsResponse
+func convertMeasurementData(data MeasurementDataEntryDTO) MetricData {
+	return MetricData{
+		Interval: time.Duration(data.Interval) * time.Millisecond,
+		Time:     time.Unix(0, data.Timestamp*int64(time.Millisecond)),
+		Min:      *data.Min,
+		Avg:      *data.Avg,
+		Max:      *data.Avg,
+	}
+}
 
+func parseStatisticByteSlice(bytes []byte) (map[string]MetricDataSeries, error) {
+	var data MeasurementMultiMetricResultDataDTO
 	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal json: %v", err)
@@ -241,12 +255,15 @@ func parseStatisticByteSlice(bytes []byte, metricKeys []string) (map[string]Metr
 
 	resultMap := make(map[string]MetricDataSeries)
 	for _, record := range data.Values {
-		converted := parseSingleTimestamp(record.Data[], metricKeys)
-		for key, measurementData := range converted {
+		key := record.MetricKey
+		data := record.Data
+
+		for _, measurementData := range data {
+			metricData := convertMeasurementData(measurementData)
 			if _, ok := resultMap[key]; !ok {
 				resultMap[key] = make([]MetricData, 0)
 			}
-			resultMap[key] = append(resultMap[key], measurementData)
+			resultMap[key] = append(resultMap[key], metricData)
 		}
 	}
 

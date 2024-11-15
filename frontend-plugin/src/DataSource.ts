@@ -38,21 +38,24 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   async queryDevices(queryString: string): Promise<QueryResult> {
     const { data, hasMore }: CollectionDTO<Device> = await super.getResource('devices', { filter: queryString });
 
-    const res: LabelValue[] = data.map(({ name, obid }) => ({ label: name, value: obid, }));
+    const res: LabelValue[] = data.map(({ name, obid }) => ({ label: name, value: obid }));
 
     res.push({ label: 'none', value: -1 });
     return { hasMore, data: res };
   }
 
   async findMeasurementsForDevice(obid: number, input: string): Promise<QueryResult> {
-    const { data, hasMore }: CollectionDTO<Measurement> = await super.getResource('measurements', { deviceObid: obid, filter: input });
+    const { data, hasMore }: CollectionDTO<Measurement> = await super.getResource('measurements', {
+      deviceObid: obid,
+      filter: input,
+    });
 
-    return { hasMore, data: data.map(({ obid, name }) => ({ value: obid, label: name, })) };
+    return { hasMore, data: data.map(({ obid, name }) => ({ value: obid, label: name })) };
   }
 
   async findMetricsForMeasurement(obid: number): Promise<MetricResult[]> {
     const result: Metric[] = await super.getResource('metrics', { measurementObid: obid });
 
-    return result.map(({ obid, key, name }) => ({ measurementObid: obid, key, text: name, }));
+    return result.map(({ obid, key, name }) => ({ measurementObid: obid, key, text: name }));
   }
 }

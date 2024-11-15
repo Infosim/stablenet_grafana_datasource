@@ -19,7 +19,8 @@ interface Props {
   onChange: (value: SelectableValue<number>) => void;
 }
 
-const moreDevicesTooltip = 'There are more devices available, but only the first 100 are displayed. Use a stricter search to reduce the number of shown devices.';
+const moreDevicesTooltip =
+  'There are more devices available, but only the first 100 are displayed. Use a stricter search to reduce the number of shown devices.';
 
 export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: Props): JSX.Element {
   return (
@@ -48,4 +49,4 @@ export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: Pr
       />
     </div>
   );
-};
+}

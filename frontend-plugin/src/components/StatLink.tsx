@@ -13,13 +13,16 @@ interface Props {
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
-const tooltip = 'Copy a link from the StableNet®-Analyzer. Due to technical limitations, measurements other than template measurements (e.g. ping and interface measurements) are only partly supported.';
+const tooltip =
+  'Copy a link from the StableNet®-Analyzer. Due to technical limitations, measurements other than template measurements (e.g. ping and interface measurements) are only partly supported.';
 
 export function StatLink({ link, onChange }: Props): JSX.Element {
   return (
     <div className="gf-form-inline">
       <div className={'gf-form'} style={{ width: '100%' }}>
-        <InlineFormLabel width={11} tooltip={tooltip}>Link:</InlineFormLabel>
+        <InlineFormLabel width={11} tooltip={tooltip}>
+          Link:
+        </InlineFormLabel>
         <div style={{ width: '100%' }}>
           <Input css="" type={'text'} value={link} onChange={onChange} spellCheck={false} tabIndex={0} />
         </div>

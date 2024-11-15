@@ -29,7 +29,6 @@ const singleMetric: React.CSSProperties = {
 };
 
 export class QueryEditor extends PureComponent<Props> {
-
   onModeChange = (v: SelectableValue<number>) => {
     const { query, onChange } = this.props;
     onChange({
@@ -65,7 +64,7 @@ export class QueryEditor extends PureComponent<Props> {
     const { onChange, query, onRunQuery, datasource } = this.props;
     datasource
       .findMeasurementsForDevice(v.value!, '')
-      .then(r => {
+      .then((r) => {
         onChange({
           ...query,
           moreMeasurements: r.hasMore || !!query.moreMeasurements,
@@ -90,7 +89,7 @@ export class QueryEditor extends PureComponent<Props> {
     const { onChange, query, onRunQuery, datasource } = this.props;
     datasource
       .findMetricsForMeasurement(v.value!)
-      .then(r => {
+      .then((r) => {
         onChange({
           ...query,
           metrics: r,
@@ -107,7 +106,7 @@ export class QueryEditor extends PureComponent<Props> {
     const x = v.target.value;
     datasource
       .findMeasurementsForDevice(query.selectedDevice.value, v.target.value)
-      .then(r => {
+      .then((r) => {
         onChange({
           ...query,
           moreMeasurements: r.hasMore || !!query.moreMeasurements,
@@ -168,7 +167,7 @@ export class QueryEditor extends PureComponent<Props> {
 
   onUseAvgChange = () => {
     const { query, onChange, onRunQuery } = this.props;
-    onChange({ ...query, useCustomAverage: !query.useCustomAverage, });
+    onChange({ ...query, useCustomAverage: !query.useCustomAverage });
     onRunQuery();
   };
 
@@ -180,7 +179,7 @@ export class QueryEditor extends PureComponent<Props> {
 
   onAvgUnitChange = (v: SelectableValue<number>) => {
     const { query, onChange, onRunQuery } = this.props;
-    onChange({ ...query, averageUnit: v.value!, });
+    onChange({ ...query, averageUnit: v.value! });
     onRunQuery();
   };
 
@@ -191,55 +190,65 @@ export class QueryEditor extends PureComponent<Props> {
       <div>
         <ModeChooser selectedMode={query.mode || Mode.MEASUREMENT} onChange={this.onModeChange} />
 
-        {!!query.mode
-          ? <StatLink link={query.statisticLink || ''} onChange={this.onStatisticLinkChange} />
-          : (
-            <div>
-              {/** Measurement mode */}
-              <div className="gf-form-inline">
-                <DeviceMenu selectedDevice={query.selectedDevice} hasMoreDevices={query.moreDevices} get={this.getDevices} onChange={this.onDeviceChange}
-                />
-              </div>
-              <div className="gf-form-inline">
-                <MeasurementMenu
-                  measurements={query.measurements || []}
-                  hasMoreMeasurements={query.moreMeasurements}
-                  selected={query.selectedMeasurement}
-                  onChange={this.onMeasurementChange}
-                  filter={query.measurementFilter || ''}
-                  onFilterChange={this.onMeasurementFilterChange}
-                  disabled={query.selectedDevice === undefined} />
-              </div>
-
-              {!!query.selectedMeasurement && !!query.selectedMeasurement.label
-                ? (
-                  <div>
-                    {!query.metrics.length
-                      ? (
-                        <div className="gf-form">
-                          <div style={{ paddingLeft: '150px' } as React.CSSProperties}>
-                            <InlineFormLabel width={30}>No metrics available!</InlineFormLabel>
-                          </div>
-                        </div>
-                      )
-                      : (
-                        <div className="gf-form" style={{ alignItems: 'baseline' }}>
-                          <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
-
-                          <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">Metrics:</InlineFormLabel>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            {query.metrics.map(metric =>
-                              <div key={metric.key} style={{ padding: '2px' }}>
-                                <Checkbox css="" style={singleMetric} value={query.chosenMetrics.includes(metric.key)} onChange={() => this.onMetricChange(metric)} label={metric.text} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                ) : null}
+        {!!query.mode ? (
+          <StatLink link={query.statisticLink || ''} onChange={this.onStatisticLinkChange} />
+        ) : (
+          <div>
+            {/** Measurement mode */}
+            <div className="gf-form-inline">
+              <DeviceMenu
+                selectedDevice={query.selectedDevice}
+                hasMoreDevices={query.moreDevices}
+                get={this.getDevices}
+                onChange={this.onDeviceChange}
+              />
             </div>
-          )}
+            <div className="gf-form-inline">
+              <MeasurementMenu
+                measurements={query.measurements || []}
+                hasMoreMeasurements={query.moreMeasurements}
+                selected={query.selectedMeasurement}
+                onChange={this.onMeasurementChange}
+                filter={query.measurementFilter || ''}
+                onFilterChange={this.onMeasurementFilterChange}
+                disabled={query.selectedDevice === undefined}
+              />
+            </div>
+
+            {!!query.selectedMeasurement && !!query.selectedMeasurement.label ? (
+              <div>
+                {!query.metrics.length ? (
+                  <div className="gf-form">
+                    <div style={{ paddingLeft: '150px' } as React.CSSProperties}>
+                      <InlineFormLabel width={30}>No metrics available!</InlineFormLabel>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="gf-form" style={{ alignItems: 'baseline' }}>
+                    <MetricPrefix value={query.metricPrefix || ''} onChange={this.onMetricPrefixChange} />
+
+                    <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
+                      Metrics:
+                    </InlineFormLabel>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {query.metrics.map((metric) => (
+                        <div key={metric.key} style={{ padding: '2px' }}>
+                          <Checkbox
+                            css=""
+                            style={singleMetric}
+                            value={query.chosenMetrics.includes(metric.key)}
+                            onChange={() => this.onMetricChange(metric)}
+                            label={metric.text}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {!!(query.selectedMeasurement && query.selectedMeasurement.label) || query.mode === Mode.STATISTIC_LINK ? (
           <div style={{ display: 'flex' }}>
@@ -255,7 +264,8 @@ export class QueryEditor extends PureComponent<Props> {
               includeMinStats={query.includeMinStats}
               includeAvgStats={query.includeAvgStats}
               includeMaxStats={query.includeMaxStats}
-              onChange={this.onIncludeChange} />
+              onChange={this.onIncludeChange}
+            />
           </div>
         ) : null}
       </div>

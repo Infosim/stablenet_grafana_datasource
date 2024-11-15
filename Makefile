@@ -6,12 +6,13 @@ publish_with_docs: clean build_frontend build_darwin build_linux build_windows d
 
 # Removes artifacts from the last build
 clean:
+	rm stablenet-grafana-7.x.x-plugin.zip
 	rm -rf ./dist
 	mkdir ./dist
 
 # Builds the frontend part of the plugin
 build_frontend:
-	cd ./frontend-plugin;yarn run prettier --write "./src/**/*.{ts,tsx}" && yarn run grafana-toolkit plugin:dev;cd ..
+	cd ./frontend-plugin;yarn run prettier --write "./src/**/*.{ts,tsx}" && yarn run build;cd ..
 
 # Builds the backend part of the plugin for Linux
 build_linux:
@@ -33,8 +34,8 @@ docu:
 	mv ./pdf/'ADM - Grafana Data Source.pdf' ./dist
 	rm -r ./pdf
 
-# Puts the compiled frontend, backend (all platforms), and the docu in one directory called "dist". This directory can directly be used
-# to deploy the plugin
+# Puts the compiled frontend, backend (all platforms), and the docu in one directory called "dist".
+# This directory can directly be used to deploy the plugin
 combine:
 	cp -R ./frontend-plugin/dist/* ./dist
 	cp ./backend-plugin/stablenet_backend_plugin* ./dist
