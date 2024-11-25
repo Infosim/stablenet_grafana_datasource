@@ -29,7 +29,8 @@ export function MetricPrefix({ value, onChange }: Props): JSX.Element {
         value={value}
         onChange={onChange}
         spellCheck={false}
-        tabIndex={0} />
+        tabIndex={0}
+      />
     </div>
   );
 }

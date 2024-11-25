@@ -11,7 +11,6 @@ import (
 	"backend-plugin/mock"
 	"backend-plugin/stablenet"
 	"context"
-	"encoding/json"
 	"net/http/httptest"
 	"testing"
 
@@ -20,8 +19,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var stableNetUsername = "infosim"
-var stableNetPassword = "stablenet"
+var testStableNetUrl = "http://127.0.0.1:5443"
+var testStableNetUsername = "username"
+var testStableNetPassword = "changeme!"
 
 func TestDataSource_CheckHealth(t *testing.T) {
 	tests := []struct {
@@ -38,18 +38,18 @@ func TestDataSource_CheckHealth(t *testing.T) {
 		{name: "rest-reporting not licensed", snVersion: "9.0.2", wantLicenseError: true, wantStatus: backend.HealthStatusError, wantBody: "The StableNet® server does not have the required license \"rest-reporting\"."},
 	}
 
-	snServer := mock.CreateMockServer(stableNetUsername, stableNetPassword)
+	snServer := mock.CreateMockServer(testStableNetUsername, testStableNetPassword)
 	handler := mock.CreateHandler(snServer)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	byteData, _ := json.Marshal(map[string]string{
-		"snusername": stableNetUsername,
-		"snip":       "to be changed by context",
-		"snport":     "5443",
-	})
-	secureJsonData := map[string]string{
-		"snpassword": stableNetPassword,
+	instanceSettings := backend.DataSourceInstanceSettings{
+		ID:   5,
+		URL:  testStableNetUrl,
+		User: testStableNetUsername,
+		DecryptedSecureJSONData: map[string]string{
+			"password": testStableNetPassword,
+		},
 	}
 
 	for _, tt := range tests {
@@ -60,12 +60,6 @@ func TestDataSource_CheckHealth(t *testing.T) {
 				snServer.Info.License.Modules.Modules = []stablenet.Module{{Name: "report"}, {Name: "cloud"}}
 			} else {
 				snServer.Info.License.Modules.Modules = []stablenet.Module{{Name: "rest-reporting"}, {Name: "ha"}}
-			}
-
-			instanceSettings := backend.DataSourceInstanceSettings{
-				ID:                      5,
-				JSONData:                byteData,
-				DecryptedSecureJSONData: secureJsonData,
 			}
 
 			healthReq := &backend.CheckHealthRequest{
@@ -92,17 +86,17 @@ func TestDataSource_CheckHealth(t *testing.T) {
 		})
 	}
 	t.Run("server error", func(t *testing.T) {
-		secureJsonData["snpassword"] = "wrong"
-
 		healthReq := &backend.CheckHealthRequest{
 			PluginContext: backend.PluginContext{
 				DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
 					ID:                      5,
-					JSONData:                byteData,
-					DecryptedSecureJSONData: secureJsonData,
+					URL:                     testStableNetUrl,
+					User:                    testStableNetUsername,
+					DecryptedSecureJSONData: map[string]string{"password": "wrong"},
 				},
 			},
 		}
+
 		ds := dataSource{validationStore: make(map[int64]bool)}
 		ctx := context.WithValue(context.Background(), "sn_address", server.URL)
 		got, err := ds.CheckHealth(ctx, healthReq)

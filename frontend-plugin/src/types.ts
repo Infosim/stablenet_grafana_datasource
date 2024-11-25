@@ -5,9 +5,8 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import { DataQueryResponse, DataSourceJsonData, SelectableValue } from '@grafana/data';
+import { DataSourceJsonData, SelectableValue } from '@grafana/data';
 import { DataQuery } from '@grafana/schema';
-import { of, Observable } from 'rxjs';
 
 export interface Metric {
   text: string;
@@ -63,8 +62,6 @@ export interface MetricResult {
   measurementObid: number;
 }
 
-export const EmptyResult: Observable<DataQueryResponse> = of({ data: [] });
-
 export enum Mode {
   MEASUREMENT = 0,
   STATISTIC_LINK = 10,
@@ -77,18 +74,13 @@ export enum Unit {
   DAYS = 86_400_000,
 }
 
-/**
- * These are options configured for each StableNetDataSource instance
- */
+/** These are options configured for each StableNetDataSource instance */
 export interface StableNetConfigOptions extends DataSourceJsonData {
-  snip?: string;
-  snport?: string;
-  snusername?: string;
+  ip?: string;
+  port?: number;
 }
 
-/**
- * Value that is used in the backend, but never sent over HTTP to the frontend
- */
+/** Value that is used in the backend, but never sent over HTTP to the frontend */
 export interface StableNetSecureJsonData {
-  snpassword?: string;
+  password?: string;
 }

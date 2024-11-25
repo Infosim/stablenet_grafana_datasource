@@ -37,8 +37,12 @@ func newDataSource() datasource.ServeOpts {
 				}
 			}()
 
-			pluginContext := httpadapter.PluginConfigFromContext(req.Context())
-			options := stableNetOptions(pluginContext.DataSourceInstanceSettings)
+			pluginContext := backend.PluginConfigFromContext(req.Context())
+			options, err := loadStableNetSettings(pluginContext.DataSourceInstanceSettings)
+
+			if err != nil {
+				http.Error(rw, "The datasource configuration is not valid, please check make sure that the health test is successful.", http.StatusInternalServerError)
+			}
 
 			valid, present := ds.validationStore[pluginContext.DataSourceInstanceSettings.ID]
 			if !present {
@@ -73,7 +77,11 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))
 		}
 	}()
-	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
+
+	options, err := loadStableNetSettings(req.PluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		return nil, err
+	}
 
 	// We need this for testing purposes. Go's httptest package only allows to mock http, not https, and
 	// it is not meant to separate ip and port. Thus, for testing purposes, we inject the test url here.
@@ -86,10 +94,8 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 		valid, _ = ds.checkAndUpdateHealth(options, req.PluginContext.DataSourceInstanceSettings.ID)
 	}
 	if !valid {
-		//noinspection GoErrorStringFormat
 		responses := backend.Responses{"queryResponse": backend.DataResponse{Error: errors.New("the datasource is not valid, please check the data source configuration and make sure that the test is successful")}}
 		return &backend.QueryDataResponse{Responses: responses}, nil
-
 	}
 
 	queries := make([]MetricQuery, 0, len(req.Queries))
@@ -105,8 +111,9 @@ func (ds *dataSource) QueryData(ctx context.Context, req *backend.QueryDataReque
 		}
 		queries = append(queries, query)
 	}
+
 	client := stablenet.NewStableNetClient(options)
-	queries, err := ExpandStatisticLinks(queries, client.FetchMetricsForMeasurement)
+	queries, err = ExpandStatisticLinks(queries, client.FetchMetricsForMeasurement)
 	if err != nil {
 		return nil, err
 	}

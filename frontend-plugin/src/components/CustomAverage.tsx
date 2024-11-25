@@ -8,7 +8,7 @@
 import React, { ChangeEvent } from 'react';
 import { Checkbox, Input, Select, LegacyForms } from '@grafana/ui';
 import { SelectableValue } from '@grafana/data';
-import { LabelValue, Unit } from 'Types';
+import { LabelValue, Unit } from 'types';
 
 const { FormField } = LegacyForms;
 
@@ -50,10 +50,24 @@ export function CustomAverage({
         inputEl={
           <div className="gf-form-inline">
             <div className={'width-10'} tabIndex={0}>
-              <Input type="number" value={period} spellCheck={false} tabIndex={0} onChange={onUseCustomAverageChange} disabled={!use} />
+              <Input
+                type="number"
+                value={period}
+                spellCheck={false}
+                tabIndex={0}
+                onChange={onUseCustomAverageChange}
+                disabled={!use}
+              />
             </div>
             <div tabIndex={0}>
-              <Select<number> options={units} value={unit} onChange={onAverageUnitChange} className={'width-7'} isSearchable={true} menuPlacement={'bottom'} />
+              <Select<number>
+                options={units}
+                value={unit}
+                onChange={onAverageUnitChange}
+                className={'width-7'}
+                isSearchable={true}
+                menuPlacement={'bottom'}
+              />
             </div>
           </div>
         }

@@ -7,7 +7,7 @@
  */
 import { DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
-import { LabelValue, MetricResult, QueryResult, StableNetConfigOptions, Target } from './Types';
+import { LabelValue, MetricResult, QueryResult, StableNetConfigOptions, Target } from './types';
 
 interface CollectionDTO<T> {
   hasMore: boolean;
@@ -45,7 +45,10 @@ export class DataSource extends DataSourceWithBackend<Target, StableNetConfigOpt
   }
 
   async findMeasurementsForDevice(deviceObid: number, filter: string): Promise<QueryResult> {
-    const { data, hasMore }: CollectionDTO<Measurement> = await super.getResource('measurements', { deviceObid, filter });
+    const { data, hasMore }: CollectionDTO<Measurement> = await super.getResource('measurements', {
+      deviceObid,
+      filter,
+    });
 
     return { hasMore, data: data.map(({ obid, name }) => ({ value: obid, label: name })) };
   }

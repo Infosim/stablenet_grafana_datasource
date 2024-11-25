@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { AsyncSelect, LegacyForms } from '@grafana/ui';
-import { LabelValue } from 'Types';
+import { LabelValue } from '../types';
 import { SelectableValue } from '@grafana/data';
 
 const { FormField } = LegacyForms;
@@ -42,7 +42,8 @@ export function DeviceMenu({ selectedDevice, hasMoreDevices, get, onChange }: Pr
               placeholder={'none'}
               menuPlacement={'bottom'}
               isSearchable={true}
-              backspaceRemovesValue={true} />
+              backspaceRemovesValue={true}
+            />
           </div>
         }
       />

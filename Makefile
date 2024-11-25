@@ -1,12 +1,13 @@
 # Builds everything and makes the plugin ready for publishing.
 # NOTE: You need to have SN_DOCU_HOME path set to StableNet®'s documentation repository. If you don't have this
 # repo, you need to comment the docu goal out.
-publish: clean build_frontend build_darwin build_linux build_windows combine zip
-publish_with_docs: clean build_frontend build_darwin build_linux build_windows docu combine zip
+publish: clean build_frontend build_backends combine zip
+publish_with_docs: clean build_frontend build_backends docu combine zip
+
+build_backends: build_darwin build_linux build_windows
 
 # Removes artifacts from the last build
 clean:
-	rm stablenet-grafana-7.x.x-plugin.zip
 	rm -rf ./dist
 	mkdir ./dist
 
@@ -26,6 +27,10 @@ build_windows:
 build_darwin:
 	cd ./backend-plugin;GOOS=darwin GOARCH=amd64 go build -o stablenet_backend_plugin_darwin_amd64 backend-plugin/main;cd ..
 
+deploy_backends_dev:
+	cp ./backend-plugin/stablenet_backend_plugin* ./frontend-plugin/dist
+
+
 # Builds the documentation of the plugin (PDF-File). You need to have access to the StableNet® documentation repo
 # in order to use this goal. Set "export SN_DOCU_HOME=/path/to/your/doc/repo" before issuing this goal.
 docu:
@@ -38,12 +43,12 @@ docu:
 # This directory can directly be used to deploy the plugin
 combine:
 	cp -R ./frontend-plugin/dist/* ./dist
-	cp ./backend-plugin/stablenet_backend_plugin* ./dist
+	deploy_backends
 	rm ./dist/*.map
 
 # Puts the "dist" directory from "combine" into a zip file.
 zip:
-	mv dist stablenet-datasource && zip -r stablenet-grafana-7.x.x-plugin.zip ./stablenet-datasource && mv stablenet-datasource dist
+	mv dist stablenet-datasource && zip -r stablenet-grafana-plugin_3.0.0.zip ./stablenet-datasource && mv stablenet-datasource dist
 
 # Deploys the directory created in "combine" to a local Grafana installation for testing. Set "export GRAFANA_HOME=/path/to/grafana" before executing.
 deploy:

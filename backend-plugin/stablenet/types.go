@@ -12,8 +12,10 @@ import (
 )
 
 type CollectionDTO[T any] struct {
-	Data    []T  `json:"data"`
-	HasMore bool `json:"hasMore"`
+	Count       int  `json:"count"`
+	FilterCount int  `json:"filterCount"`
+	Data        []T  `json:"data"`
+	HasMore     bool `json:"hasMore"`
 }
 
 type Device struct {
@@ -110,4 +112,22 @@ type DataQueryOptions struct {
 	Start           time.Time
 	End             time.Time
 	Average         int64
+}
+
+type MeasurementDataEntryDTO struct {
+	Timestamp       int64    `json:"timestamp"`
+	Interval        int64    `json:"interval"`
+	MissingInterval int64    `json:"missingInterval"`
+	Min             *float64 `json:"min"`
+	Max             *float64 `json:"max"`
+	Avg             *float64 `json:"avg"`
+}
+
+type MeasurementMetricResultDataDTO struct {
+	MetricKey string                    `json:"metricKey"`
+	Data      []MeasurementDataEntryDTO `json:"data"`
+}
+
+type MeasurementMultiMetricResultDataDTO struct {
+	Values []MeasurementMetricResultDataDTO `json:"values"`
 }

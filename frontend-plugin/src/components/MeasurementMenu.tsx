@@ -7,7 +7,7 @@
  */
 import React, { ChangeEvent } from 'react';
 import { Select, LegacyForms } from '@grafana/ui';
-import { LabelValue } from 'Types';
+import { LabelValue } from '../types';
 import { SelectableValue } from '@grafana/data';
 
 const { FormField } = LegacyForms;
@@ -28,26 +28,11 @@ const moreMeasurementsTooltip =
 const filterTooltip =
   'The dropdown menu on the left only shows at most 100 measurements. Use this text field to query measurements that are not shown on the left, or to search for specific measurements.';
 
-export function MeasurementMenu({
-  measurements,
-  hasMoreMeasurements,
-  selected,
-  filter,
-  disabled,
-  onChange,
-  onFilterChange,
-}: Props): JSX.Element {
+export function MeasurementMenu({ measurements, hasMoreMeasurements, selected, filter, disabled, onChange, onFilterChange }: Props): JSX.Element {
+
   const inputElement = (
     <div tabIndex={0}>
-      <Select<number>
-        options={measurements}
-        value={selected}
-        onChange={onChange}
-        className={'width-19'}
-        menuPlacement={'bottom'}
-        noOptionsMessage={`No measurements match this search.`}
-        placeholder={'none'}
-        isSearchable={false} />
+      <Select<number> options={measurements} value={selected} onChange={onChange} className={'width-19'} menuPlacement={'bottom'} noOptionsMessage={`No measurements match this search.`} placeholder={'none'} isSearchable={false} />
     </div>
   );
 
@@ -58,7 +43,8 @@ export function MeasurementMenu({
           label={'Measurement:'}
           labelWidth={11}
           tooltip={hasMoreMeasurements ? moreMeasurementsTooltip : ''}
-          inputEl={inputElement} />
+          inputEl={inputElement}
+        />
       </div>
       <FormField
         label={'Measurement Filter:'}
@@ -70,7 +56,8 @@ export function MeasurementMenu({
         spellCheck={false}
         placeholder={'no filter'}
         tabIndex={0}
-        disabled={disabled} />
+        disabled={disabled}
+      />
     </div>
   );
 }

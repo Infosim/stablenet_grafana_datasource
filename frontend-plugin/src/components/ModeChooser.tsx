@@ -8,7 +8,7 @@
 import React from 'react';
 import { Select, LegacyForms } from '@grafana/ui';
 import { SelectableValue } from '@grafana/data';
-import { Mode } from 'Types';
+import { Mode } from 'types';
 
 const { FormField } = LegacyForms;
 

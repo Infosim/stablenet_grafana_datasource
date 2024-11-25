@@ -31,25 +31,18 @@ type handlerTests struct {
 }
 
 func TestDataSource_QueryData(t *testing.T) {
-	stableNetUsername := "infosim"
-	stableNetPassword := "stablenet"
-
-	snServer := mock.CreateMockServer(stableNetUsername, stableNetPassword)
-	handler := mock.CreateHandler(snServer)
+	handler := mock.CreateHandler(
+		mock.CreateMockServer(testStableNetUsername, testStableNetPassword),
+	)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	byteData, _ := json.Marshal(map[string]string{
-		"snusername": stableNetUsername,
-		"snip":       "to be changed by context",
-		"snport":     "5443",
-	})
-
 	instanceSettings := backend.DataSourceInstanceSettings{
-		ID:       5,
-		JSONData: byteData,
+		ID:   5,
+		URL:  testStableNetUrl,
+		User: testStableNetUsername,
 		DecryptedSecureJSONData: map[string]string{
-			"snpassword": stableNetPassword,
+			"password": testStableNetPassword,
 		},
 	}
 
@@ -67,39 +60,45 @@ func TestDataSource_QueryData(t *testing.T) {
 	}
 
 	ctx := context.WithValue(context.Background(), "sn_address", server.URL)
+
 	datasource := dataSource{validationStore: map[int64]bool{5: true}}
 	got, err := datasource.QueryData(ctx, &request)
+
 	require.NoError(t, err, "no error expected")
 	require.Equal(t, 1, len(got.Responses), "number of responses wrong")
+
 	frames := got.Responses["A"].Frames
 	require.Equal(t, 1, len(frames), "number of frames wrong")
-	name := frames[0].Name
-	assert.Equal(t, snServer.Metrics[0].Name, name, "name of frame is wrong")
+
+	assert.Equal(t, mock.DefaultMetrics[0].Name, frames[0].Name, "name of frame is wrong")
 	assert.Equal(t, 5.0, frames[0].Fields[1].At(0), "value is wrong")
 }
 
 func TestHandleDeviceQuery(t *testing.T) {
-	snServer := mock.CreateMockServer("infosim", "stablenet")
+	snServer := mock.CreateMockServer(testStableNetUsername, testStableNetPassword)
 	handler := mock.CreateHandler(snServer)
 	server := httptest.NewServer(handler)
 	defer server.Close()
-	client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: snServer.Username, Password: snServer.Password, Address: server.URL})
+
+	client := stablenet.NewStableNetClient(&stablenet.ConnectOptions{Username: testStableNetUsername, Password: testStableNetPassword, Address: server.URL})
 	t.Run("empty device filter", func(t *testing.T) {
 		request := httptest.NewRequest("GET", "http://example.org/", strings.NewReader(""))
 		ctx := context.WithValue(request.Context(), "SnClient", client)
 		request = request.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 		handleDeviceQuery(recorder, request)
+
 		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
 		var got stablenet.DeviceQueryResult
 		_ = json.Unmarshal(recorder.Body.Bytes(), &got)
-		assert.Equal(t, snServer.Devices, got.Data, "devices wrong")
+		assert.Equal(t, mock.DefaultDevices, got.Data, "devices wrong")
 		wantQueryParam := map[string][]string{
 			"$orderBy": {"name"},
 			"$top":     {"100"},
 		}
 		assert.Equal(t, url.Values(wantQueryParam), snServer.LastQueries, "no queries wrong params")
 	})
+
 	t.Run("device filter", func(t *testing.T) {
 		request := httptest.NewRequest("GET", "http://example.org?filter=bach", strings.NewReader(""))
 		ctx := context.WithValue(request.Context(), "SnClient", client)
@@ -109,7 +108,7 @@ func TestHandleDeviceQuery(t *testing.T) {
 		assert.Equal(t, 200, recorder.Result().StatusCode, "status is wrong")
 		var got stablenet.DeviceQueryResult
 		_ = json.Unmarshal(recorder.Body.Bytes(), &got)
-		assert.Equal(t, snServer.Devices, got.Data, "devices wrong")
+		assert.Equal(t, mock.DefaultDevices, got.Data, "devices wrong")
 		wantQueryParam := map[string][]string{
 			"$orderBy": {"name"},
 			"$filter":  {"name ct 'bach'"},

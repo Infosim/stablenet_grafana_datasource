@@ -13,7 +13,20 @@ import (
 	"encoding/xml"
 	"net/http"
 	"net/url"
+	"time"
 )
+
+type MeasurementData struct {
+	Min *float64 `json:"min"`
+	Avg *float64 `json:"avg"`
+	Max *float64 `json:"max"`
+}
+
+type TimestampResponse struct {
+	Interval  int               `json:"interval"`
+	TimeStamp int64             `json:"timestamp"`
+	Row       []MeasurementData `json:"row"`
+}
 
 type SnServer struct {
 	Username     string
@@ -21,41 +34,59 @@ type SnServer struct {
 	Devices      []stablenet.Device
 	Measurements []stablenet.Measurement
 	Metrics      []stablenet.Metric
-	Data         []stablenet.TimestampResponse
+	Data         stablenet.MeasurementMultiMetricResultDataDTO
 	Info         stablenet.ServerInfo
 	LastQueries  url.Values
 }
 
-func CreateMockServer(username, password string) *SnServer {
-	five := 5.0
-	ten := 10.0
-	avg := 7.5
+var DefaultDevices = []stablenet.Device{
+	{Obid: 9000, Name: "Bach"},
+	{Obid: 9001, Name: "Fluss"},
+	{Obid: 9002, Name: "Meer"},
+}
 
-	return &SnServer{
-		Username: username,
-		Password: password,
-		Devices: []stablenet.Device{
-			{Obid: 9000, Name: "Bach"},
-			{Obid: 9001, Name: "Fluss"},
-			{Obid: 9002, Name: "Meer"},
-		},
-		Measurements: []stablenet.Measurement{
-			{Obid: 1001, Name: "Host"},
-			{Obid: 1002, Name: "Processor"},
-			{Obid: 1003, Name: "Interface 1"},
-		},
-		Metrics: []stablenet.Metric{
-			{Name: "Uptime", Key: "SNMP_1"},
-			{Name: "CPU 1", Key: "EXTERN_2"},
-		},
-		Data: []stablenet.TimestampResponse{
-			{
-				TimeStamp: 100,
-				Row: []stablenet.MeasurementData{
-					{Min: &five, Max: &ten, Avg: &avg},
-				},
+var DefaultMeasurements = []stablenet.Measurement{
+	{Obid: 1001, Name: "Host"},
+	{Obid: 1002, Name: "Processor"},
+	{Obid: 1003, Name: "Interface 1"},
+}
+
+var DefaultMetrics = []stablenet.Metric{
+	{Name: "Uptime", Key: "SNMP_1"},
+	{Name: "CPU 1", Key: "EXTERN_2"},
+}
+
+func floatPointer(v float64) *float64 {
+	return &v
+}
+
+var defaultEntry = stablenet.MeasurementDataEntryDTO{
+	Timestamp: time.Now().Local().UnixMilli(),
+	Interval:  1000,
+	Min:       floatPointer(5.0),
+	Avg:       floatPointer(7.5),
+	Max:       floatPointer(10.0),
+}
+
+var DefaultData = stablenet.MeasurementMultiMetricResultDataDTO{
+	Values: []stablenet.MeasurementMetricResultDataDTO{
+		{
+			MetricKey: "SNMP_1",
+			Data: []stablenet.MeasurementDataEntryDTO{
+				defaultEntry,
 			},
 		},
+	},
+}
+
+func CreateMockServer(username, password string) *SnServer {
+	return &SnServer{
+		Username:     username,
+		Password:     password,
+		Devices:      DefaultDevices,
+		Measurements: DefaultMeasurements,
+		Metrics:      DefaultMetrics,
+		Data:         DefaultData,
 	}
 }
 

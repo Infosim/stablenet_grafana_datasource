@@ -5,18 +5,18 @@
  *                  97074 Wuerzburg, Germany
  *                  www.infosim.net
  */
-import React, { ChangeEvent, memo } from 'react';
+import React, { ChangeEvent } from 'react';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
-import { DataSource } from './DataSource';
-import { LabelValue, Metric, Mode, StableNetConfigOptions, Target, Unit } from './Types';
-import { MetricPrefix } from './components/MetricPrefix';
-import { DeviceMenu } from './components/DeviceMenu';
-import { StatLink } from './components/StatLink';
-import { ModeChooser } from './components/ModeChooser';
-import { CustomAverage } from './components/CustomAverage';
-import { MinMaxAvg } from './components/MinMaxAvg';
 import { Checkbox, InlineFormLabel } from '@grafana/ui';
-import { MeasurementMenu } from './components/MeasurementMenu';
+import { DataSource } from '../DataSource';
+import { LabelValue, Metric, Mode, StableNetConfigOptions, Target, Unit } from '../types';
+import { MetricPrefix } from './MetricPrefix';
+import { DeviceMenu } from './DeviceMenu';
+import { StatLink } from './StatLink';
+import { ModeChooser } from './ModeChooser';
+import { CustomAverage } from './CustomAverage';
+import { MinMaxAvg } from './MinMaxAvg';
+import { MeasurementMenu } from './MeasurementMenu';
 
 const singleMetric: React.CSSProperties = {
   textOverflow: 'ellipsis',
@@ -25,7 +25,9 @@ const singleMetric: React.CSSProperties = {
   borderLeft: '4px',
 };
 
-export const QueryEditor = memo(({ datasource, query, onChange, onRunQuery }: QueryEditorProps<DataSource, Target, StableNetConfigOptions, Target>) => {
+type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions, Target>;
+
+export const QueryEditor = ({ datasource, query, onChange, onRunQuery, }: Props) => {
 
   const onModeChange = (v: SelectableValue<number>) => onChange({
     ...query,
@@ -118,7 +120,6 @@ export const QueryEditor = memo(({ datasource, query, onChange, onRunQuery }: Qu
   };
 
   const onMetricChange = ({ key }: Metric) => {
-
     let chosenMetrics = query.chosenMetrics;
     const index = chosenMetrics.indexOf(key);
 
@@ -204,12 +205,19 @@ export const QueryEditor = memo(({ datasource, query, onChange, onRunQuery }: Qu
                 <div className="gf-form" style={{ alignItems: 'baseline' }}>
                   <MetricPrefix value={query.metricPrefix || ''} onChange={onMetricPrefixChange} />
 
-                  <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">Metrics:</InlineFormLabel>
+                  <InlineFormLabel width={11} tooltip="Select the metrics you want to display.">
+                    Metrics:
+                  </InlineFormLabel>
 
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {query.metrics.map((metric) => (
                       <div key={metric.key} style={{ padding: '2px' }}>
-                        <Checkbox style={singleMetric} value={query.chosenMetrics.includes(metric.key)} onChange={() => onMetricChange(metric)} label={metric.text} />
+                        <Checkbox
+                          style={singleMetric}
+                          value={query.chosenMetrics.includes(metric.key)}
+                          onChange={() => onMetricChange(metric)}
+                          label={metric.text}
+                        />
                       </div>
                     ))}
                   </div>
@@ -240,4 +248,4 @@ export const QueryEditor = memo(({ datasource, query, onChange, onRunQuery }: Qu
       ) : null}
     </div>
   );
-});
+}

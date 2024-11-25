@@ -23,10 +23,16 @@ func (ds *dataSource) CheckHealth(ctx context.Context, req *backend.CheckHealthR
 			backend.Logger.Error(fmt.Sprintf("An error occured: %v\n%s", err, debug.Stack()))
 		}
 	}()
-	options := stableNetOptions(req.PluginContext.DataSourceInstanceSettings)
 
-	// We need this for testing purposes. Go's httptest package only allows to mock http, not https, and
-	// it is not meant to separate ip and port. Thus, for testing purposes, we inject the test url here.
+	backend.Logger.Debug(fmt.Sprintf("URL: %s, User: %s", req.PluginContext.DataSourceInstanceSettings.URL, req.PluginContext.DataSourceInstanceSettings.User))
+
+	options, err := loadStableNetSettings(req.PluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		return nil, err
+	}
+
+	// We need this for testing purposes, since Go's httptest package only allows to mock http, not https, and is not meant to separate ip and port.
+	// Thus, for testing purposes, we inject the test url here.
 	if ctx.Value("sn_address") != nil {
 		options.Address = ctx.Value("sn_address").(string)
 	}
@@ -48,14 +54,14 @@ func (ds *dataSource) checkAndUpdateHealth(options *stablenet.ConnectOptions, da
 		return false, *errStr
 	}
 
-	versionRegex := regexp.MustCompile("^(?:9|[1-9]\\d)\\.")
+	versionRegex := regexp.MustCompile(`^(?:9|[1-9]\d)\.`)
 	if !versionRegex.MatchString(info.ServerVersion.Version) {
 		ds.validationStore[datasourceId] = false
 		return false, fmt.Sprintf("The StableNet® version %s does not support Grafana®.", info.ServerVersion.Version)
 	}
 	if !info.License.Modules.IsRestReportingLicensed() {
 		ds.validationStore[datasourceId] = false
-		return false, fmt.Sprintf("The StableNet® server does not have the required license \"rest-reporting\".")
+		return false, "The StableNet® server does not have the required license \"rest-reporting\"."
 	}
 
 	ds.validationStore[datasourceId] = true

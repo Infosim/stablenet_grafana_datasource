@@ -8,6 +8,7 @@
 package stablenet
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 	"time"
 
 	"github.com/jarcoal/httpmock"
-	testify "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -59,11 +60,11 @@ func TestClientImpl_QueryStableNetInfo(t *testing.T) {
 			client := NewStableNetClient(&ConnectOptions{Address: "https://127.0.0.1:443"})
 			httpmock.ActivateNonDefault(client.client.GetClient())
 			actual, errStr := client.QueryStableNetInfo()
-			testify.Equal(t, tt.wantInfo, actual, "queried server version wrong")
+			assert.Equal(t, tt.wantInfo, actual, "queried server version wrong")
 			if tt.wantErrStr != nil {
-				testify.Equal(t, *tt.wantErrStr, *errStr, "returned error string wrong")
+				assert.Equal(t, *tt.wantErrStr, *errStr, "returned error string wrong")
 			} else {
-				testify.Nil(t, errStr, "returned error string should be nil")
+				assert.Nil(t, errStr, "returned error string should be nil")
 			}
 			httpmock.Reset()
 		})
@@ -100,11 +101,10 @@ func TestClientImpl_QueryDevices(t *testing.T) {
 			actual, err := client.QueryDevices(tt.filter)
 			require.NoError(t, err)
 
-			assert := testify.New(t)
-			assert.Equal(1, httpmock.GetTotalCallCount())
-			assert.Equal(10, len(actual.Data))
-			assert.Equal("newyork.routerlab.infosim.net", actual.Data[7].Name)
-			assert.True(actual.HasMore)
+			assert.Equal(t, 1, httpmock.GetTotalCallCount())
+			assert.Equal(t, 10, len(actual.Data))
+			assert.Equal(t, "newyork.routerlab.infosim.net", actual.Data[7].Name)
+			assert.True(t, actual.HasMore)
 
 			httpmock.Reset()
 		})
@@ -149,7 +149,7 @@ func TestClientImpl_FetchMeasurementsForDevice(t *testing.T) {
 			actual, err := client.FetchMeasurementsForDevice(tt.deviceObid, tt.filter)
 			require.NoError(t, err)
 			require.Equal(t, 10, len(actual.Data), "number of queried measurements wrong")
-			test := testify.New(t)
+			test := assert.New(t)
 			test.Equal(1587, actual.Data[4].Obid, "obid of fifth measurement wrong")
 			test.Equal("Atomcore Processor: 1 ", actual.Data[4].Name, "name of fifth measurement wrong")
 			test.True(actual.HasMore, "hasMore should be true")
@@ -186,7 +186,7 @@ func TestClientImpl_FetchMetricsForMeasurement(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 3, len(metrics), "number of queried metrics wrong")
 
-	test := testify.New(t)
+	test := assert.New(t)
 	test.Equal("SNMP_1000", metrics[0].Key, "Key of first metric wrong")
 	test.Equal("System Users", metrics[0].Name, "name of first metric wrong")
 	test.Equal("SNMP_1001", metrics[1].Key, "Key of first second wrong")
@@ -220,22 +220,73 @@ func TestClientImpl_FetchMetricsForMeasurement_Error(t *testing.T) {
 	t.Run("rest error", errorResponseTest(shouldReturnError, "GET", url, "metrics for measurement 1643"))
 }
 
-func TestClientImpl_FetchDataForMetrics(t *testing.T) {
-	url := "https://127.0.0.1:5443/api/1/measurement-data/5555?$top=100"
+var metrikKey1 = "System Processes"
+var metrikKey2 = "System Users"
+var metrikKey3 = "System Uptime"
 
-	rawData, err := os.ReadFile("./test-data/measurement-raw-data.json")
+var interval = int64(300_000)
+
+func f(v float64) *float64 {
+	return &v
+}
+
+var exampleTestData = MeasurementMultiMetricResultDataDTO{
+	Values: []MeasurementMetricResultDataDTO{
+		{
+			MetricKey: metrikKey1,
+			Data: []MeasurementDataEntryDTO{
+				{Timestamp: 1_574_839_083_813, Interval: interval, Min: f(1.0), Avg: f(1.0), Max: f(1.0)},
+				{Timestamp: 1_574_839_383_813, Interval: interval, Min: f(1.0), Avg: f(1.0), Max: f(1.0)},
+				{Timestamp: 1_574_839_683_813, Interval: interval, Min: f(1.0), Avg: f(1.0), Max: f(1.0)},
+				{Timestamp: 1_574_839_983_813, Interval: interval, Min: f(1.0), Avg: f(1.0), Max: f(1.0)},
+				{Timestamp: 1_574_840_283_813, Interval: interval, Min: f(1.0), Avg: f(1.0), Max: f(1.0)},
+				{Timestamp: 1_574_840_883_813, Interval: interval, Min: f(1.0), Avg: f(1.0), Max: f(1.0)},
+			},
+		},
+		{
+			MetricKey: metrikKey2,
+			Data: []MeasurementDataEntryDTO{
+				{Timestamp: 1_574_839_083_813, Interval: interval, Min: f(343.0), Avg: f(343.0), Max: f(343.0)},
+				{Timestamp: 1_574_839_383_813, Interval: interval, Min: f(342.0), Avg: f(342.0), Max: f(342.0)},
+				{Timestamp: 1_574_839_683_813, Interval: interval, Min: f(344.0), Avg: f(344.0), Max: f(344.0)},
+				{Timestamp: 1_574_839_983_813, Interval: interval, Min: f(343.0), Avg: f(343.0), Max: f(343.0)},
+				{Timestamp: 1_574_840_283_813, Interval: interval, Min: f(344.0), Avg: f(344.0), Max: f(344.0)},
+				{Timestamp: 1_574_840_883_813, Interval: interval, Min: f(344.0), Avg: f(344.0), Max: f(344.0)},
+			},
+		},
+		{
+			MetricKey: metrikKey3,
+			Data: []MeasurementDataEntryDTO{
+				{Timestamp: 1_574_839_083_813, Interval: interval, Min: f(0.207), Avg: f(0.207), Max: f(0.207)},
+				{Timestamp: 1_574_839_383_813, Interval: interval, Min: f(0.210), Avg: f(0.210), Max: f(0.210)},
+				{Timestamp: 1_574_839_683_813, Interval: interval, Min: f(0.214), Avg: f(0.214), Max: f(0.214)},
+				{Timestamp: 1_574_839_983_813, Interval: interval, Min: f(0.217), Avg: f(0.217), Max: f(0.217)},
+				{Timestamp: 1_574_840_283_813, Interval: interval, Min: f(0.221), Avg: f(0.221), Max: f(0.221)},
+				{Timestamp: 1_574_840_583_813, Interval: interval, Min: f(0.224), Avg: f(0.224), Max: f(0.224)},
+				{Timestamp: 1_574_840_883_813, Interval: interval, Min: f(0.228), Avg: f(0.228), Max: f(0.228)},
+			},
+		},
+	},
+}
+
+func TestClientImpl_FetchDataForMetrics(t *testing.T) {
+	payload, err := json.Marshal(exampleTestData)
 	require.NoError(t, err)
 
 	client := NewStableNetClient(&ConnectOptions{Address: "https://127.0.0.1:5443", Username: "infosim", Password: "stablenet"})
 
+	url := "https://127.0.0.1:5443/api/1/measurement-data/5555?$top=100"
+
 	httpmock.Activate()
-	httpmock.RegisterResponder("POST", url, httpmock.NewBytesResponder(200, rawData))
+	httpmock.RegisterResponder("POST", url, httpmock.NewBytesResponder(200, payload))
 	httpmock.ActivateNonDefault(client.client.GetClient())
 	defer httpmock.Deactivate()
 
+	metrics := []string{metrikKey1, metrikKey2, metrikKey3}
+
 	options := DataQueryOptions{
 		MeasurementObid: 5555,
-		Metrics:         []string{"System Processes", "System Users", "System Uptime"},
+		Metrics:         metrics,
 		Start:           time.Now(),
 		End:             time.Now().Add(5 * time.Minute),
 		Average:         250,
@@ -244,25 +295,24 @@ func TestClientImpl_FetchDataForMetrics(t *testing.T) {
 	actual, err := client.FetchDataForMetrics(options)
 	require.NoError(t, err)
 
+	assert.Equal(t, len(metrics), len(actual), "number of downloaded metrics")
+
+	assert.NotNil(t, actual["System Processes"], "systemProcesses must not be nil")
+	assert.NotNil(t, actual["System Users"], "systemUsers must not be nil")
+
 	systemUptime := actual["System Uptime"]
-
-	assert := testify.New(t)
-	assert.NotNil(actual["System Processes"], "systemProcesses must not be nil")
-	assert.NotNil(actual["System Users"], "systemUsers must not be nil")
-	assert.NotNil(systemUptime, "systemUptime must not be nil")
-
-	assert.Equal(3, len(actual), "number of downloaded metrics")
+	assert.NotNil(t, systemUptime, "systemUptime must not be nil")
 
 	var systemUptimeAvg = [][]interface{}{
-		{time.Unix(0, 1574839083813*int64(time.Millisecond)), 0.207},
-		{time.Unix(0, 1574839383813*int64(time.Millisecond)), 0.210},
-		{time.Unix(0, 1574839683813*int64(time.Millisecond)), 0.214},
-		{time.Unix(0, 1574839983813*int64(time.Millisecond)), 0.217},
-		{time.Unix(0, 1574840283813*int64(time.Millisecond)), 0.221},
-		{time.Unix(0, 1574840583813*int64(time.Millisecond)), 0.224},
-		{time.Unix(0, 1574840883813*int64(time.Millisecond)), 0.228},
+		{time.Unix(0, 1_574_839_083_813*int64(time.Millisecond)), 0.207},
+		{time.Unix(0, 1_574_839_383_813*int64(time.Millisecond)), 0.210},
+		{time.Unix(0, 1_574_839_683_813*int64(time.Millisecond)), 0.214},
+		{time.Unix(0, 1_574_839_983_813*int64(time.Millisecond)), 0.217},
+		{time.Unix(0, 1_574_840_283_813*int64(time.Millisecond)), 0.221},
+		{time.Unix(0, 1_574_840_583_813*int64(time.Millisecond)), 0.224},
+		{time.Unix(0, 1_574_840_883_813*int64(time.Millisecond)), 0.228},
 	}
-	assert.Equal(systemUptimeAvg, systemUptime.AsTable(false, false, true), "system uptime data")
+	assert.Equal(t, systemUptimeAvg, systemUptime.AsTable(false, false, true), "system uptime data")
 }
 
 func TestClientImpl_FetchDataForMetrics_Error(t *testing.T) {
@@ -294,7 +344,7 @@ func invalidJsonTest(shouldReturnError func(*StableNetClient) (interface{}, erro
 		defer httpmock.Deactivate()
 
 		result, err := shouldReturnError(client)
-		testify.Nil(t, result, "the result should be nil")
+		assert.Nil(t, result, "the result should be nil")
 		require.EqualError(t, err, "could not unmarshal json: invalid character '<' looking for beginning of value", "error message wrong")
 	}
 }

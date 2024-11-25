@@ -21,9 +21,9 @@ import (
 )
 
 type ConnectOptions struct {
-	Address  string `json:"snip"`
-	Username string `json:"snusername"`
-	Password string `json:"snpassword"`
+	Address  string
+	Username string
+	Password string
 }
 
 func NewStableNetClient(options *ConnectOptions) *StableNetClient {
@@ -31,18 +31,19 @@ func NewStableNetClient(options *ConnectOptions) *StableNetClient {
 		SetBasicAuth(options.Username, options.Password).
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 
-	return &StableNetClient{ConnectOptions: *options, client: client}
+	return &StableNetClient{Address: options.Address, client: client}
 }
 
 type StableNetClient struct {
-	ConnectOptions
-	client *resty.Client
+	Address string
+	client  *resty.Client
 }
 
 func (stableNetClient *StableNetClient) get(path string) (*resty.Response, error) {
-	url := stableNetClient.Address + path
-	return stableNetClient.client.R().Get(url)
+	return stableNetClient.client.R().Get(stableNetClient.Address + path)
 }
+
+var unauthorizedStatusMessage = "The StableNet® server could be reached, but the credentials were invalid."
 
 // Queries StableNet® for its version. Attention: Unlike Go-conventions state, this function returns a string point instead of an error in case the version cannot be fetched.
 // The reason is that the returned string is meant to be presented to the end user, while an error type string should generally not be presented to the end user.
@@ -56,8 +57,7 @@ func (stableNetClient *StableNetClient) QueryStableNetInfo() (*ServerInfo, *stri
 	}
 
 	if response.StatusCode() == http.StatusUnauthorized {
-		errorStr := "The StableNet® server could be reached, but the credentials were invalid."
-		return nil, &errorStr
+		return nil, &unauthorizedStatusMessage
 	}
 
 	if response.StatusCode() != http.StatusOK {
@@ -215,31 +215,10 @@ func (stableNetClient *StableNetClient) FetchDataForMetrics(options DataQueryOpt
 	return parseStatisticByteSlice(resp.Body())
 }
 
-type MeasurementDataEntryDTO struct {
-	Timestamp       int64    `json:"timestamp"`
-	Interval        int64    `json:"interval"`
-	MissingInterval int64    `json:"missingInterval"`
-	Min             *float64 `json:"min"`
-	Max             *float64 `json:"max"`
-	Avg             *float64 `json:"avg"`
-}
-
-type MeasurementMetricResultDataDTO struct {
-	MetricName   string                    `json:"metricName"`
-	MetricKey    string                    `json:"metricKey"`
-	MetricDataId int                       `json:"metricDataId"`
-	Data         []MeasurementDataEntryDTO `json:"data"`
-}
-
-type MeasurementMultiMetricResultDataDTO struct {
-	MeasruementId int                              `json:"measurementId"`
-	Values        []MeasurementMetricResultDataDTO `json:"values"`
-}
-
 func convertMeasurementData(data MeasurementDataEntryDTO) MetricData {
 	return MetricData{
-		Interval: time.Duration(data.Interval) * time.Millisecond,
 		Time:     time.Unix(0, data.Timestamp*int64(time.Millisecond)),
+		Interval: time.Duration(data.Interval) * time.Millisecond,
 		Min:      *data.Min,
 		Avg:      *data.Avg,
 		Max:      *data.Avg,
@@ -256,9 +235,8 @@ func parseStatisticByteSlice(bytes []byte) (map[string]MetricDataSeries, error) 
 	resultMap := make(map[string]MetricDataSeries)
 	for _, record := range data.Values {
 		key := record.MetricKey
-		data := record.Data
 
-		for _, measurementData := range data {
+		for _, measurementData := range record.Data {
 			metricData := convertMeasurementData(measurementData)
 			if _, ok := resultMap[key]; !ok {
 				resultMap[key] = make([]MetricData, 0)
