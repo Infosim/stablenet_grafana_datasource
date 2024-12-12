@@ -30,7 +30,6 @@ build_darwin:
 deploy_backends_dev:
 	cp ./backend-plugin/stablenet_backend_plugin* ./frontend-plugin/dist
 
-
 # Builds the documentation of the plugin (PDF-File). You need to have access to the StableNet® documentation repo
 # in order to use this goal. Set "export SN_DOCU_HOME=/path/to/your/doc/repo" before issuing this goal.
 docu:
@@ -43,7 +42,7 @@ docu:
 # This directory can directly be used to deploy the plugin
 combine:
 	cp -R ./frontend-plugin/dist/* ./dist
-	deploy_backends
+	cp ./backend-plugin/stablenet_backend_plugin* ./dist
 	rm ./dist/*.map
 
 # Puts the "dist" directory from "combine" into a zip file.

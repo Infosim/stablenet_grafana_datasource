@@ -27,16 +27,16 @@ const singleMetric: React.CSSProperties = {
 
 type Props = QueryEditorProps<DataSource, Target, StableNetConfigOptions, Target>;
 
-export const QueryEditor = ({ datasource, query, onChange, onRunQuery, }: Props) => {
-
-  const onModeChange = (v: SelectableValue<number>) => onChange({
-    ...query,
-    mode: v.value!,
-    includeMaxStats: false,
-    includeAvgStats: true,
-    includeMinStats: false,
-    averageUnit: Unit.MINUTES,
-  });
+export const QueryEditor = ({ datasource, query, onChange, onRunQuery }: Props) => {
+  const onModeChange = (v: SelectableValue<number>) =>
+    onChange({
+      ...query,
+      mode: v.value!,
+      includeMaxStats: false,
+      includeAvgStats: true,
+      includeMinStats: false,
+      averageUnit: Unit.MINUTES,
+    });
 
   const onStatisticLinkChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange({ ...query, statisticLink: event.target.value });
@@ -248,4 +248,4 @@ export const QueryEditor = ({ datasource, query, onChange, onRunQuery, }: Props)
       ) : null}
     </div>
   );
-}
+};
