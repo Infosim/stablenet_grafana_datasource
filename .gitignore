@@ -34,7 +34,7 @@ grafana
 
 **/dist/
 **/coverage.out
-**/stablenet-grafana-plugin.zip
+**/stablenet-grafana-plugin_*.zip
 
 stablenet-grafana-typescript/.nyc_output/
 /stablenet-grafana-6.x.x-plugin.zip
