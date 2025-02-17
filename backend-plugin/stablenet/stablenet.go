@@ -221,7 +221,7 @@ func convertMeasurementData(data MeasurementDataEntryDTO) MetricData {
 		Interval: time.Duration(data.Interval) * time.Millisecond,
 		Min:      *data.Min,
 		Avg:      *data.Avg,
-		Max:      *data.Avg,
+		Max:      *data.Max,
 	}
 }
 
